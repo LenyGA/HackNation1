@@ -189,11 +189,11 @@ Czyste funkcje bez I/O, każda z testami jednostkowymi na danych z fixture.
 
 ### M5. Nawadnianie — termin i dawka (A, faza 3, 2 h)
 
-- [ ] **M5.1 `recommendations/irrigation.py`.** Zasadność: `Dr > RAW` w fazie, w której uprawa reaguje na wodę, i dopiero po
+- [x] **M5.1 `recommendations/irrigation.py`.** Zasadność: `Dr > RAW` w fazie, w której uprawa reaguje na wodę, i dopiero po
   rekomendacjach retencyjnych. Dawka: uzupełnienie do polowej pojemności, ograniczone jednorazowo zależnie od gleby (lekka mniej,
   częściej). Termin: dla daty bieżącej projekcja `Dr` na 7 dni z prognozą opadu i ET0 („nawadniaj w ciągu N dni” albo „poczekaj,
   prognozowany opad pokryje niedobór”). Dla dat historycznych bez prognozy: stan na dzień analizy i wyraźna informacja o braku prognozy.
-- [ ] **M5.2 Zastrzeżenia w szablonie.** Informacja o dostępności wody i pozwoleniach wodnoprawnych jako czynnik nieuwzględniony w analizie.
+- [x] **M5.2 Zastrzeżenia w szablonie.** Informacja o dostępności wody i pozwoleniach wodnoprawnych jako czynnik nieuwzględniony w analizie.
 
 **Gotowe, gdy:** testy: mokra gleba → „nie nawadniaj”; sucha + brak opadu w prognozie → dawka w mm i termin; poza sezonem → sekcja
 mówi, że nawadnianie nie dotyczy.

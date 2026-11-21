@@ -13,11 +13,12 @@ from app.analysis.assessment import Assessment
 from app.analysis.context import AnalysisInputs
 from app.core.models import Indicator
 from app.recommendations.agrotech import AGROTECH_RULES
+from app.recommendations.irrigation import IRRIGATION_RULES
 from app.recommendations.models import CATEGORY_ORDER, Recommendation, Rule, RuleContext
 from app.recommendations.retention import RETENTION_RULES
 from app.recommendations.texts_pl import render
 
-ALL_RULES: list[Rule] = [*RETENTION_RULES, *AGROTECH_RULES]
+ALL_RULES: list[Rule] = [*RETENTION_RULES, *AGROTECH_RULES, *IRRIGATION_RULES]
 
 
 def _dedupe(evidence: list[Indicator]) -> list[Indicator]:

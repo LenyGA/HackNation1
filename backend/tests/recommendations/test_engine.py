@@ -34,7 +34,7 @@ def test_order_numbering_and_evidence() -> None:
     order = [(CATEGORY_ORDER.index(r.category), r.priority) for r in recs]
     assert order == sorted(order)
     assert recs[0].category is Category.RETENTION
-    assert recs[-1].category is Category.AGROTECH
+    assert recs[-1].category is Category.IRRIGATION
     for r in recs:
         assert r.evidence, r.id
         assert all(e.value is not None and e.source and e.uncertainty.reason_pl for e in r.evidence)

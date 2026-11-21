@@ -152,3 +152,43 @@ tak jak go pokazujemy. Na łące „brakuje teraz wody” piszemy tylko w okresi
 Elementy z OSM mogą być niepełne (pewność niska), a teren z modelu 30 m nie pokaże drobnych zagłębień — reguły,
 które z nich korzystają, dziedziczą tę pewność w dowodach. Piętrzenie wody na rowach wymaga uzgodnienia ze spółką
 wodną lub Wodami Polskimi, co mówi tekst rekomendacji.
+
+## 9. Nawadnianie — termin i dawka (`recommendations/irrigation.py`)
+
+Nawadnianie jest **ostatnim** krokiem (CLAUDE.md, zasada 2): rekomendacja `irrigation` ma kategorię `irrigation`,
+więc silnik ustawia ją na końcu listy, za retencją i agrotechniką, a jej tekst o tym przypomina. Sekcja 7 raportu
+(`IrrigationAdvice`) jest zawsze obecna i gdy nawadnianie nie dotyczy, mówi dlaczego.
+
+**Kiedy nawadnianie nie dotyczy** (`applicable = false`): niepełna ocena · data poza okresem wegetacji 21.03–30.09 ·
+uprawy nie ma na polu · faza dojrzewania (etap `late` FAO-56), chyba że trwa jeszcze okres krytyczny uprawy.
+Bez danych o glebie (brak bilansu strefy korzeniowej) albo przy braku danych pogodowych z dnia analizy nie podajemy
+dawki ani terminu i mówimy wprost, czego brakuje. Dla użytków zielonych koniec sezonu opisujemy jako koniec wzrostu łąki.
+
+**Zasadność:** wyczerpanie wody w strefie korzeniowej `Dr` > `RAW` = `p·TAW` (FAO-56 równ. 83–84, czyli `Ks < 1`).
+
+**Dawka:** uzupełnienie do polowej pojemności wodnej = `Dr` w dniu nawadniania (dawka **netto**, zaokrąglona do 1 mm),
+podzielona na równe dawki jednorazowe nie większe niż limit dla kategorii gleby: I — 15 mm, II — 20 mm,
+III — 30 mm, IV — 35 mm, nieznana — 20 mm (praktyka deszczowania w Polsce, Dzieżyc 1988). Lżejsza gleba → mniejsze
+i częstsze dawki, bo nadmiar wsiąka poniżej korzeni. Objętość na działkę: `dawka [mm] · powierzchnia [ha] · 10` m³.
+Raport zaznacza, że deszczownia traci część wody (dawka brutto jest większa). Objętość jest dowodem
+`irrigation_volume_m3` ze źródłem powierzchni (ULDK).
+
+**Termin** — tylko gdy istnieje prognoza wydana w dniu analizy (data analizy = dziś): `Dr` rzutujemy na
+7 dni tym samym bilansem dobowym z prognozowanym opadem i ET0 (projekcja kończy się na pierwszym dniu bez prognozy).
+
+| Stan w dniu analizy | Projekcja | Wynik |
+|---|---|---|
+| `Dr > RAW`, `Ks ≥ 0,5` | opad sprowadza `Dr ≤ RAW` w ciągu 3 dni | „poczekaj, prognozowany opad zmniejszy niedobór” |
+| `Dr > RAW` | brak takiego opadu albo `Ks < 0,5` (gleba prawie sucha) | „nawadniaj jak najszybciej (1–2 dni)”, dawka = dzisiejsze `Dr` |
+| `Dr ≤ RAW` | `Dr` przekroczy `RAW` w dniu N i opad nie sprowadzi go poniżej w ciągu kolejnych 3 dni | „nawadniaj najpóźniej za N dni”, dawka = rzutowane `Dr` z dnia N |
+| `Dr ≤ RAW` | nie przekroczy (lub tylko na chwilę przed deszczem) | „nie nawadniaj” |
+
+Przy `Ks < 0,5` rośliny tracą już ponad połowę transpiracji, więc czekanie kilku dni na deszcz kosztuje plon.
+Tekst „nawadniaj teraz” podaje opad prognozowany tylko w tym samym 3-dniowym oknie.
+
+Dla dat historycznych prognozy nie ma (nie używamy danych późniejszych niż data analizy): podajemy stan i dawkę na dzień
+analizy z jawną informacją o braku prognozy. Prognoza wydana innego dnia niż data analizy jest pomijana.
+
+**Czynniki nieuwzględnione (M5.2):** dostępność wody (studnia, rów, ciek, zbiornik) i wymagane zgody wodnoprawne
+(Wody Polskie) — każda porada nawadniania zawiera te zastrzeżenia, a sekcja „Ograniczenia analizy” ma pozycję
+`water_availability_and_permits`.

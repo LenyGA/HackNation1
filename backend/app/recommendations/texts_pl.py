@@ -4,6 +4,8 @@ Kept out of the rule logic. Report step M6.2 may move them to Jinja templates; k
 Derived placeholders (`*_pl`) are added by `render()` from the raw parameters.
 """
 
+from datetime import date
+
 from app.recommendations.models import ParamValue
 
 TITLES: dict[str, str] = {
@@ -216,8 +218,260 @@ def derived(template: str, params: dict[str, ParamValue]) -> dict[str, str]:
         if params.get("months"):
             parts.append(f"W ostatnich 10 latach wody często brakowało w miesiącach: {out['months_pl']}.")
         out["grass_pl"] = " ".join(parts)
+    if template == "irrigation":
+        out["irrigation_pl"] = irrigation_text(params)
     return out
 
 
 def render(template: str, params: dict[str, ParamValue]) -> tuple[str, str]:
     return TITLES[template], TEXTS[template].format(**derived(template, params))
+
+
+# --- irrigation (plan step M5) ----------------------------------------------------------------------
+
+TITLES["irrigation"] = "Nawadnianie: kiedy i ile wody"
+TEXTS["irrigation"] = "{irrigation_pl}"
+
+IRRIGATION_TITLES: dict[str, str] = {
+    "no_assessment": "Nawadnianie: brak zaleceń",
+    "off_season": "Nawadnianie nie dotyczy tego terminu",
+    "no_crop": "Nawadnianie nie dotyczy tego terminu",
+    "late_stage": "Nawadnianie nie jest już potrzebne",
+    "no_balance": "Nawadnianie: nie da się policzyć dawki",
+    "not_needed": "Nie nawadniaj",
+    "wait_for_rain": "Poczekaj z nawadnianiem",
+    "irrigate": "Nawadnianie: kiedy i ile wody",
+    "irrigate_soon": "Nawadnianie: kiedy i ile wody",
+}
+
+IRRIGATION_PL: dict[str, str] = {
+    "no_assessment": "Bez pełnej oceny sytuacji wodnej działki nie podajemy zaleceń nawadniania.",
+    "off_season": (
+        "Dzień analizy ({date}) wypada poza okresem wegetacji ({season_pl}), więc nawadnianie nie dotyczy."
+    ),
+    "no_crop": (
+        "W dniu analizy ({date}) na polu nie ma jeszcze uprawy ({crop}) albo jest już po zbiorze, "
+        "więc nawadnianie nie dotyczy."
+    ),
+    "late_stage": "{late_pl}",
+    "no_balance": "{no_balance_pl}",
+    "not_needed": (
+        "Nie nawadniaj. W dniu analizy ({date}) w glebie jest jeszcze ok. {available_mm} mm wody "
+        "dostępnej dla roślin, a uprawa ({crop}) nie odczuwa jej braku.{outlook_pl}"
+    ),
+    "wait_for_rain": (
+        "Poczekaj z nawadnianiem. Uprawie ({crop}) zaczyna brakować wody, ale prognoza zapowiada "
+        "ok. {rain_until_relief_mm} mm deszczu do {relief_date}, co powinno zmniejszyć niedobór. "
+        "Sprawdź ponownie po opadach."
+    ),
+    "irrigate": "{when_pl}{phase_pl} {dose_pl}{forecast_note_pl} {order_pl}",
+    "irrigate_soon": "{when_pl}{phase_pl} {dose_pl} {order_pl}",
+}
+
+LATE_PL = {
+    "crop": (
+        "Uprawa ({crop}) jest w dniu analizy ({date}) w fazie dojrzewania. Podlewanie na tym etapie "
+        "nie zwiększy już plonu."
+    ),
+    "grassland": (
+        "W dniu analizy ({date}) łąka kończy już sezon wzrostu. Podlewanie na tym etapie "
+        "nie zwiększy już plonu."
+    ),
+}
+
+NO_BALANCE_PL = {
+    "soil": (
+        "Bez pełnych danych o glebie nie da się policzyć, ile wody zostało w glebie, więc nie podajemy "
+        "terminu ani dawki nawadniania."
+    ),
+    "weather_gap": (
+        "Brakuje danych pogodowych z dnia analizy, więc nie da się policzyć, ile wody zostało w glebie, "
+        "ani podać terminu i dawki nawadniania."
+    ),
+}
+
+IRRIGATION_ORDER_PL = (
+    "Nawadnianie to ostatni krok — najpierw wykonaj działania zatrzymujące wodę na polu "
+    "z wcześniejszych punktów."
+)
+
+FORECAST_NOTE_PL = {
+    "historical": (
+        " Dla daty z przeszłości nie ma prognozy pogody, dlatego podajemy tylko stan na dzień analizy, "
+        "bez terminu nawadniania."
+    ),
+    "unavailable": (
+        " Prognoza pogody nie była dostępna, dlatego nie sprawdziliśmy, "
+        "czy w najbliższych dniach spadnie deszcz."
+    ),
+    "used": "",
+}
+
+NOT_NEEDED_OUTLOOK_PL = {
+    "used": (
+        " Według prognozy na {forecast_days_pl} zapas wody nie spadnie na dłużej do poziomu, przy którym "
+        "rośliny zaczynają cierpieć."
+    ),
+    "historical": " Dla daty z przeszłości nie ma prognozy pogody, więc to ocena stanu na dzień analizy.",
+    "unavailable": (
+        " Prognoza pogody nie była dostępna, więc nie sprawdziliśmy, "
+        "jak zapas wody zmieni się w najbliższych dniach."
+    ),
+}
+
+# Prawo wodne (2017), art. 33: "ordinary use" of water excludes sprinkler irrigation with groundwater and
+# abstraction above 5 m³/day, which need a water-law permit; "zwykle" because cases differ.
+IRRIGATION_CAVEATS_PL = [
+    "Analiza nie sprawdza, czy masz dostęp do wody do nawadniania (studnia, rów, ciek, zbiornik) ani czy "
+    "wystarczy jej na całą dawkę.",
+    "Nawadnianie deszczownią wodą podziemną, a także pobór wody ponad 5 m³ na dobę, zwykle wymaga pozwolenia "
+    "wodnoprawnego Wód Polskich. Sprawdź to przed rozpoczęciem nawadniania — analiza tego nie uwzględnia.",
+]
+DOSE_CAVEAT_PL = (
+    "Podana dawka to woda, która ma wsiąknąć w glebę. Deszczownia traci część wody na parowanie i znoszenie "
+    "przez wiatr, więc trzeba wylać jej nieco więcej."
+)
+
+SPLIT_REASON_PL = {
+    1: "bo lekka gleba nie zatrzyma więcej wody i nadmiar wsiąknie poniżej korzeni",
+    0: "żeby woda zdążyła wsiąknąć, zamiast spływać po powierzchni lub uciekać poniżej korzeni",
+}
+
+MONTHS_GENITIVE_PL = {
+    1: "stycznia",
+    2: "lutego",
+    3: "marca",
+    4: "kwietnia",
+    5: "maja",
+    6: "czerwca",
+    7: "lipca",
+    8: "sierpnia",
+    9: "września",
+    10: "października",
+    11: "listopada",
+    12: "grudnia",
+}
+DATE_PARAMS = ("date", "relief_date", "irrigate_by")
+
+
+def date_pl(iso: str) -> str:
+    """'2024-07-15' → '15 lipca 2024'."""
+    d = date.fromisoformat(iso)
+    return f"{d.day} {MONTHS_GENITIVE_PL[d.month]} {d.year}"
+
+
+def day_month_pl(iso: str) -> str:
+    """'2024-03-21' → '21 marca'."""
+    d = date.fromisoformat(iso)
+    return f"{d.day} {MONTHS_GENITIVE_PL[d.month]}"
+
+
+def days_pl(n: int) -> str:
+    return "1 dnia" if n == 1 else f"{n} dni"
+
+
+def days_nominative_pl(n: int) -> str:
+    return "1 dzień" if n == 1 else f"{n} dni"
+
+
+def doses_pl(n: int) -> str:
+    if n == 1:
+        return "dawkę"
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return "dawki"
+    return "dawek"
+
+
+def irrigation_title(status: str) -> str:
+    return IRRIGATION_TITLES[status]
+
+
+def irrigation_caveats(status: str) -> list[str]:
+    if status in ("irrigate", "irrigate_soon"):
+        return [*IRRIGATION_CAVEATS_PL, DOSE_CAVEAT_PL]
+    if status in ("not_needed", "wait_for_rain", "no_balance"):
+        return list(IRRIGATION_CAVEATS_PL)
+    return []
+
+
+def _when_now(params: dict[str, ParamValue], out: dict[str, str]) -> str:
+    crop = out["crop"]
+    forecast = str(params.get("forecast"))
+    if forecast == "historical":
+        return (
+            f"W dniu analizy ({out['date']}) uprawie ({crop}) brakowało wody i nawadnianie było uzasadnione."
+        )
+    lack = "bardzo brakuje" if params.get("severe") else "brakuje"
+    text = f"Uprawie ({crop}) {lack} wody — nawadniaj jak najszybciej, najlepiej w ciągu 1–2 dni."
+    if forecast != "used":
+        return text
+    rain = float(params.get("rain_soon_mm", 0))
+    days = days_pl(int(params.get("wait_days", 0)))
+    if rain < 1:
+        return text + f" Prognoza nie zapowiada deszczu w ciągu najbliższych {days}."
+    if params.get("severe"):
+        return text + (
+            f" Nie czekaj na zapowiadany deszcz (ok. {fmt(rain)} mm w ciągu najbliższych {days}) — "
+            "w glebie prawie nie ma już wody dla roślin."
+        )
+    return text + (
+        f" Deszcz zapowiadany w ciągu najbliższych {days} (ok. {fmt(rain)} mm) nie wystarczy, "
+        "żeby pokryć niedobór."
+    )
+
+
+def _dose(params: dict[str, ParamValue], out: dict[str, str]) -> str:
+    n = int(params.get("applications", 1))
+    dose = (
+        f"Do pełnego uzupełnienia wody w glebie brakuje ok. {out['dose_mm']} mm "
+        f"(ok. {out['volume_m3']} m³ wody na całą działkę)."
+    )
+    if n > 1:
+        light = int(params.get("light_soil", 0))
+        soil = "lekkiej " if light else ""
+        dose += (
+            f" Na tej {soil}glebie podawaj jednorazowo najwyżej ok. {out['single_dose_max_mm']} mm — "
+            f"rozłóż wodę na {n} {doses_pl(n)} po ok. {out['single_dose_mm']} mm co 2–3 dni, "
+            f"{SPLIT_REASON_PL[light]}."
+        )
+    else:
+        dose += f" Wystarczy jedna dawka ok. {out['dose_mm']} mm."
+    if params.get("within_days") == 0:
+        dose += " Jeśli nawodnisz później, dawka będzie nieco większa, bo rośliny dalej zużywają wodę."
+    return dose
+
+
+def irrigation_text(params: dict[str, ParamValue]) -> str:
+    """Polish text of the irrigation advice (report section 7 and the recommendation in the list)."""
+    status = str(params["status"])
+    out = {k: fmt(v) for k, v in params.items()}
+    for key in DATE_PARAMS:
+        if key in params:
+            out[key] = date_pl(str(params[key]))
+    if "season_start" in params and "season_end" in params:
+        out["season_pl"] = (
+            f"{day_month_pl(str(params['season_start']))} – {day_month_pl(str(params['season_end']))}"
+        )
+    forecast = str(params.get("forecast", "historical"))
+    out["forecast_note_pl"] = FORECAST_NOTE_PL.get(forecast, "")
+    out["order_pl"] = IRRIGATION_ORDER_PL
+    phase = params.get("phase")
+    out["phase_pl"] = f" To okres, w którym uprawa najbardziej potrzebuje wody ({phase})." if phase else ""
+    if status == "late_stage":
+        out["late_pl"] = LATE_PL["grassland" if params.get("grassland") else "crop"].format(**out)
+    if status == "no_balance":
+        out["no_balance_pl"] = NO_BALANCE_PL[str(params.get("reason", "soil"))]
+    if status == "not_needed":
+        out["forecast_days_pl"] = days_nominative_pl(int(params.get("forecast_days", 0)))
+        out["outlook_pl"] = NOT_NEEDED_OUTLOOK_PL.get(forecast, "").format(**out)
+    if status == "irrigate":
+        out["when_pl"] = _when_now(params, out)
+        out["dose_pl"] = _dose(params, out)
+    if status == "irrigate_soon":
+        out["when_pl"] = (
+            "Według prognozy zapas wody w glebie spadnie do poziomu, przy którym "
+            f"uprawie ({out['crop']}) zacznie brakować wody, w ciągu {days_pl(int(params['within_days']))} — "
+            f"nawadniaj najpóźniej {out['irrigate_by']}."
+        )
+        out["dose_pl"] = _dose(params, out)
+    return " ".join(IRRIGATION_PL[status].format(**out).split())

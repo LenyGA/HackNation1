@@ -261,7 +261,14 @@ def _current(ctx: Context) -> CurrentState | None:
             indicator("taw_mm", ctx.balance.taw_mm, "mm", rsrc, level=Confidence.MEDIUM, reason="soil_map"),
             indicator("raw_mm", ctx.balance.raw_mm, "mm", rsrc, level=Confidence.MEDIUM, reason="soil_map"),
             indicator(
-                "root_zone_depletion_mm", today.dr_mm, "mm", rsrc, level=Confidence.MEDIUM, reason="root_zone"
+                "root_zone_depletion_mm",
+                today.dr_mm,
+                "mm",
+                rsrc,
+                level=Confidence.MEDIUM,
+                reason="root_zone",
+                start=day,
+                end=day,
             ),
             indicator(
                 "root_zone_available_mm",
@@ -281,7 +288,17 @@ def _current(ctx: Context) -> CurrentState | None:
                 level=Confidence.MEDIUM,
                 reason="root_zone",
             ),
-            indicator("ks", ks_end, "", rsrc, level=Confidence.MEDIUM, reason="root_zone", step=0.01),
+            indicator(
+                "ks",
+                ks_end,
+                "",
+                rsrc,
+                level=Confidence.MEDIUM,
+                reason="root_zone",
+                step=0.01,
+                start=day,
+                end=day,
+            ),
         ]
 
     last_season: LastSeason | None = None

@@ -3,12 +3,15 @@
 from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 CATALOG_PATH = Path(__file__).with_name("catalog.yaml")
+
+Stage = Literal["initial", "development", "mid", "late"]
+STAGES: tuple[Stage, ...] = ("initial", "development", "mid", "late")
 
 
 def month_day(value: str, year: int) -> date:
@@ -102,6 +105,19 @@ class Crop(BaseModel):
             return self.kc_mid
         t -= mid
         return self.kc_mid + (self.kc_end - self.kc_mid) * (t + 1) / late
+
+    def stage(self, day: date) -> Stage | None:
+        """FAO-56 growth stage on a calendar day, or None when the field has no crop."""
+        start = self.season_start(day)
+        if start is None:
+            return None
+        t = (day - start).days
+        bounds = 0
+        for name, length in zip(STAGES, self.stages_days, strict=True):
+            bounds += length
+            if t < bounds:
+                return name
+        return STAGES[-1]
 
     def critical_period_at(self, day: date) -> CriticalPeriod | None:
         start = self.season_start(day)

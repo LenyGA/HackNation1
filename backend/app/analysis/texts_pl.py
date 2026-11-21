@@ -25,6 +25,8 @@ REASONS: dict[str, str] = {
     "history_crop_balance": (
         "Bez danych o glebie częstość niedoborów policzono z samego bilansu opadu i parowania."
     ),
+    "forecast": "Prognoza pogody na najbliższe dni; może się jeszcze zmienić.",
+    "irrigation_volume": "Dawka nawadniania razy powierzchnia działki z ewidencji gruntów (ULDK).",
     "computed": "Wartość wyliczona przez aplikację z danych źródłowych.",
 }
 
