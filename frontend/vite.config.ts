@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
+  // MapLibre alone is ~1 MB minified; it is loaded only with the pages that show a map.
+  build: { chunkSizeWarningLimit: 1200 },
   server: {
     proxy: { '/api': 'http://localhost:8000' },
   },

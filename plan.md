@@ -215,16 +215,16 @@ i otwiera się poprawnie.
 
 ### M7. Frontend — `frontend/src/` (B)
 
-- [ ] **M7.1 Strona startowa (faza 1).** Trzy kroki na jednym ekranie: (1) działka — pole na numer **albo** klik na mapie,
+- [x] **M7.1 Strona startowa (faza 1).** Trzy kroki na jednym ekranie: (1) działka — pole na numer **albo** klik na mapie,
   (2) uprawa — lista z `GET /api/crops`, (3) data — domyślnie dziś, zakres do 10 lat wstecz. Jeden duży przycisk „Sprawdź działkę”.
   Walidacja z komunikatami po polsku. Przykład formatu numeru pod polem.
-- [ ] **M7.2 Mapa (faza 1).** MapLibre: ortofotomapa Geoportalu + granice i numery działek (WMS KIEG) + przycisk „Moja lokalizacja”.
+- [x] **M7.2 Mapa (faza 1).** MapLibre: ortofotomapa Geoportalu + granice i numery działek (WMS KIEG) + przycisk „Moja lokalizacja”.
   Klik → `GET /api/parcels?lat&lon` → podświetlenie obrysu i wpisanie numeru do pola. Atrybucje źródeł na mapie.
-- [ ] **M7.3 Ekran postępu i raport (faza 3).** Postęp: lista źródeł ze stanem (pobieram / gotowe / brak danych). Raport: u góry
+- [x] **M7.3 Ekran postępu i raport (faza 3).** Postęp: lista źródeł ze stanem (pobieram / gotowe / brak danych). Raport: u góry
   kolorowy wskaźnik stanu z jednym zdaniem, potem sekcje z M6.1 jako karty; każda rekomendacja ma rozwijane „Dlaczego?” z dowodami.
   Wykres opadu i zapotrzebowania na wodę (bieżący sezon na tle 10 lat) oraz tabela miesięcy ryzyka. Przyciski: „Pobierz PDF”,
   „Drukuj”, „Kopiuj link do raportu”.
-- [ ] **M7.4 Mapa miejsc retencji (faza 3).** Na mapie raportu: obrys działki, miejsca gromadzenia się wody, kierunek i wylot spływu,
+- [x] **M7.4 Mapa miejsc retencji (faza 3).** Na mapie raportu: obrys działki, miejsca gromadzenia się wody, kierunek i wylot spływu,
   pobliskie rowy, cieki, oczka i zadrzewienia. Każdy znacznik powiązany z numerem rekomendacji z sekcji 5. Legenda prostym językiem.
 - [ ] **M7.5 Telefon i przeglądarki (faza 4).** Układ jednokolumnowy przy 360 px, duże pola dotykowe, mapa nie blokuje przewijania.
   Sprawdzenie w Chrome, Firefox, Edge, Safari i Operze.
