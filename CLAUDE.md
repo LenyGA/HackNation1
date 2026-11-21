@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**RolnikSzukaWody** — zespół **GeoSatel**.
+
 Projekt na HackNation 2026 (Bydgoszcz, 21–22.11.2026). Zadanie KOWR: **„Zatrzymaj wodę, chroń plony”**.
 Aplikacja webowa dla rolnika: podajesz numer działki ewidencyjnej (lub klikasz ją na mapie) i wybierasz uprawę. Narzędzie pobiera
 dane publiczne i liczy ocenę sytuacji wodnej (stan bieżący + 10 lat historii). Na tej podstawie generuje raport z rekomendacjami
@@ -160,3 +162,8 @@ docs/                   # REQUIREMENTS.md, METHODOLOGY.md, DATA_SOURCES.md, task
 - [ ] Nazwa zespołu i tytuł rozwiązania.
 - [ ] Dokładna lista upraw. Planowane: pszenica ozima, żyto, jęczmień jary, rzepak ozimy, kukurydza, ziemniaki,
       buraki cukrowe, użytki zielone, warzywa polowe.
+
+## Git
+
+- Commitujemy i pushujemy **prosto na `main`** (bez gałęzi funkcyjnych i PR). Każdy gotowy krok planu = commit + `git push`.
+- Nie commitujemy zależności (`.venv/`, `node_modules/`), cache, baz SQLite ani `.env` — pilnuje tego `.gitignore`.

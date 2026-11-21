@@ -16,7 +16,7 @@ Ten plik mówi tylko **co robimy, w jakiej kolejności i po czym poznać, że kr
 | Hosting | osobny VPS (2 GB RAM) z jednym kontenerem Docker; domena z LH.pl, subdomena rekordem `A` na VPS. Hosting współdzielony LH.pl nie uruchomi backendu |
 | Raport | zapis w systemie (link z ID) + PDF z serwera (WeasyPrint) + druk z przeglądarki |
 | Materiały zgłoszeniowe | tylko checklista (rozdz. 7), treść przygotowuje zespół |
-| Nazwa zespołu i tytuł | zespół: **GeoSatel**; tytuł aplikacji do podania, do tego czasu w `core/config.py` stała `APP_TITLE = "Woda na polu"` (robocza) |
+| Nazwa zespołu i tytuł | zespół: **GeoSatel**; tytuł aplikacji: **RolnikSzukaWody** (`core/config.py`: `APP_TITLE = "RolnikSzukaWody"`) |
 
 ## 2. Decyzje projektowe, które rozstrzygam w planie
 
