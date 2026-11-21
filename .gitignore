@@ -1,0 +1,32 @@
+# System
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Dane lokalne aplikacji
+backend/.cache/
+*.sqlite
+*.sqlite3
+*.db
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# Sekrety
+.env
+.env.*
+!.env.example
+
+# Edytory
+.vscode/
+.idea/
