@@ -39,7 +39,7 @@ retencyjnymi, agrotechnicznymi i nawodnieniowymi.
 | Backend | Python 3.12, FastAPI, Pydantic v2, httpx (async), rasterio, pystac-client, shapely, pyproj, numpy |
 | Raport PDF | Jinja2 + WeasyPrint (ten sam szablon HTML służy do druku w przeglądarce) |
 | Storage | SQLite (zapisane raporty z ID), cache odpowiedzi API na dysku (`backend/.cache/`, w .gitignore) |
-| Frontend | React + Vite + TypeScript, Tailwind CSS + shadcn/ui, MapLibre GL |
+| Frontend | React 19 + Vite + TypeScript 6.0 (nie 7 — typescript-eslint go jeszcze nie wspiera), Tailwind CSS 4 + shadcn/ui, MapLibre GL, React Router |
 | Zależności | `pip` + `venv` (`backend/requirements.txt`), `npm` (`frontend/package-lock.json`) |
 | Jakość | ruff, mypy, pytest · ESLint, `tsc --noEmit` |
 
