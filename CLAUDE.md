@@ -147,9 +147,9 @@ docs/                   # REQUIREMENTS.md, METHODOLOGY.md, DATA_SOURCES.md, task
 - Przed zgłoszeniem zmiany jako „gotowej” uruchom testy unit, ruff, mypy i `tsc`. Jeśli dotykasz UI, sprawdź je w przeglądarce
   na szerokości desktopowej i mobilnej.
 
-## Praca zespołowa (4–6 osób)
+## Praca zespołowa
 
-- `main` ma zawsze działać, bo z niego robimy demo. Pracujemy na krótkich branchach `feat/…`, `fix/…`, `docs/…` z PR-em do `main`.
+- `main` ma zawsze działać, bo z niego robimy demo. Pracujemy prosto na `main` (patrz sekcja Git), więc przed pushem uruchom testy i lintery.
 - Małe commity w stylu Conventional Commits (`feat(sources): add SoilGrids client`).
 - **Repo jest prywatne do końca wydarzenia** (wymóg regulaminu). Nie zmieniaj widoczności i nie publikuj kodu gdzie indziej.
 - Zmiany w kontrakcie API (`api/`, `frontend/src/api/types.ts`) ogłaszaj zespołowi, bo dotykają frontu i backendu jednocześnie.
@@ -159,7 +159,7 @@ docs/                   # REQUIREMENTS.md, METHODOLOGY.md, DATA_SOURCES.md, task
 ## Otwarte decyzje (TODO)
 
 - [ ] Hosting wersji dla jury (publiczny link) oraz `docker-compose.yml` jako zapasowa instrukcja uruchomienia.
-- [ ] Nazwa zespołu i tytuł rozwiązania.
+- [x] Nazwa zespołu i tytuł rozwiązania: zespół **GeoSatel**, tytuł **RolnikSzukaWody**.
 - [ ] Dokładna lista upraw. Planowane: pszenica ozima, żyto, jęczmień jary, rzepak ozimy, kukurydza, ziemniaki,
       buraki cukrowe, użytki zielone, warzywa polowe.
 

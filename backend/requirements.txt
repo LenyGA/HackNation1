@@ -1,0 +1,14 @@
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.4
+pydantic-settings==2.16.3
+httpx==0.28.1
+rasterio==1.5.2
+pystac-client==0.9.1
+shapely==2.2.0
+pyproj==3.8.0
+numpy==2.5.5
+Jinja2==3.1.6
+weasyprint==70.0
+PyYAML==6.0.4
+python-dateutil==4.0.0

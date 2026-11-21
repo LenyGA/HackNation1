@@ -1,0 +1,21 @@
+# Crop catalogue. Agronomic parameters (Kc, stage lengths, rooting depth, p, critical periods) are added in plan step M3.1,
+# each with its source. For now only identifiers and Polish names.
+crops:
+  - id: winter_wheat
+    name_pl: Pszenica ozima
+  - id: rye
+    name_pl: Żyto
+  - id: spring_barley
+    name_pl: Jęczmień jary
+  - id: winter_rapeseed
+    name_pl: Rzepak ozimy
+  - id: maize
+    name_pl: Kukurydza
+  - id: potato
+    name_pl: Ziemniaki
+  - id: sugar_beet
+    name_pl: Buraki cukrowe
+  - id: grassland
+    name_pl: Użytki zielone
+  - id: field_vegetables
+    name_pl: Warzywa polowe

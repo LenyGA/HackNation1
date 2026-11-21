@@ -1,0 +1,29 @@
+[project]
+name = "rolnikszukawody-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = [".venv", ".cache"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["\\.venv", "tests/fixtures"]
+
+[[tool.mypy.overrides]]
+module = ["rasterio.*", "pystac_client.*", "shapely.*", "pyproj.*", "weasyprint.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["e2e: end-to-end tests against live data sources (slow, need network)"]
+addopts = "-m 'not e2e'"
