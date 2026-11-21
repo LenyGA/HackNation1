@@ -3,6 +3,11 @@
 Druga runda zmian po pierwszej wersji prototypu (`plan.md` M0–M10). Zasady nadrzędne, stack i konwencje: `CLAUDE.md`.
 Ten plik mówi **co zmieniamy, w jakiej kolejności i po czym poznać, że krok jest gotowy**.
 
+> **Aktualizacja 21.11.2026, ok. 23:00 (uwagi zespołu z `Uwagi/krotkie uwagi.docx` i `Uwagi/Uwagi ogólne.docx`):**
+> doszła runda **R — przebudowa raportu** (rozdz. 3, przed L2); **L4 i L6.2 przeniesione do L7 „na później”**; sposób nawadniania
+> (deszczownia / kroplowe / mikrozraszacze) dołączony do L2. Kolejność: **L1 → R → L2 → L3 → L5 → L6 → K7**. Szczegóły kroków
+> i tabela 38 uwag z przypisanymi krokami: `plan2.md` (moduł R i rozdz. 7).
+
 ## 1. Ustalenia (odpowiedzi zespołu z 21.11.2026)
 
 | Temat | Decyzja |
@@ -16,11 +21,15 @@ Ten plik mówi **co zmieniamy, w jakiej kolejności i po czym poznać, że krok 
 | Wyszukiwarka upraw | podpowiedzi od 3 liter |
 | Suwak lat | 3–10 lat, zmienia **tylko wykresy**; ocena i rekomendacje zawsze z 10 lat (wymóg zadania); przy 3–4 latach ostrzeżenie |
 | Pogoda „wyjaśniająca” | wilgotność, punkt rosy, nasłonecznienie, zachmurzenie, wiatr — tylko jako wyjaśnienie przyczyn wysokiego parowania; są już w ET0 (Penman–Monteith), więc **nie** wchodzą drugi raz do oceny |
+| Raport (uwagi z 23:00) | dwa warianty **Podstawowy / Pełny** — jeden przełącznik dla strony, PDF i druku; podstawowy 1–2 strony, ale ze źródłami, ograniczeniami i brakami danych (regulamin) |
+| Ocena bieżąca (uwaga K1) | werdykt z **3 sygnałów**: zapas w glebie, bilans 60 dni na tle 10 lat, bilans sezonu; stan „zapas się kurczy” i „wystarczy na ok. X dni” |
+| Sposób nawadniania (uwaga K2) | pole w formularzu: deszczownia / kroplowe / mikrozraszacze, sprawność z FAO (zamiast stałych 75%); dla sadów domyślnie kroplowe |
+| Cięcie zakresu | L4 (śnieg, pogoda wyjaśniająca) i L6.2 (kopalnie) → L7 „na później”, w raporcie jako ograniczenia |
 | Poza zakresem | mgły (znikomy wpływ na bilans, brak wiarygodnych danych dla dowolnej działki) · wpływ miasta (wyspa ciepła nie sięga pól, siatka meteo 9–25 km) |
 
 ### Stan wyjściowy
 
-- [ ] **Do cofnięcia przed startem L2:** w `backend/app/crops/catalog.py` i `catalog.yaml` leżą niecommitowane, częściowe zmiany
+- [x] **Do cofnięcia przed startem L2** (zrobione w K0.1): w `backend/app/crops/catalog.py` i `catalog.yaml` leżą niecommitowane, częściowe zmiany
   (pole `kind`, 4 uprawy owocowe). Zespół zdecydował o cofnięciu (`git checkout -- backend/app/crops/catalog.py backend/app/crops/catalog.yaml`);
   L2.1 robi to od nowa razem z regułami i testami. **Nie pushować tego stanu** — sady dostałyby rady o międzyplonie i orce.
 
@@ -62,6 +71,18 @@ Ten plik mówi **co zmieniamy, w jakiej kolejności i po czym poznać, że krok 
   Źródło obrysu do `docs/DATA_SOURCES.md`.
   **Gotowe, gdy:** klik w Słubicach (PL) wybiera działkę, klik we Frankfurcie nad Odrą (DE) i w Kaliningradzie pokazuje alert bez
   zapytania do serwera; test jednostkowy funkcji na 6 punktach przygranicznych.
+
+### R. Przebudowa raportu (A+B, zmiana kontraktu API) — nowa runda z uwag 21.11, ok. 23:00
+
+Raport ma być serią **zdań-esencji, pod każdym kafel ze szczegółami** (uwaga O26); liczba zawsze z oceną (dobrze / źle / w normie),
+bez powtarzania danych działki i opisów źródeł w treści. Kroki i kryteria „gotowe, gdy” w `plan2.md`, moduł R:
+
+- [ ] **R1 Werdykt z 3 sygnałów + tendencja** (K1, O13).
+- [ ] **R2 Trendy tylko istotne statystycznie** (Mann–Kendall, Sen) i jeden wykres trendów z przełącznikiem (K5–K7, O22–O23).
+- [ ] **R3 Raport Podstawowy / Pełny**, kafle w kolorach, klasyczny spis treści, ten sam wariant w PDF i druku (O1–O9, O17, O21, O26).
+- [ ] **R4 Teksty na krótko** wg wzorów z `plan2.md` rozdz. 7 (K4, O10, O12, O14–O16, O18, O24, O27, O29, O30).
+- [ ] **R5 Zalecenia „teraz” i „przed następnym sezonem”** (O11, O28).
+- [ ] **R6 Źródła jako przypisy numerowane**, jedna lista na końcu, ograniczenia jako kafel (O4, O19, O31).
 
 ### L2. Sady i krzewy owocowe (A)
 
@@ -118,7 +139,9 @@ Ten plik mówi **co zmieniamy, w jakiej kolejności i po czym poznać, że krok 
   (formularz nadal da się wysłać bez ich dotykania). Do raportu (`ReportPage.tsx:305`) dopisać termin siewu i sposób uprawy, jeśli podane.
   **Gotowe, gdy:** przepływ działka → uprawa → data → „Sprawdź działkę” działa bez nowych pól; na telefonie formularz mieści się bez poziomego przewijania.
 
-### L4. Śnieg i pogoda wyjaśniająca (A)
+### L4. Śnieg i pogoda wyjaśniająca (A) — **przeniesione do L7 „na później”** (decyzja z 21.11, ok. 23:00)
+
+Opis zostaje jako zapis na później; w tej rundzie śnieg i roztopy trafiają tylko do „Ograniczeń analizy”.
 
 - [ ] **L4.1 Śnieg i roztopy.** `open_meteo.py`: dobowe `snowfall_sum`; pokrywa śnieżna `snow_depth` (w archiwum godzinowa → maksimum dobowe)
   i temperatura gleby 0–7 cm — **najpierw sprawdzić dostępność w archiwum ERA5 i forecast** (jak M1 w `plan.md`). Opad już zawiera wodę ze śniegu,
@@ -157,7 +180,8 @@ Ten plik mówi **co zmieniamy, w jakiej kolejności i po czym poznać, że krok 
   przyczyna „woda gruntowa łagodzi niedobór” i obniżona pewność bilansu (model jej nie liczy). Odległość stacji od działki jawnie w raporcie.
   Sama odległość od rzeki **nie** jest czynnikiem (pozorna precyzja).
   **Gotowe, gdy:** test reguły na stacji z płytkim i głębokim zwierciadłem; brak stacji w promieniu → brak wniosku, bez wartości domyślnej.
-- [ ] **L6.2 Kopalnie odkrywkowe i duże ujęcia wody (lej depresji).** Sprawdzić darmowe źródło (PIG-PIB MIDAS: obszary górnicze,
+- [ ] ~~**L6.2 Kopalnie odkrywkowe i duże ujęcia wody (lej depresji).**~~ **Przeniesione do L7** (21.11, ok. 23:00) — w tej rundzie tylko
+  wpis do „Ograniczeń analizy”. Zapis pierwotny: Sprawdzić darmowe źródło (PIG-PIB MIDAS: obszary górnicze,
   WMS/WFS; mapy lejów depresji tylko dla części kopalń) i licencję. Wynik: „działka leży X km od obszaru górniczego odkrywki”, jako
   możliwa przyczyna niskich wód gruntowych, z niską pewnością. Jeśli źródło nie zadziała w 30 min sprawdzania — przenieść do „Ograniczeń analizy”.
   **Gotowe, gdy:** działka w pobliżu Bełchatowa dostaje wzmiankę, działka na Podlasiu nie; źródło w `docs/DATA_SOURCES.md`.
@@ -168,22 +192,28 @@ Ten plik mówi **co zmieniamy, w jakiej kolejności i po czym poznać, że krok 
 
 ### L7. Na później (po zgłoszeniu lub gdy zostanie czas)
 
+- [ ] **L4 Śnieg i pogoda wyjaśniająca** — cały moduł (opis wyżej), przeniesiony 21.11.
+- [ ] **L6.2 Kopalnie odkrywkowe** (opis wyżej), przeniesione 21.11.
+
 - [ ] **L7.1 Sposób uprawy w bilansie wodnym.** Mniejsze parowanie z gleby przy resztkach na powierzchni wg FAO-56 rozdz. 11
   (ok. 5% mniej na każde 10% przykrycia). Wymaga założenia o przykryciu resztkami (nie mierzymy go), więc w raporcie jako jawny szacunek.
 
 ## 4. Co tniemy, gdy brakuje czasu (w tej kolejności)
 
-1. L6.2 kopalnie (najbardziej niepewne źródło) → do „Ograniczeń analizy”.
-2. L4.2 pogoda wyjaśniająca.
+L4 i L6.2 są już wycięte. Dalej, w tej kolejności (pełna lista: `plan2.md` rozdz. 6):
+
+1. R2: przełącznik metryk na wykresie trendów; potem R6: przypisy numerowane.
+2. Zakres dzień / tydzień / miesiąc w sekcji „Jak było” (uwaga O20, `plan2.md` L5.1d).
 3. Suwak dla wykresów innych niż sezon (L5.1 — zostaje tylko wykres sezonu).
 4. Synonimy w wyszukiwarce (L5.2 — zostaje samo wyszukiwanie po nazwie).
 5. Maska terenu poza Polską (L1.4 — zostaje alert).
 
-Nie tniemy: L1.1–L1.4 (demo), L2.1–L2.2 (bez nich sady dostają błędne rady), L1.2 (jury testuje daty historyczne).
+Nie tniemy: L1.1–L1.4 (demo), R1, R3–R5 (uwagi krytyczne zespołu), L2.1–L2.2 (bez nich sady dostają błędne rady), L1.2 (jury testuje daty historyczne).
 
 ## 5. Dokumentacja do zaktualizowania
 
 - [ ] `CLAUDE.md` — lista upraw w „Otwarte decyzje”, nowe pola formularza.
-- [ ] `docs/METHODOLOGY.md` — rozdz. 8 (nowa reguła, wyłączenia dla sadów, warianty sposobu uprawy), śnieg, woda gruntowa.
+- [ ] `docs/METHODOLOGY.md` — rozdz. 8 (nowa reguła, wyłączenia dla sadów, warianty sposobu uprawy), werdykt z 3 sygnałów, trendy
+  (Mann–Kendall, Sen), sprawności sposobów nawadniania, woda gruntowa; śnieg i kopalnie jako ograniczenia.
 - [ ] `docs/DATA_SOURCES.md` — obrys granicy Polski, nowe zmienne Open-Meteo, ewentualnie MIDAS.
-- [ ] `README.md` — nowe funkcje, znane ograniczenia (sady na karłowych podkładkach, termin siewu jako przesunięcie, suwak tylko na wykresach).
+- [ ] `README.md` — nowe funkcje (raport Podstawowy / Pełny, sposób nawadniania), znane ograniczenia (sady na karłowych podkładkach, termin siewu jako przesunięcie, suwak tylko na wykresach).
