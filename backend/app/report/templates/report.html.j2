@@ -24,25 +24,112 @@
   <div class="confidence">{{ r.headline.confidence_pl }}</div>
 </div>
 
+{% if r.summary_tiles %}
+<div class="tiles">
+{% for t in r.summary_tiles %}
+  <div class="tile {{ t.status }}">
+    <div class="tl">{{ t.label_pl }}</div>
+    <div class="tv">{{ t.value_pl }}</div>
+    {% if t.gauge %}<div class="gauge"><div class="fill" style="width: {{ (100 * t.gauge.value / t.gauge.max)|round(1) if t.gauge.max else 0 }}%"></div>{% if t.gauge.threshold is not none and t.gauge.max %}<div class="thr" style="left: {{ (100 * t.gauge.threshold / t.gauge.max)|round(1) }}%"></div>{% endif %}</div>{% endif %}
+    <div class="td">{{ t.detail_pl }}</div>
+  </div>
+{% endfor %}
+</div>
+{% endif %}
+
 {% for s in r.sections %}
 <section class="section-{{ s.id }}{% if s.id == 'sources' %} sources{% elif s.id == 'limitations' %} limits{% endif %}">
   <h2>{{ s.number }}. {{ s.title_pl }}</h2>
   {% for p in s.paragraphs_pl %}<p{% if p in r.missing_data_pl %} class="missing-line"{% endif %}>{{ p }}</p>{% endfor %}
 
+  {% if s.id == 'current' and r.satellite and charts.satellite %}
+  <div class="chart"><div class="cap">Kondycja roślin z satelity: teraz i w tych samych tygodniach w poprzednich latach</div>{{ charts.satellite|safe }}<p>{{ r.satellite.text_pl }}</p><div class="src">Źródło: {{ r.satellite.source }}</div></div>
+  {% endif %}
+
   {% if s.id == 'vulnerability' and r.months %}
   <table>
-    <thead><tr><th>Miesiąc</th><th>Lata z niedoborem wody</th><th>Częstość</th><th>Uwagi</th></tr></thead>
+    <thead><tr><th>Miesiąc</th><th>Lata z niedoborem wody</th><th>Lata z poważnym niedoborem</th><th>Średnio dni stresu</th><th>Częstość</th><th>Uwagi</th></tr></thead>
     <tbody>
     {% for m in r.months %}
       <tr class="{% if m.risk %}risk{% endif %}">
         <td class="{% if m.critical %}critical{% endif %}">{{ m.month_pl }}</td>
         <td class="num">{{ m.deficit_years }} z {{ m.years_with_data }}</td>
+        <td class="num">{{ m.severe_years }} z {{ m.years_with_data }}</td>
+        <td class="num">{% if m.mean_stress_days is not none %}{{ m.mean_stress_days|num }}{% else %}–{% endif %}</td>
         <td class="num">{% if m.frequency_pct is not none %}{{ m.frequency_pct|num }} %{% else %}brak danych{% endif %}</td>
         <td>{% if m.critical %}okres, gdy uprawa najbardziej potrzebuje wody{% endif %}{% if m.risk and m.critical %}; {% endif %}{% if m.risk %}częsty niedobór{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
+  {% endif %}
+
+  {% if s.id == 'vulnerability' and r.stress_heatmap %}
+  {% set hm = r.stress_heatmap %}
+  <div class="chart"><div class="cap">Dni stresu wodnego uprawy w kolejnych latach i miesiącach</div>
+  <table class="heat">
+    <thead><tr><th>Rok</th>{% for m in hm.months_pl %}<th>{{ m[:3] }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in hm.rows %}
+      <tr><td>{{ row.year }}</td>{% for d in row.stress_days %}{% set n = row.season_days[loop.index0] %}{% set share = (d / n) if (d is not none and n) else none %}<td style="background: {% if share is none %}#f4f4f4{% elif share <= 0 %}#f0fdf4{% elif share < 0.2 %}#fef9c3{% elif share < 0.334 %}#fde68a{% elif share < 0.5 %}#fdba74{% elif share < 0.75 %}#f87171{% else %}#b91c1c; color: #fff{% endif %}">{% if d is not none %}{{ d }}{% else %}–{% endif %}</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="src">Kolor: udział dni ze stresem w miesiącu — od zielonego (bez stresu) przez żółty (do 1/3 dni) i pomarańczowy (do połowy) do czerwonego (ponad połowa, ciemny: ponad 3/4). Źródło: {{ hm.source }}</div></div>
+  {% endif %}
+
+  {% if s.id == 'vulnerability' and r.trends %}
+  <h3>Jak zmienia się klimat na działce: {{ r.trends.seasons[0] }}–{{ r.trends.seasons[-1] }} <span class="pill {{ {'critical': 'bad', 'worse': 'warn', 'stable': 'good', 'better': 'good', 'unknown': 'unknown'}[r.trends.level] }}">{{ r.trends.label_pl }}</span></h3>
+  {% for p in r.trends.verdict_pl %}<p>{{ p }}</p>{% endfor %}
+  <div class="trend-grid">
+  {% for m, svg in charts.trends %}
+    <div class="chart"><div class="cap">{{ m.label_pl }}</div>{{ svg|safe }}<div class="src">{{ m.summary_pl }}. Pomarańczowe: ostatnie 2 sezony; kreska: średnia.</div></div>
+  {% endfor %}
+  </div>
+  <p class="small">{{ r.trends.uncertainty_pl }} Źródło: {{ r.trends.source }}</p>
+  {% endif %}
+
+  {% if s.id == 'causes' and r.groundwater %}
+  <p><b>Wody podziemne w okolicy:</b> {{ r.groundwater.sentence_pl }} <span class="small">Źródło: {{ r.groundwater.source }}</span></p>
+  {% endif %}
+
+  {% if s.id == 'retention' and r.flood %}
+  <p><b>Zagrożenie powodziowe:</b> <span class="pill {{ {'high': 'bad', 'medium': 'warn', 'low': 'warn', 'none': 'good', 'unknown': 'unknown'}[r.flood.level] }}">{{ r.flood.label_pl }}</span> {{ r.flood.sentence_pl }} <span class="small">Źródło: {{ r.flood.source }}</span></p>
+  {% endif %}
+
+  {% if s.id == 'retention' and r.profile and charts.profile %}
+  <div class="chart"><div class="cap">Przekrój terenu działki wzdłuż spływu wody</div>{{ charts.profile|safe }}<p>{{ r.profile.text_pl }}</p><div class="src">Źródło: {{ r.profile.source }}</div></div>
+  {% endif %}
+
+  {% if s.id == 'irrigation' and r.water_plan %}
+  {% set wp = r.water_plan %}
+  <h3>Plan wody na sezon: rok typowy i rok suchy</h3>
+  {% if charts.water_plan %}<div class="chart">{{ charts.water_plan|safe }}</div>{% endif %}
+  {% for p in wp.text_pl %}<p>{{ p }}</p>{% endfor %}
+  <table class="compact">
+    <thead><tr><th>Miesiąc</th><th>Potrzeby uprawy</th><th>Deszcz</th><th>Brak wody: rok typowy</th><th>Rok suchy (1 na 5 lat)</th><th>Bardzo suchy (1 na 10)</th><th>Rok suchy, m³/ha</th></tr></thead>
+    <tbody>
+    {% for m in wp.months %}
+      <tr><td class="{% if m.critical %}critical{% endif %}">{{ m.month_pl }}</td>{% for v in [m.crop_need_mm, m.precip_mm, m.deficit_median_mm, m.deficit_p80_mm, m.deficit_p90_mm] %}<td class="num">{% if v is not none %}{{ v|num }} mm{% else %}–{% endif %}</td>{% endfor %}<td class="num">{% if m.deficit_p80_m3_ha is not none %}{{ m.deficit_p80_m3_ha|num(10) }}{% else %}–{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small">Rok typowy, suchy i bardzo suchy wyznaczone z {{ wp.years }} poprzednich lat (metoda FAO-56). Źródło: {{ wp.source }}</p>
+  {% endif %}
+
+  {% if s.id == 'irrigation' and r.simulation %}
+  {% set sim = r.simulation %}
+  <h3>Co dalej? Porównanie strategii na 1–5 lat</h3>
+  {% for p in sim.text_pl %}<p>{{ p }}</p>{% endfor %}
+  <table class="compact">
+    <thead><tr><th>Strategia</th>{% for y in sim.strategies[0].years if y.year_ahead in (1, 3, 5) %}<th>za {{ y.year_ahead }} {{ y.year_ahead|plural('rok', 'lata', 'lat') }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for st in sim.strategies %}
+      <tr><td><b>{{ st.label_pl }}</b><br><span class="small">{{ st.description_pl }}</span></td>{% for y in st.years if y.year_ahead in (1, 3, 5) %}<td class="num">{% if y.stress_days_median is not none %}{{ y.stress_days_median|num }} dni stresu{% endif %}{% if y.stress_days_p80 is not none %}<br><span class="small">rok suchy: {{ y.stress_days_p80|num }}</span>{% endif %}{% if y.irrigation_mm_p80 %}<br><span class="small">woda: {{ y.irrigation_mm_p80|num(5) }} mm</span>{% endif %}</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="details"><span class="t">Założenia symulacji.</span> {% for a in sim.assumptions_pl %}{{ a }} {% endfor %}</div>
   {% endif %}
 
   {% if s.id == 'retention' and (r.map.features or s.recommendation_numbers) %}

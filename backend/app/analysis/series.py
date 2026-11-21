@@ -95,6 +95,15 @@ class Weather:
             return None
         return sum(present) / len(present)
 
+    def mean_tmean(self, start: date, end: date) -> float | None:
+        values = self._values(self.tmean_c, start, end)
+        if values is None:
+            return None
+        present = [v for v in values if v is not None]
+        if not present or len(values) - len(present) > MAX_GAP_SHARE * len(values):
+            return None
+        return sum(present) / len(present)
+
     def hot_days(self, start: date, end: date, threshold_c: float) -> int | None:
         values = self._values(self.tmax_c, start, end)
         if values is None:

@@ -1,0 +1,44 @@
+{#- Climate trends of the growing season: 10-year baseline vs last 3 and last 2 seasons. One paragraph per line. -#}
+{% set k = m.get('kbw_mm') %}
+{% set t = m.get('tmean_c') %}
+{% set h = m.get('hot_days') %}
+{% set e = m.get('et0_mm') %}
+{% set s = m.get('stress_days') %}
+{% set c = m.get('critical_stress_days') %}
+{% set long_pl = {'worse': 'w skali ' ~ n ~ ' lat sytuacja wodna dla uprawy się pogarsza', 'better': 'w skali ' ~ n ~ ' lat sytuacja wodna dla uprawy się poprawia', 'stable': 'w skali ' ~ n ~ ' lat sytuacja wodna dla uprawy nie zmienia się wyraźnie'}.get(water_direction, 'długoterminowego kierunku zmian nie da się określić') ~ ' (' ~ primary_pl ~ ')' %}
+{% if level == 'critical' %}
+Wniosek: {{ long_pl }}, ale w ostatnich 2 sezonach tempo zmian jest krytyczne{% if primary_is_crit and critical_months %} dla uprawy ({{ crop }}) w miesiącach {{ critical_months|months_pl }}{% endif %}.
+
+{% elif level == 'worse' %}
+Wniosek: {{ long_pl }}{% if recent_worse %}{% if water_direction == 'better' %}, ale{% else %}, a{% endif %} ostatnie 2 sezony były pod tym względem gorsze niż średnia{% endif %} — przygotuj się raczej na suchsze lata niż na średnią z przeszłości.
+
+{% elif level == 'better' %}
+Wniosek: {{ long_pl }}, ale pojedynczy suchy rok nadal może się zdarzyć — planuj zapas wody na rok suchy.
+
+{% else %}
+Wniosek: {{ long_pl }}; ostatnie lata są podobne do średniej z {{ n }} lat.
+
+{% endif %}
+{% if k and k.slope is not none %}
+W skali {{ n }} sezonów bilans wody w sezonie wegetacyjnym (deszcz minus parowanie, 1 kwietnia – 30 września) {% if k.direction == 'worse' %}pogarsza się o ok. {{ k.slope|abs|num(10) }} mm na dekadę{% elif k.direction == 'better' %}poprawia się o ok. {{ k.slope|abs|num(10) }} mm na dekadę{% else %}nie zmienia się wyraźnie{% endif %}{% if k.recent == 'critical' %}, ale ostatnie 2 sezony były wyraźnie bardziej suche niż zwykle ({{ k.mean_recent|num }} mm wobec średnio {{ k.mean_all|num }} mm){% elif k.recent == 'worse' %}; ostatnie 2 sezony były bardziej suche niż zwykle ({{ k.mean_recent|num }} mm wobec średnio {{ k.mean_all|num }} mm){% elif k.recent == 'better' %}; ostatnie 2 sezony były wilgotniejsze niż zwykle ({{ k.mean_recent|num }} mm wobec średnio {{ k.mean_all|num }} mm){% else %}; ostatnie 2 sezony były podobne do średniej ({{ k.mean_recent|num }} mm wobec {{ k.mean_all|num }} mm){% endif %}.
+
+{% endif %}
+{% if c and c.mean_all is not none and critical_months %}
+W miesiącach, gdy uprawa ({{ crop }}) najbardziej potrzebuje wody ({{ critical_months|months_pl }}), uprawa była w stresie wodnym średnio {{ c.mean_recent|num }} dni w ostatnich 2 sezonach, {{ c.mean_mid|num }} dni w ostatnich 3 i {{ c.mean_all|num }} dni średnio w {{ n }} latach{% if c.recent == 'critical' %} — tempo pogarszania się jest krytyczne dla tej uprawy{% elif c.recent == 'worse' %} — ostatnie lata są dla tej uprawy wyraźnie gorsze{% elif c.recent == 'better' %} — ostatnie lata były dla uprawy łaskawsze{% endif %}.
+
+{% elif s and s.mean_all is not none %}
+Uprawa była w stresie wodnym średnio {{ s.mean_recent|num }} dni w sezonie w ostatnich 2 latach wobec {{ s.mean_all|num }} dni średnio w {{ n }} latach.
+
+{% endif %}
+{% if t and t.mean_all is not none %}
+Średnia temperatura sezonu: {{ t.mean_recent|num(0.1) }} °C w ostatnich 2 latach, {{ t.mean_mid|num(0.1) }} °C w ostatnich 3 i {{ t.mean_all|num(0.1) }} °C średnio w {{ n }} latach{% if t.slope is not none %}; {% if t.direction == 'worse' %}robi się cieplej o ok. {{ t.slope|num(0.1) }} °C na dekadę{% elif t.direction == 'better' %}robi się chłodniej o ok. {{ t.slope|abs|num(0.1) }} °C na dekadę{% else %}bez wyraźnego trendu{% endif %}{% endif %}.
+
+{% endif %}
+{% if h and h.mean_all is not none %}
+Dni upalnych (co najmniej 30 °C): średnio {{ h.mean_recent|num }} w sezonie w ostatnich 2 latach wobec {{ h.mean_all|num }} w {{ n }} latach{% if h.direction == 'worse' %} — przybywa ich ok. {{ h.slope|num }} na dekadę{% endif %}.
+
+{% endif %}
+{% if e and e.slope is not none and e.direction != 'stable' %}
+Parowanie w sezonie {% if e.direction == 'worse' %}rośnie{% else %}maleje{% endif %} o ok. {{ e.slope|abs|num(5) }} mm na dekadę (średnio {{ e.mean_all|num }} mm w sezonie).
+
+{% endif %}

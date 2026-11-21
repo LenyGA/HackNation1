@@ -14,7 +14,11 @@ import {
   RecommendationCard,
   SourcesList,
 } from '@/components/report/ReportParts'
+import { ProfileChart, SatelliteChart, StressHeatmapView, TrendsView, WaterPlanChart } from '@/components/report/Charts'
+import { FloodBlock, GroundwaterBlock } from '@/components/report/HydroBlocks'
 import { SeasonChartView } from '@/components/report/SeasonChartView'
+import { Simulator } from '@/components/report/Simulator'
+import { SummaryTiles } from '@/components/report/SummaryTiles'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatAreaHa, formatDatePl, formatDateTimePl } from '@/lib/format'
@@ -121,46 +125,55 @@ function Actions({ report }: { report: Report }) {
 
 function SectionExtras({ section, report }: { section: ReportSection; report: Report }) {
   const recs = report.recommendations.filter((r) => section.recommendation_numbers.includes(r.number))
+  const cards = (hideIrrigationText = false) =>
+    recs.map((r) => <RecommendationCard key={r.number} rec={r} hideText={hideIrrigationText && r.category === 'irrigation'} />)
   switch (section.id) {
     case 'current':
-      return report.chart ? <SeasonChartView chart={report.chart} /> : null
+      return (
+        <>
+          {report.chart && <SeasonChartView chart={report.chart} />}
+          {report.satellite && <SatelliteChart data={report.satellite} />}
+        </>
+      )
     case 'vulnerability':
-      return <MonthsTable months={report.months} />
+      return (
+        <>
+          <MonthsTable months={report.months} />
+          {report.stress_heatmap && <StressHeatmapView data={report.stress_heatmap} />}
+          {report.trends && <TrendsView data={report.trends} />}
+        </>
+      )
+    case 'causes':
+      return (
+        <>
+          {report.groundwater && <GroundwaterBlock gw={report.groundwater} />}
+          {cards()}
+        </>
+      )
     case 'retention':
       return (
         <>
-          <ReportMapView map={report.map} />
-          {recs.map((r) => (
-            <RecommendationCard key={r.number} rec={r} />
-          ))}
+          <ReportMapView map={report.map} flood={report.flood} />
+          {report.flood && <FloodBlock flood={report.flood} />}
+          {report.profile && <ProfileChart data={report.profile} />}
+          {cards()}
         </>
       )
     case 'agrotech':
-      return (
-        <>
-          {recs.map((r) => (
-            <RecommendationCard key={r.number} rec={r} />
-          ))}
-        </>
-      )
+      return <>{cards()}</>
     case 'irrigation':
       return (
         <>
-          {recs.map((r) => (
-            <RecommendationCard key={r.number} rec={r} />
-          ))}
+          {/* The irrigation text is already in the section paragraphs: the card shows only its evidence. */}
+          {cards(true)}
+          {report.water_plan && <WaterPlanChart data={report.water_plan} />}
+          {report.simulation && <Simulator sim={report.simulation} />}
         </>
       )
     case 'sources':
       return <SourcesList sources={report.sources} />
     default:
-      return recs.length > 0 ? (
-        <>
-          {recs.map((r) => (
-            <RecommendationCard key={r.number} rec={r} />
-          ))}
-        </>
-      ) : null
+      return recs.length > 0 ? <>{cards()}</> : null
   }
 }
 
@@ -225,6 +238,25 @@ export function ReportPage() {
     }
   }, [id])
 
+  // Browsers print closed <details> without their content: open all of them for printing, then restore.
+  useEffect(() => {
+    let opened: HTMLDetailsElement[] = []
+    const before = () => {
+      opened = Array.from(document.querySelectorAll('details:not([open])'))
+      opened.forEach((d) => (d.open = true))
+    }
+    const after = () => {
+      opened.forEach((d) => (d.open = false))
+      opened = []
+    }
+    window.addEventListener('beforeprint', before)
+    window.addEventListener('afterprint', after)
+    return () => {
+      window.removeEventListener('beforeprint', before)
+      window.removeEventListener('afterprint', after)
+    }
+  }, [])
+
   useEffect(() => {
     if (!report) return
     const previous = document.title
@@ -278,6 +310,7 @@ export function ReportPage() {
       </div>
 
       <HeadlineBanner headline={report.headline} />
+      <SummaryTiles tiles={report.summary_tiles} sections={report.sections} />
       {!report.complete && (
         <p className="rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-950">
           Nie udało się w pełni ocenić sytuacji wodnej, dlatego raport nie podaje zaleceń. Sprawdź sekcję „Ograniczenia

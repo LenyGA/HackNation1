@@ -1,0 +1,21 @@
+{#- Strategy simulator: main messages. -#}
+{% if s.spring_storage_none_mm is not none and s.spring_storage_full_mm is not none %}
+{% set carry = s.spring_storage_full_mm - s.spring_storage_none_mm %}
+{% if carry <= [3, 0.1 * s.taw_now_mm]|max %}
+Podlewanie ratuje bieżący plon, ale nie poprawia wilgotności gleby na kolejne lata: na początku kwietnia gleba miała w strefie korzeni średnio {{ s.spring_storage_none_mm|num }} mm wody bez nawadniania i {{ s.spring_storage_full_mm|num }} mm po sezonie z pełnym nawadnianiem — jesienne i zimowe opady i tak uzupełniają zapas, a nadmiar wody wsiąka głębiej lub paruje.
+
+{% else %}
+Podlewanie ratuje bieżący plon, ale nie buduje trwałego zapasu wody: po sezonie z pełnym nawadnianiem gleba wchodziła w kolejną wiosnę z zapasem większym o ok. {{ carry|num }} mm ({{ s.spring_storage_full_mm|num }} wobec {{ s.spring_storage_none_mm|num }} mm), bo zimy były tu za suche, by uzupełnić glebę do pełna — tę wodę i tak trzeba dostarczać co roku.
+
+{% endif %}
+{% endif %}
+{% if none_y5 and none_y1 %}
+Bez żadnych działań uprawa będzie w stresie wodnym średnio ok. {{ none_y1.stress_days_median|num }} dni w sezonie w przyszłym roku i ok. {{ none_y5.stress_days_median|num }} dni za 5 lat{% if none_y5.stress_days_p80 is not none %} (w roku suchym ok. {{ none_y5.stress_days_p80|num }} dni){% endif %}{% if s.et0_change_pct_per_decade is not none and s.et0_change_pct_per_decade > 0.5 and none_y5.stress_days_median is not none and none_y1.stress_days_median is not none and none_y5.stress_days_median - none_y1.stress_days_median >= 1 %} — przybywa ich, bo parowanie na tej działce rośnie o ok. {{ s.et0_change_pct_per_decade|num(0.5) }} % na dekadę{% endif %}.
+
+{% endif %}
+{% if full_y1 and rescue_y1 and full_y1.irrigation_mm_p80 is not none %}
+Pełne nawadnianie w roku suchym to ok. {{ full_y1.irrigation_mm_p80|num(5) }} mm wody{% if full_y1.irrigation_m3_parcel_p80 is not none %} (ok. {{ full_y1.irrigation_m3_parcel_p80|num(10) }} m³ na działkę){% endif %} rocznie; ratunkowe, tylko w okresach krytycznych — ok. {{ rescue_y1.irrigation_mm_p80|num(5) }} mm. Wodę trzeba dostarczać co roku od nowa.
+
+{% endif %}
+Międzyplony, resztki pożniwne i mniej orki zwiększają zapas wody w glebie przez próchnicę bardzo powoli: po 5 latach {% if s.taw_gain_5y_mm < 1 %}o mniej niż 1 mm{% else %}o ok. {{ s.taw_gain_5y_mm|num }} mm{% endif %} (dziś {{ s.taw_now_mm|num }} mm){% if ret_y5 and none_y5 and ret_y5.stress_days_median is not none and none_y5.stress_days_median is not none and none_y5.stress_days_median - ret_y5.stress_days_median >= 1 %}. Więcej daje ściółka z resztek, która ogranicza parowanie: razem skracają stres wodny za 5 lat z ok. {{ none_y5.stress_days_median|num }} do ok. {{ ret_y5.stress_days_median|num }} dni w sezonie{% endif %}. To efekt trwały, bez dodatkowej wody — najlepiej łączyć go z zatrzymywaniem wody na działce (sekcja 5) i podlewaniem tylko w okresach krytycznych.
+

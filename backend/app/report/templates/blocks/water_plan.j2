@@ -1,0 +1,24 @@
+{#- Seasonal water plan (FAO-56): typical year vs dry years. -#}
+{% if p.season_p80_mm is not none and p.season_p80_mm < 1 %}
+W ostatnich {{ p.years }} latach uprawa ({{ crop }}) na tej działce nie potrzebowała nawadniania nawet w roku suchym — deszcz i woda zmagazynowana w glebie pokrywały jej potrzeby.
+
+{% elif p.season_median_mm is not none %}
+Plan wody na sezon (marzec–październik, uprawa: {{ crop }}): w typowym roku trzeba by dodać ok. {{ p.season_median_mm|num(5) }} mm wody{% if area_ha %} (ok. {{ (p.season_median_mm * area_ha * 10)|num(10) }} m³ na działkę){% endif %}, w roku suchym, który zdarza się mniej więcej raz na 5 lat — ok. {{ p.season_p80_mm|num(5) }} mm{% if p.season_p80_m3_parcel is not none %} (ok. {{ p.season_p80_m3_parcel|num(10) }} m³){% endif %}{% if p.season_p90_mm is not none %}, a w bardzo suchym (raz na 10 lat) — ok. {{ p.season_p90_mm|num(5) }} mm{% endif %}. Planuj zapas wody na rok suchy, a nie na średni. To ilości netto — woda, która ma wsiąknąć w glebę.
+
+{% if top_months %}
+Najwięcej wody brakuje w miesiącach: {{ top_months|months_pl }}.
+
+{% endif %}
+{% if p.critical_p80_mm is not none and p.season_p80_mm and p.critical_p80_mm < p.season_p80_mm %}
+Podlewanie tylko w okresach, gdy uprawa najbardziej potrzebuje wody (ratowanie plonu), wymaga w roku suchym ok. {{ p.critical_p80_mm|num(5) }} mm zamiast {{ p.season_p80_mm|num(5) }} mm.
+
+{% endif %}
+{% if p.season_p80_m3_parcel_gross %}
+Deszczownia traci część wody (wiatr, parowanie, nierówne polewanie; sprawność ok. {{ p.efficiency_pct }} %), więc w roku suchym trzeba przygotować ok. {{ p.season_p80_m3_parcel_gross|num(10) }} m³ wody{% if p.pond_side_m %} — to mniej więcej staw o wymiarach ok. {{ p.pond_side_m|num(1) }} × {{ p.pond_side_m|num(1) }} m i głębokości {{ p.pond_depth_m|num }} m. Staw sam też traci wodę (parowanie z lustra wody, wsiąkanie), więc w praktyce musi być większy{% endif %}.
+
+{% endif %}
+{% endif %}
+{% if p.method == 'crop_balance' %}
+Bez danych o glebie plan liczymy z różnicy między potrzebami uprawy a deszczem w każdym miesiącu, bez wody zmagazynowanej w glebie — to ocena przybliżona, zwykle zawyżona wiosną.
+
+{% endif %}

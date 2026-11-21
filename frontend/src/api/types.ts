@@ -156,6 +156,7 @@ export interface ReportIrrigation {
   dose_mm: number | null
   single_dose_max_mm: number | null
   applications: number | null
+  single_dose_mm: number | null // dose_mm / applications, rounded once in the backend
   volume_m3: number | null
   within_days: number | null
   irrigate_by: string | null
@@ -172,6 +173,198 @@ export interface MonthRisk {
   frequency_pct: number | null
   risk: boolean
   critical: boolean
+  severe_years: number // years with water stress on at least half of the days
+  mean_stress_days: number | null
+}
+
+export interface StressRow {
+  year: number
+  stress_days: (number | null)[] // per month of StressHeatmap.months
+  season_days: (number | null)[]
+}
+
+export interface StressHeatmap {
+  months: number[]
+  months_pl: string[]
+  rows: StressRow[]
+  source: string
+}
+
+export interface TrendYear {
+  year: number
+  value: number | null
+}
+
+export interface TrendMetric {
+  key: string
+  label_pl: string
+  unit: string
+  values: TrendYear[]
+  mean_all: number | null
+  mean_mid: number | null // last 3 seasons
+  mean_recent: number | null // last 2 seasons
+  slope_per_decade: number | null
+  direction: 'worse' | 'stable' | 'better' | null
+  recent: 'critical' | 'worse' | 'typical' | 'better' | null
+  summary_pl: string
+}
+
+export type TrendLevel = 'critical' | 'worse' | 'stable' | 'better' | 'unknown'
+
+export interface ClimateTrends {
+  seasons: number[]
+  level: TrendLevel
+  label_pl: string
+  verdict_pl: string[]
+  metrics: TrendMetric[]
+  source: string
+  uncertainty_pl: string
+}
+
+export interface WaterPlanMonth {
+  month: number
+  month_pl: string
+  years: number
+  crop_need_mm: number | null
+  precip_mm: number | null
+  deficit_median_mm: number | null
+  deficit_p80_mm: number | null
+  deficit_p90_mm: number | null
+  deficit_p80_m3_ha: number | null
+  critical: boolean
+}
+
+export interface WaterPlan {
+  method: 'root_zone' | 'crop_balance'
+  years: number
+  months: WaterPlanMonth[]
+  season_median_mm: number | null
+  season_p80_mm: number | null
+  season_p90_mm: number | null
+  season_p80_m3_parcel: number | null
+  season_p80_m3_parcel_gross: number | null
+  efficiency_pct: number
+  critical_p80_mm: number | null
+  pond_side_m: number | null
+  pond_depth_m: number
+  text_pl: string[]
+  source: string
+}
+
+export interface ProfilePoint {
+  distance_m: number
+  elevation_m: number
+  hollow: boolean
+}
+
+export interface SlopeProfile {
+  points: ProfilePoint[]
+  length_m: number
+  drop_m: number
+  mean_slope_pct: number
+  direction_pl: string | null
+  along_long_axis: boolean
+  resolution_m: number
+  text_pl: string
+  source: string
+}
+
+export interface StrategyYear {
+  year_ahead: number
+  stress_days_median: number | null
+  stress_days_p80: number | null
+  irrigation_mm_median: number | null
+  irrigation_mm_p80: number | null
+  irrigation_m3_parcel_p80: number | null
+  taw_mm: number
+}
+
+export type StrategyId = 'none' | 'rescue' | 'full' | 'retention' | 'retention_rescue'
+
+export interface Strategy {
+  id: StrategyId
+  label_pl: string
+  description_pl: string
+  years: StrategyYear[]
+}
+
+export interface Simulation {
+  strategies: Strategy[]
+  members: number
+  et0_change_pct_per_decade: number | null
+  tmean_change_c_per_decade: number | null
+  taw_now_mm: number
+  taw_gain_5y_mm: number
+  spring_storage_none_mm: number | null
+  spring_storage_full_mm: number | null
+  text_pl: string[]
+  assumptions_pl: string[]
+  source: string
+}
+
+export type TileStatus = 'good' | 'warn' | 'bad' | 'unknown'
+
+export interface Gauge {
+  value: number
+  max: number
+  threshold: number | null
+  unit: string
+}
+
+export interface SummaryTile {
+  id: 'water_now' | 'flood' | 'climate' | 'action' | 'dry_year'
+  label_pl: string
+  value_pl: string
+  detail_pl: string
+  status: TileStatus
+  gauge: Gauge | null
+  link_section: SectionId | null
+}
+
+export interface SatellitePoint {
+  year: number
+  day: string
+  ndvi: number
+  ndmi: number | null
+  current: boolean
+}
+
+export interface SatelliteSeries {
+  points: SatellitePoint[]
+  history_median: number | null
+  history_min: number | null
+  history_max: number | null
+  applicable: boolean
+  text_pl: string
+  source: string
+}
+
+export interface FloodZone {
+  id: string
+  label_pl: string
+  hit: boolean | null
+}
+
+export interface FloodInfo {
+  status: SourceStatus
+  level: 'high' | 'medium' | 'low' | 'none' | 'unknown'
+  label_pl: string
+  sentence_pl: string
+  zones: FloodZone[]
+  wms_url: string | null
+  wms_layers: string[]
+  source: string
+}
+
+export interface GroundwaterInfo {
+  status: SourceStatus
+  station_pl: string | null
+  distance_km: number | null
+  trend: 'falling' | 'stable' | 'rising' | null
+  change_m: number | null
+  period: Period | null
+  sentence_pl: string
+  source: string
 }
 
 export interface ChartPoint {
@@ -241,6 +434,15 @@ export interface Report {
   irrigation: ReportIrrigation
   months: MonthRisk[]
   chart: SeasonChart | null
+  summary_tiles: SummaryTile[]
+  stress_heatmap: StressHeatmap | null
+  trends: ClimateTrends | null
+  water_plan: WaterPlan | null
+  profile: SlopeProfile | null
+  simulation: Simulation | null
+  satellite: SatelliteSeries | null
+  flood: FloodInfo | null
+  groundwater: GroundwaterInfo | null
   map: ReportMap
   sources: SourceEntry[]
   limitations_pl: string[]

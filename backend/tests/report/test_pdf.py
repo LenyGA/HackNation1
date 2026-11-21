@@ -25,9 +25,10 @@ def test_render_pdf_returns_pdf_bytes() -> None:
 
 
 @pytest.mark.parametrize("factory", [rich_report, two_missing_report], ids=["rich", "two_missing"])
-def test_pdf_fits_on_2_to_4_pages(factory: Callable[[], Report]) -> None:
+def test_pdf_fits_on_2_to_7_pages(factory: Callable[[], Report]) -> None:
+    # 9 sections + summary tiles, 10-year heat map and trends, seasonal water plan and the strategy table.
     r = factory()
-    assert 2 <= pages(r) <= 4
+    assert 2 <= pages(r) <= 7
 
 
 @pytest.mark.parametrize("name", list(SCENARIOS))
@@ -37,7 +38,7 @@ def test_every_scenario_renders(name: str) -> None:
     assert html.startswith("<!doctype html>")
     for s in r.sections:
         assert f"{s.number}. {s.title_pl}" in html
-    assert 1 <= pages(r) <= 4
+    assert 1 <= pages(r) <= 7
 
 
 def test_html_is_autoescaped() -> None:

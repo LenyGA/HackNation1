@@ -68,6 +68,8 @@ SOURCE_LABELS: dict[str, str] = {
     "dem": "Ukształtowanie terenu (spadki, spływ wody)",
     "hydro": "Rowy, cieki, oczka i zadrzewienia w okolicy",
     "landcover": "Użytkowanie terenu (pola, łąki, zabudowa)",
+    "flood": "Zagrożenie powodziowe (mapy Wód Polskich)",
+    "groundwater": "Wody podziemne w okolicy (monitoring PIG-PIB)",
 }
 
 LEVEL_LABELS: dict[str, str] = {

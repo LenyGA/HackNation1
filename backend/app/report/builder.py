@@ -43,8 +43,9 @@ from app.report.models import (
     SectionId,
     SourceEntry,
 )
+from app.report.outlook import build_outlook, flood_info, groundwater_info
 from app.report.texts import num, render_line, render_text, years_pl
-from app.sources import uldk
+from app.sources import open_meteo, uldk
 
 # Hydro features shown on the report map (the source covers 1 km; the map focuses on the surroundings).
 MAP_FEATURE_RADIUS_M = 500.0
@@ -276,6 +277,7 @@ def _context(
             "category_pl": L.SOIL_CATEGORY_PL[soil.category.value] if soil.category else None,
             "texture_pl": L.TEXTURE_PL[soil.texture.value] if soil.texture else None,
             "taw_mm": soil.taw_mm,
+            "taw_per_m_mm": soil.taw_per_m_mm,
             "soc": soil.topsoil_soc_g_per_kg,
         },
         "terrain": None
@@ -311,6 +313,8 @@ def _context(
         "recs_irrigation": by_cat[Category.IRRIGATION],
         "irrigation": irrigation,
         "statuses": {k: v.value for k, v in a.source_status.items()},
+        "weather_from_power": inputs.weather.data is not None
+        and inputs.weather.source == open_meteo.SOURCE_POWER,
         "landcover": None
         if landcover is None
         else {
@@ -400,7 +404,15 @@ def _sections(
 
 
 def _source_results(inputs: AnalysisInputs) -> list[SourceResult[Any]]:
-    return [inputs.weather, inputs.sentinel2, inputs.soil, inputs.dem, inputs.hydro, inputs.landcover]
+    out: list[SourceResult[Any]] = [
+        inputs.weather,
+        inputs.sentinel2,
+        inputs.soil,
+        inputs.dem,
+        inputs.hydro,
+        inputs.landcover,
+    ]
+    return out + [r for r in (inputs.flood, inputs.groundwater) if r is not None]
 
 
 def _sources(inputs: AnalysisInputs, parcel_source: ParcelSource) -> list[SourceEntry]:
@@ -490,6 +502,8 @@ def _months(inputs: AnalysisInputs, a: Assessment) -> list[MonthRisk]:
             frequency_pct=None if f.frequency is None else round(100 * f.frequency),
             risk=f.frequency is not None and f.frequency >= RISK_FREQUENCY,
             critical=f.month in critical,
+            severe_years=f.severe_years,
+            mean_stress_days=None if f.mean_stress_days is None else round(f.mean_stress_days, 1),
         )
         for f in h.months
     ]
@@ -626,6 +640,7 @@ def _irrigation(advice: IrrigationAdvice) -> ReportIrrigation:
         dose_mm=advice.dose_mm,
         single_dose_max_mm=advice.single_dose_max_mm,
         applications=advice.applications,
+        single_dose_mm=advice.single_dose_mm,
         volume_m3=advice.volume_m3,
         within_days=advice.within_days,
         irrigate_by=advice.irrigate_by,
@@ -653,6 +668,9 @@ def build_report(
     limitations = _limitations(assessment, ctx)
     ctx["headline"] = _headline(ctx, assessment)
     ctx["created_at"] = created_at
+    flood = flood_info(inputs.flood)
+    outlook = build_outlook(inputs, assessment, recs, irrigation, flood)
+    ctx["outlook"] = outlook
     return Report(
         id=report_id,
         created_at=created_at,
@@ -668,6 +686,15 @@ def build_report(
         irrigation=_irrigation(irrigation),
         months=_months(inputs, assessment),
         chart=_chart(inputs),
+        summary_tiles=outlook.tiles if assessment.complete else [],
+        stress_heatmap=outlook.heatmap,
+        trends=outlook.trends,
+        water_plan=outlook.water_plan if assessment.complete else None,
+        profile=outlook.profile,
+        simulation=outlook.simulation if assessment.complete else None,
+        satellite=outlook.satellite,
+        flood=flood,
+        groundwater=groundwater_info(inputs.groundwater),
         map=_map(inputs, assessment, recs),
         sources=sources,
         limitations_pl=limitations,

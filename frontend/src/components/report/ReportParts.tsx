@@ -47,7 +47,8 @@ export function HeadlineBanner({ headline }: { headline: Headline }) {
   )
 }
 
-/** Native <details>: works without JS state, keyboard accessible and prints opened by the browser. */
+/** Native <details>: works without JS state and is keyboard accessible. Browsers print it closed, so the report
+ *  page opens every <details> before printing (see ReportPage) and print CSS keeps the content visible. */
 export function Disclosure({ summary, children, className }: { summary: string; children: ReactNode; className?: string }) {
   return (
     <details className={cn('group rounded-md border bg-muted/40', className)}>
@@ -115,7 +116,8 @@ const CATEGORY_PL: Record<RecommendationCategory, string> = {
   irrigation: 'Nawadnianie',
 }
 
-export function RecommendationCard({ rec }: { rec: ReportRecommendation }) {
+/** `hideText`: the section paragraphs already contain this text (irrigation), so the card shows only its numbers. */
+export function RecommendationCard({ rec, hideText = false }: { rec: ReportRecommendation; hideText?: boolean }) {
   return (
     <article id={`zalecenie-${rec.number}`} className="scroll-mt-4 rounded-lg border bg-card p-3.5">
       <div className="flex items-start gap-3">
@@ -125,7 +127,7 @@ export function RecommendationCard({ rec }: { rec: ReportRecommendation }) {
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{CATEGORY_PL[rec.category]}</p>
           <h3 className="font-semibold leading-snug">{rec.title_pl}</h3>
-          <p className="leading-relaxed">{rec.text_pl}</p>
+          {!hideText && <p className="leading-relaxed">{rec.text_pl}</p>}
           {rec.locations.length > 0 && (
             <p className="text-sm text-primary">Miejsce zaznaczone na mapie numerem {rec.number}.</p>
           )}
@@ -149,6 +151,8 @@ export function MonthsTable({ months }: { months: MonthRisk[] }) {
             <tr>
               <th className="px-3 py-2 font-medium">Miesiąc</th>
               <th className="px-3 py-2 text-right font-medium">Lata z niedoborem</th>
+              <th className="px-3 py-2 text-right font-medium">Lata z poważnym niedoborem</th>
+              <th className="px-3 py-2 text-right font-medium">Średnio dni stresu</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -168,14 +172,21 @@ export function MonthsTable({ months }: { months: MonthRisk[] }) {
                 <td className="px-3 py-2 text-right align-top tabular-nums">
                   {m.years_with_data === 0 ? 'brak danych' : `${m.deficit_years} z ${m.years_with_data}`}
                 </td>
+                <td className="px-3 py-2 text-right align-top tabular-nums">
+                  {m.years_with_data === 0 ? '–' : `${m.severe_years} z ${m.years_with_data}`}
+                </td>
+                <td className="px-3 py-2 text-right align-top tabular-nums">
+                  {m.mean_stress_days === null ? '–' : formatNumberPl(m.mean_stress_days, 1)}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="text-xs text-muted-foreground">
-        „Częsty niedobór” — wody brakowało w co najmniej 3 na 10 lat. „Ważny dla uprawy” — w tym miesiącu uprawa najbardziej
-        potrzebuje wody.
+        „Lata z niedoborem” — uprawie brakowało wody przez co najmniej 1/3 dni miesiąca; „poważny niedobór” — przez co
+        najmniej połowę dni. „Częsty niedobór” — wody brakowało w co najmniej 3 na 10 lat. „Ważny dla uprawy” — w tym
+        miesiącu uprawa najbardziej potrzebuje wody.
       </p>
     </div>
   )
@@ -195,10 +206,10 @@ export function IrrigationBlock({ irrigation }: { irrigation: ReportIrrigation }
   if (irrigation.within_days === 0) stats.push({ label: 'Termin', value: 'od razu' })
   else if (irrigation.irrigate_by) stats.push({ label: 'Podlej do', value: formatDatePl(irrigation.irrigate_by) })
   if (irrigation.dose_mm !== null) stats.push({ label: 'Dawka wody', value: `${formatNumberPl(irrigation.dose_mm)} mm` })
-  if (irrigation.dose_mm !== null && irrigation.applications !== null && irrigation.applications > 1) {
+  if (irrigation.single_dose_mm !== null && irrigation.applications !== null && irrigation.applications > 1) {
     stats.push({
       label: 'Podział dawki',
-      value: `${irrigation.applications} × ok. ${formatNumberPl(irrigation.dose_mm / irrigation.applications)} mm`,
+      value: `${irrigation.applications} × ok. ${formatNumberPl(irrigation.single_dose_mm)} mm`,
     })
   }
   if (irrigation.volume_m3 !== null) stats.push({ label: 'Woda na całą działkę', value: `ok. ${formatNumberPl(irrigation.volume_m3)} m³` })

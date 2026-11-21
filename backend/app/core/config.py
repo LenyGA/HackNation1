@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     frontend_dist: Path = Path("../frontend/dist")
     # Default per-source timeout in seconds; sources may use a stricter one.
     source_timeout_s: float = 12.0
-    # GUGiK NMT WCS was too slow from the event network (> 30 s); enable only after re-checking from the VPS.
-    dem_try_nmt: bool = False
+    # GUGiK NMT 1 m via the point-height service (WCS never answered); off → Copernicus 30 m only.
+    dem_try_nmt: bool = True
     # Analyses running at the same time (each fans out to all sources); further ones wait in the queue.
     max_concurrent_analyses: int = 4
     # Per-client limits (plan M8.2). Generous, because a whole jury room may share one public address.

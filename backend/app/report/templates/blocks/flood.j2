@@ -1,0 +1,28 @@
+{#- Flood hazard sentence (ISOK maps + groundwater flooding areas). -#}
+{% if level == 'high' %}
+Działka leży w strefie, którą zalewa woda zdarzająca się średnio raz na 10 lat — zagrożenie powodzią jest wysokie. Nie zakładaj tu zbiorników ani drenażu bez uzgodnienia z Wodami Polskimi, a uprawy planuj z myślą o zalaniu wiosną.
+{% elif level == 'medium' %}
+Działka leży w strefie wody stuletniej (zalanie średnio raz na 100 lat, czyli z prawdopodobieństwem ok. 1 % w każdym roku) — to obszar szczególnego zagrożenia powodzią, gdzie budowa wymaga zgody Wód Polskich.
+{% elif level == 'low' and d.zones.get('q02') %}
+Działka leży tylko w strefie skrajnej powodzi (raz na 500 lat) — zagrożenie powodzią od rzeki jest niskie.
+{% elif level == 'unknown' %}
+W {{ d.points_checked }} z {{ d.points_total }} sprawdzanych punktów działki nie stwierdzono stref zagrożenia powodziowego, ale pozostałe punkty nie zostały sprawdzone (usługa Wód Polskich nie odpowiedziała), więc nie wykluczamy zagrożenia.
+{% elif level == 'low' %}
+Działka nie leży w strefach zagrożenia powodziowego od rzek (sprawdzono {{ d.points_checked }} {{ d.points_checked|plural('punkt', 'punkty', 'punktów') }}), ale w obszarze zagrożonym podtopieniami od wód gruntowych.
+{% else %}
+W {{ d.points_checked }} sprawdzonych {{ d.points_checked|plural('punkcie', 'punktach', 'punktach') }} działki (środek i brzeg) nie stwierdzono stref zagrożenia powodziowego od rzek.
+{% endif %}
+{% if level in ('high', 'medium', 'low') and partial %}
+Część punktów działki nie została sprawdzona — strefa może obejmować większą część działki.
+{% endif %}
+{% if d.historical %}
+W tym miejscu odnotowano powódź w przeszłości (mapa powodzi historycznych).
+{% elif d.historical is none %}
+Mapa powodzi historycznych Wód Polskich nie odpowiedziała, więc nie sprawdziliśmy, czy działkę zalewało w przeszłości.
+{% endif %}
+{% if d.groundwater_flooding %}
+Okolica jest na mapie PIG-PIB obszarem zagrożonym podtopieniami od wód gruntowych — po mokrych zimach woda może stać na polu.
+{% endif %}
+{% if level != 'unknown' or d.points_checked %}
+Mapy zagrożenia powodziowego pochodzą z II cyklu planistycznego (2020–2022) i opisują zagrożenie dziś, niezależnie od daty analizy; nie obejmują małych cieków ani podtopień po ulewach.
+{% endif %}

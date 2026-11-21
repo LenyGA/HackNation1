@@ -157,9 +157,11 @@ KIND_PL = {"wetland": "mokradło", "water_body": "oczko lub zbiornik wodny"}
 
 
 def fmt(value: ParamValue) -> str:
-    """Polish number formatting: decimal comma, no trailing '.0'."""
+    """Polish number formatting: decimal comma, no trailing '.0', thin space between thousands (≥ 10 000)."""
     if isinstance(value, bool):
         return str(int(value))
+    if isinstance(value, (int, float)) and abs(value) >= 10_000 and float(value).is_integer():
+        return f"{int(value):,}".replace(",", "\u00a0")
     if isinstance(value, float):
         if value.is_integer():
             return str(int(value))

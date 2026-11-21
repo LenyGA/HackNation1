@@ -58,14 +58,30 @@ Każde źródło to moduł w `backend/app/sources/` z funkcją `fetch(parcel, an
 | `open_meteo.py` | Open-Meteo archiwum → zapas NASA POWER; ostatnie dni i prognoza: Open-Meteo Forecast | dane dobowe od 1.10 roku `rok − 11` do `analysis_date`; prognoza 7 dni tylko gdy `analysis_date` = dziś | 12 s / zapytanie | bez wygasania; 1 h dla dat z ostatnich 10 dni | NASA POWER → `degraded` (ET0 z FAO-56); dni z prognozy oznaczone `provisional_from`; brak obu → `missing` |
 | `sentinel2.py` | Sentinel-2 L2A, Planetary Computer | do 3 scen z 45 dni przed `analysis_date` + 1 scena z okna ±20 dni w każdym z 10 lat; tylko okno działki | 15 s łącznie | profil historyczny bez wygasania | brak czystej sceny bieżącej → `missing`; < 10 pikseli lub < 5 lat → `degraded` |
 | `soilgrids.py` | SoilGrids 2.0 WCS | piasek, pył, ił, SOC, gęstość; 5 warstw do 100 cm; komórka centroidu | 8 s łącznie | bez wygasania | brak w centroidzie → najbliższa komórka (≤ 300 m) i `degraded`; wszystko puste → `missing` |
-| `dem.py` | Copernicus DEM GLO-30 (Planetary Computer); opcjonalnie NMT GUGiK (`RSW_DEM_TRY_NMT=true`) | siatka wysokości działka + 150 m w EPSG:2180, 10 m (z 30 m) | 8 s NMT, 12 s COP | bez wygasania | COP zawsze `degraded` (30 m, DSM); brak → `missing` |
+| `dem.py` | NMT 1 m GUGiK (lidar) przez usługę wysokości punktów `GetHByPointList` (domyślnie); zapasowo Copernicus DEM GLO-30 (Planetary Computer) | siatka wysokości działka + 150 m w EPSG:2180, co 5 m (rzadziej dla dużych działek, maks. 8000 punktów), paczki po 1000 punktów równolegle | 7 s NMT, potem COP; 18 s łącznie | bez wygasania | NMT → `ok`; COP zawsze `degraded` (30 m, DSM); brak → `missing` |
 | `hydro.py` | OSM Overpass (2 serwery równolegle, pierwsza odpowiedź) | rowy, cieki, zbiorniki, mokradła, lasy w 1 km od krawędzi działki; odległości i długość rowów ≤ 30 m od granicy | 12 s | 1 dzień | „brak w OSM” = `ok` z komunikatem; brak odpowiedzi = `missing` |
 | `landcover.py` | ESA WorldCover 2021 v200 (Planetary Computer) | udziały klas pokrycia na działce (piksele 10 m) | 10 s | bez wygasania | < 50% pola i łąki → `degraded` z ostrzeżeniem |
 
 Uwagi:
 - Open-Meteo archiwum odpowiada 429 z sieci wydarzenia (wspólny IP), więc lokalnie działa zapas NASA POWER. Na VPS sprawdzić ponownie.
 - Overpass nie odpowiadał z sieci wydarzenia (oba serwery) — moduł zwraca wtedy jawne `missing`. Na VPS sprawdzić ponownie.
-- NMT GUGiK jest domyślnie wyłączony (pomiar M1: > 30 s). Do ponownego pomiaru z VPS.
+- NMT GUGiK: WCS GetCoverage nie odpowiedział ani razu (21.11.2026, wszystkie zapytania > 30–60 s), dlatego używamy usługi wysokości punktów `https://services.gugik.gov.pl/nmt/` (`GetHByPointList`, POST, lista `N E` w EPSG:2180). Usługa zwraca wysokości dla maks. 1000 punktów na zapytanie; brak danych to punkt bez wysokości albo `0.0`. 5700 punktów (działka 0,27 ha + 150 m) ≈ 2,8 s.
 - WorldCover i OSM pokazują stan obecny / z 2021 r., a nie z dnia analizy. Wynika to z dostępności danych i jest opisane w wyniku źródła.
 - Zmierzony czas wszystkich źródeł równolegle dla działki `302108_5.0014.88/8`: 12 s na zimno (ograniczone timeoutem Overpass),
   < 1 s z cache.
+
+
+## Nowe źródła (21.11.2026, wieczór)
+
+| Moduł | Źródło | Co pobieramy | Czas / limit | Cache | Brak danych |
+|---|---|---|---|---|---|
+| `flood.py` | Wody Polskie (KZGW), mapy zagrożenia powodziowego ISOK, II cykl, WMS `https://wody.isok.gov.pl/wss/INSPIRE/INSPIRE_NZ_HY_MZPMRP_WMS`, warstwa `NZ.Fluvial` | GetFeatureInfo (`text/plain`) w 1–5 punktach działki → scenariusze 10, 100, 500 lat (`loo_ql_returnperiod`) | 0,2–8 s na punkt, równolegle; 11 s łącznie | 30 dni | żaden punkt nie odpowiedział → `missing` („nie sprawdzono”, nigdy „brak zagrożenia”) |
+| `flood.py` | Wody Polskie, mapa powodzi historycznych (WORP), WMS `..._WORP_WMS`, warstwa `NZ.ObservedEvent` | GetFeatureInfo w centroidzie | 5 s (21.11.2026 serwer nie odpowiadał w 20 s) | j.w. | `historical = None` → raport mówi „nie sprawdzono” |
+| `flood.py` | PIG-PIB, obszary zagrożone podtopieniami, ArcGIS REST `cbdgmapa.pgi.gov.pl/.../hydrogeologia/podtopienia/MapServer/0` | zapytanie punktowe | 0,2 s | j.w. | `None` |
+| `groundwater.py` | PIG-PIB / PSH, automatyczny monitoring wód podziemnych, ArcGIS REST `cbdgmapa.pgi.gov.pl/.../hydrogeologia/mwp_auto/MapServer` (warstwa 0: stacje, tabela 2: pomiary, dane bez walidacji) | stacje w promieniu 50 km; średnia głębokość zwierciadła (m p.p.t.) z 60 dni przed datą analizy i z tych samych 60 dni 1–3 lata wcześniej (`outStatistics`, po stronie serwera) | ~0,1 s na zapytanie; 9 s łącznie | bez wygasania dla dat historycznych | brak stacji z danymi → `missing`; stacja bez historii → `degraded` (poziom bez trendu) |
+
+Licencje: dane publiczne Wód Polskich (INSPIRE) i PIG-PIB — bezpłatne, z podaniem źródła. Wszystkie pobierane na żywo.
+
+Ograniczenia: mapy zagrożenia powodziowego opisują stan z II cyklu planistycznego (mapy 2020–2022) i nie zależą od daty analizy. Automatyczne stacje PSH w wielu miejscach mierzą dopiero od 2026 r., więc dla dat historycznych trendu często nie ma — raport mówi to wprost.
+
+Sprawdzone i odrzucone: BDOT10k / MPHP jako WFS z cieków po bbox — publicznej usługi nie znaleziono (BDOT10k tylko jako paczki GML na powiat, 50–100 MB); zostaje OSM Overpass. IMGW `api/data/hydro` daje tylko stan bieżący (bez historii), więc nie nadaje się dla dat z przeszłości.

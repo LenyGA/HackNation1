@@ -192,3 +192,37 @@ analizy z jawną informacją o braku prognozy. Prognoza wydana innego dnia niż 
 **Czynniki nieuwzględnione (M5.2):** dostępność wody (studnia, rów, ciek, zbiornik) i wymagane zgody wodnoprawne
 (Wody Polskie) — każda porada nawadniania zawiera te zastrzeżenia, a sekcja „Ograniczenia analizy” ma pozycję
 `water_availability_and_permits`.
+
+
+## 10. Zmiany klimatu na działce (`trends.py`)
+
+Sezon wegetacyjny 1 IV – 30 IX, tylko sezony zakończone przed datą analizy (ostatnie 10). Dla każdego sezonu: średnia
+temperatura, dni upalne (Tmax ≥ 30 °C), ET0, KBW = P − ET0, dni stresu wodnego uprawy (FAO-56 Ks < 1) ogółem i w miesiącach
+krytycznych. Porównujemy średnią z 10 lat, z ostatnich 3 i z ostatnich 2 sezonów. Trend: nachylenie Theila–Sena (Sen 1968),
+odporne na pojedynczy skrajny rok, na dekadę; „stabilny”, gdy |trend| jest poniżej progu właściwego dla wskaźnika.
+„Ostatnie lata gorsze / krytyczne”: średnia z 2 ostatnich sezonów odbiega od średniej 10-letniej o ≥ 0,5 / ≥ 1 odchylenie
+standardowe w niekorzystnym kierunku (i o co najmniej minimalną różnicę bezwzględną). Wniosek słowny powstaje z szablonu.
+
+## 11. Plan wody na sezon (`water_plan.py`)
+
+FAO-56: ETc = Kc · ET0 dla krzywej Kc uprawy; netto zapotrzebowanie na nawadnianie z dobowego bilansu strefy korzeni
+z nawadnianiem przy dopuszczalnym ubytku (Dr > RAW → uzupełnienie do polowej pojemności wodnej). Liczone dla każdego
+z 10 poprzednich lat, miesiące III–X. Pokazujemy medianę („rok typowy”) oraz 80. i 90. percentyl („rok suchy” raz na 5 lat,
+„bardzo suchy” raz na 10 lat) — zalecenia planujemy na rok suchy, nie na średnią. Bez danych o glebie: max(0, ETc − P)
+na miesiąc (przybliżenie). Przelicznik objętości roku suchego na staw o głębokości 2 m.
+
+## 12. Symulator strategii 1–5 lat (`simulate.py`)
+
+Zespół 10 sezonów pogody działki (październik–październik, start od polowej pojemności po zimie) z ET0 przeskalowanym
+trendem ET0 działki (metoda delta-change); opadów nie zmieniamy. Strategie: bez działań · podlewanie ratunkowe (tylko
+okresy krytyczne) · pełne nawadnianie · retencja glebowa (międzyplony 0,32 t C/ha/rok — Poeplau i Don 2015 — przeliczone
+na zapas wody równaniami Saxtona i Rawlsa 2006; ściółka na ~50 % powierzchni −25 % parowania z gleby, FAO-56 rozdz. 11)
+· retencja + podlewanie ratunkowe. Wynik: dni stresu i woda do nawadniania (mediana i 80. percentyl). Symulator pokazuje
+z danych, że podlewanie nie zwiększa zapasu wody w glebie w kolejnej wiośnie (porównanie stanu 1 kwietnia w ciągłym
+bilansie z nawadnianiem i bez), a wpływ próchnicy na zapas wody jest mały (Minasny i McBratney 2018).
+
+## 13. Profil spadku (`profile.py`)
+
+Linia przez środek działki wzdłuż średniego kierunku spadku (na płaskim terenie: wzdłuż dłuższego boku), przycięta do
+działki, wysokości interpolowane dwuliniowo z siatki NMT (5 m) lub Copernicus (30 m). Obniżenia: miejsca, gdzie
+powierzchnia po wypełnieniu zagłębień (priority-flood) jest ≥ 0,2 m wyżej niż teren.

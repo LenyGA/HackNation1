@@ -1,0 +1,5 @@
+{#- Missing / degraded data message for the source "flood" (CLAUDE.md rule 4). -#}
+{{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
+{% if status == 'missing' %}
+Nie wiemy, czy działka leży w strefie zagrożenia powodziowego — to nie znaczy, że zagrożenia nie ma.
+{% endif %}

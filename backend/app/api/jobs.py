@@ -27,7 +27,7 @@ from app.recommendations.irrigation import irrigation_advice
 from app.report.builder import ParcelSource, build_report
 from app.report.labels_pl import SOURCE_LABELS
 from app.report.storage import new_report_id, save_report
-from app.sources import dem, hydro, landcover, open_meteo, sentinel2, soilgrids, uldk
+from app.sources import dem, flood, groundwater, hydro, landcover, open_meteo, sentinel2, soilgrids, uldk
 from app.sources.base import missing, now_utc
 
 log = logging.getLogger(__name__)
@@ -65,6 +65,8 @@ SOURCES: list[SourceSpec] = [
     SourceSpec(dem.NAME, dem.fetch, dem.SOURCE_COP, dem.LICENSE_COP),
     SourceSpec(hydro.NAME, hydro.fetch, hydro.SOURCE, hydro.LICENSE),
     SourceSpec(landcover.NAME, landcover.fetch, landcover.SOURCE, landcover.LICENSE),
+    SourceSpec(flood.NAME, flood.fetch, flood.SOURCE, flood.LICENSE),
+    SourceSpec(groundwater.NAME, groundwater.fetch, groundwater.SOURCE, groundwater.LICENSE),
 ]
 SOURCE_NAMES = [uldk.NAME, *(s.name for s in SOURCES)]
 
@@ -170,6 +172,8 @@ def _compute(job: Job, parcel: Parcel, parcel_source: ParcelSource, results: dic
         dem=results[dem.NAME],
         hydro=results[hydro.NAME],
         landcover=results[landcover.NAME],
+        flood=results.get(flood.NAME),
+        groundwater=results.get(groundwater.NAME),
     )
     assessment = assess(inputs)
     recommendations = recommend(assessment, inputs)

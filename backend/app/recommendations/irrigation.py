@@ -100,6 +100,9 @@ class IrrigationAdvice(BaseModel):
     dose_mm: float | None = Field(None, description="Net water to refill the root zone to field capacity.")
     single_dose_max_mm: float | None = None
     applications: int | None = None
+    single_dose_mm: float | None = Field(
+        None, description="One application: dose_mm / applications, half up."
+    )
     volume_m3: float | None = Field(None, description="dose_mm over the whole parcel area.")
     within_days: int | None = Field(None, description="0 = now; None = no timing (no forecast).")
     irrigate_by: date | None = None
@@ -322,7 +325,8 @@ def irrigation_advice(
         cap = single_dose_max_mm(category)
         dose = round_to(decision.depletion_mm, 1.0) or 0.0
         applications = max(1, math.ceil(dose / cap))
-        single = round_to(dose / applications, 1.0) or 0.0
+        # Half-up rounding (never Python's half-to-even), so the text and the UI show the same number.
+        single = float(math.floor(dose / applications + 0.5))
         raw_volume = dose * inputs.parcel.area_ha * 10.0  # 1 mm on 1 ha = 10 m³
         volume = round_to(raw_volume, 1.0 if raw_volume >= 10 else 0.1)
         params.update(
@@ -340,6 +344,7 @@ def irrigation_advice(
             dose_mm=dose,
             single_dose_max_mm=cap,
             applications=applications,
+            single_dose_mm=single,
             volume_m3=volume,
             within_days=decision.within_days,
         )

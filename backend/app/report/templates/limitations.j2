@@ -1,6 +1,6 @@
 {#- One limitation per code from Assessment.limitations (analysis/assessment.py::_limitations). -#}
 {% set T = {
-  'weather_grid': 'Dane pogodowe pochodzą z modelu pogody w siatce ok. 10 km, a nie z deszczomierza na polu — lokalna burza może nie być widoczna.',
+  'weather_grid': 'Dane pogodowe pochodzą z modelu pogody w siatce ok. ' ~ ('50 km (zapasowe źródło NASA POWER)' if weather_from_power else '10 km') ~ ', a nie z deszczomierza na polu — lokalna burza może nie być widoczna.',
   'crop_calendar_typical': 'Terminy siewu i fazy rozwoju uprawy są typowe dla Polski; na Twoim polu mogą się przesunąć o 1–3 tygodnie.',
   'balance_simplifications': 'Bilans wody w glebie nie uwzględnia wody gruntowej, nawadniania w przeszłości ani spływu z sąsiednich pól.',
   'iung_thresholds_missing': 'Nie użyto oficjalnych progów suszy rolniczej IUNG-PIB dla tej uprawy i gleby — ocena opiera się na porównaniu z poprzednimi latami i bilansie wody w glebie.',

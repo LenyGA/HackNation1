@@ -6,6 +6,7 @@ import asyncio
 from collections import OrderedDict
 from functools import lru_cache
 
+from app.report.charts_svg import profile_svg, satellite_svg, trends_svgs, water_plan_svg
 from app.report.labels_pl import CONFIDENCE_LABELS
 from app.report.map_svg import STYLE, parcel_map_svg
 from app.report.models import Report
@@ -30,6 +31,15 @@ def _legend_colors() -> dict[str, str]:
     return out
 
 
+def _charts(report: Report) -> dict[str, object]:
+    return {
+        "water_plan": water_plan_svg(report.water_plan) if report.water_plan else "",
+        "profile": profile_svg(report.profile) if report.profile and len(report.profile.points) >= 2 else "",
+        "trends": trends_svgs(report.trends) if report.trends else [],
+        "satellite": satellite_svg(report.satellite) if report.satellite else "",
+    }
+
+
 def render_html(report: Report) -> str:
     return (
         html_env()
@@ -38,6 +48,7 @@ def render_html(report: Report) -> str:
             r=report,
             css=_css(),
             map_svg=parcel_map_svg(report),
+            charts=_charts(report),
             recs={rec.number: rec for rec in report.recommendations},
             legend_colors=_legend_colors(),
             confidence_pl=CONFIDENCE_LABELS,

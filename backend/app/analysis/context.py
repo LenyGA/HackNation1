@@ -12,6 +12,8 @@ from app.core.models import Confidence, Parcel, SourceResult, SourceStatus
 from app.crops.catalog import Crop, month_day
 from app.sources.base import parcel_shape
 from app.sources.dem import ElevationGrid
+from app.sources.flood import FloodData
+from app.sources.groundwater import GroundwaterData
 from app.sources.hydro import HydroData
 from app.sources.landcover import LandCoverData
 from app.sources.open_meteo import WeatherData
@@ -34,6 +36,9 @@ class AnalysisInputs:
     dem: SourceResult[ElevationGrid]
     hydro: SourceResult[HydroData]
     landcover: SourceResult[LandCoverData]
+    # Context sources (do not change the water assessment); None in tests and old callers.
+    flood: SourceResult[FloodData] | None = None
+    groundwater: SourceResult[GroundwaterData] | None = None
 
     def statuses(self) -> dict[str, SourceStatus]:
         return {

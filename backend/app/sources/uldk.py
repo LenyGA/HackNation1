@@ -4,6 +4,7 @@ Response format (plain text): first line is a status code ("0" = OK, "-1 ..." = 
 lines are records with `|`-separated fields in the order requested in `result`.
 """
 
+import asyncio
 import json
 import logging
 from datetime import timedelta
@@ -22,6 +23,7 @@ from app.core.models import Parcel, validate_parcel_id
 from app.sources.base import METRIC_CRS, SourceError, to_crs
 
 log = logging.getLogger(__name__)
+RETRY_PAUSE_S = 0.5
 
 NAME = "uldk"
 URL = "https://uldk.gugik.gov.pl/"
@@ -134,13 +136,20 @@ async def get_parcel_by_id(parcel_id: str) -> Parcel:
     if cached is not None:
         return Parcel.model_validate(cached)
     # httpx percent-encodes '/' in query values (e.g. '273/18' -> '273%2F18').
-    text = await _query(
-        {"request": "GetParcelById", "id": parcel_id, "result": ",".join(RESULT_FIELDS), "srid": "4326"}
-    )
-    records = parse_response(text)
-    if not records:
-        raise ParcelNotFound(MSG_NOT_FOUND_ID.format(id=parcel_id))
-    parcel = record_to_parcel(records[0])
+    params = {"request": "GetParcelById", "id": parcel_id, "result": ",".join(RESULT_FIELDS), "srid": "4326"}
+    # ULDK now and then returns a garbled record; one retry after a short pause usually gets a valid one.
+    for attempt in range(2):
+        records = parse_response(await _query(params))
+        if not records:
+            raise ParcelNotFound(MSG_NOT_FOUND_ID.format(id=parcel_id))
+        try:
+            parcel = record_to_parcel(records[0])
+            break
+        except ParcelServiceError:
+            if attempt:
+                raise
+            log.warning("ULDK returned an unreadable record, retrying")
+            await asyncio.sleep(RETRY_PAUSE_S)
     cache.set(NAME, {"id": parcel_id}, parcel.model_dump(mode="json"))
     return parcel
 

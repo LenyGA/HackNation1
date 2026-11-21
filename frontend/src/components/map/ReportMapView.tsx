@@ -1,7 +1,7 @@
 import type { FeatureCollection, Geometry } from 'geojson'
 import { type AddLayerObject, Map as MlMap, Marker, NavigationControl, Popup } from 'maplibre-gl'
-import { useEffect, useRef } from 'react'
-import type { MapFeatureKind, ReportMap } from '@/api/types'
+import { useEffect, useRef, useState } from 'react'
+import type { FloodInfo, MapFeatureKind, ReportMap } from '@/api/types'
 import { baseStyle, collapseAttribution, geometryBounds, MAP_LOCALE, representativePoint } from './mapStyle'
 
 // Colours per feature kind, shared by the map layers and the legend.
@@ -55,9 +55,22 @@ function popupHtml(label: string, recs: string): string {
 
 /** Report map: parcel outline, where water gathers and leaves the field, nearby water and trees,
  *  with numbered markers that match the recommendation numbers in section 5. */
-export function ReportMapView({ map: data }: { map: ReportMap }) {
+/** WMS GetMap tile template in Web Mercator (MapLibre fills in the tile bbox). */
+function wmsTiles(url: string, layers: string[]): string {
+  const sep = url.includes('?') ? '&' : '?'
+  return (
+    `${url}${sep}SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=${encodeURIComponent(layers.join(','))}` +
+    '&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}'
+  )
+}
+
+export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flood?: FloodInfo | null }) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
+  const floodUrl = flood?.wms_url && flood.wms_layers.length > 0 ? wmsTiles(flood.wms_url, flood.wms_layers) : null
+  // The legend entry appears only once a flood tile has really loaded (CSP or a slow service may block them),
+  // so an empty map never reads as "no flood zone".
+  const [loadedFloodUrl, setLoadedFloodUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!container.current) return
@@ -67,6 +80,7 @@ export function ReportMapView({ map: data }: { map: ReportMap }) {
       // Overlays are part of the initial style, so they are drawn without waiting for the WMS tiles.
       style: baseStyle(
         {
+          ...(floodUrl ? { flood: { type: 'raster' as const, tiles: [floodUrl], tileSize: 256, attribution: 'Mapy zagrożenia powodziowego © Wody Polskie (ISOK)' } } : {}),
           features: { type: 'geojson', data: featureCollection(data) },
           parcel: {
             type: 'geojson',
@@ -74,6 +88,7 @@ export function ReportMapView({ map: data }: { map: ReportMap }) {
           },
         },
         [
+          ...(floodUrl ? [{ id: 'flood', type: 'raster' as const, source: 'flood', paint: { 'raster-opacity': 0.5 } }] : []),
           {
             id: 'f-fill',
             type: 'fill',
@@ -130,6 +145,9 @@ export function ReportMapView({ map: data }: { map: ReportMap }) {
 
     // One handler for all feature layers, so a click on a polygon edge opens one popup, not two.
     let popup: Popup | null = null
+    map.on('sourcedata', (e) => {
+      if (floodUrl && e.sourceId === 'flood' && e.tile) setLoadedFloodUrl(floodUrl)
+    })
     map.on('click', (e) => {
       const layers = FEATURE_LAYERS.filter((id) => map.getLayer(id))
       const f = layers.length ? map.queryRenderedFeatures(e.point, { layers })[0] : undefined
@@ -165,7 +183,7 @@ export function ReportMapView({ map: data }: { map: ReportMap }) {
       mapRef.current = null
       map.remove()
     }
-  }, [data])
+  }, [data, floodUrl])
 
   const kinds = KIND_ORDER.filter((k) => data.legend_pl[k])
   const hasNumbered = data.features.some((f) => f.recommendation_numbers.length > 0)
@@ -185,6 +203,12 @@ export function ReportMapView({ map: data }: { map: ReportMap }) {
               1
             </span>
             Numer zalecenia z listy poniżej
+          </li>
+        )}
+        {floodUrl && loadedFloodUrl === floodUrl && (
+          <li className="flex items-center gap-2">
+            <span className="inline-block h-3 w-5 rounded-sm" style={{ background: '#60a5fa', opacity: 0.6 }} aria-hidden />
+            Strefa zagrożenia powodziowego
           </li>
         )}
         {kinds.map((k) => (

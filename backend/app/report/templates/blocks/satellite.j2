@@ -1,0 +1,16 @@
+{#- Plant condition from the satellite vs previous years; explains why it may not confirm the drought. -#}
+{% set cmp = 'unknown' if (now is none or hist_median is none) else ('lower' if now < hist_median - 0.05 else ('higher' if now > hist_median + 0.05 else 'similar')) %}
+{% set cmp_pl = {'lower': 'niższa', 'higher': 'wyższa', 'similar': 'podobna', 'unknown': 'nieznana'}[cmp] %}
+{% if check == 'not_applicable' and now is not none %}
+Kondycji roślin z satelity nie porównujemy z poprzednimi latami: w tym okresie uprawa ({{ crop }}) nie zakryła jeszcze pola albo nie było dość bezchmurnych zdjęć z poprzednich lat — niski wynik byłby normalny, a nie oznaką suszy.
+
+{% elif check == 'agrees' %}
+Zdjęcia satelitarne {% if level in ('light', 'moderate', 'severe') %}potwierdzają brak wody{% else %}są zgodne z oceną{% endif %}: kondycja roślin ({{ now|num(0.01) }}) jest {{ cmp_pl }}{% if cmp == 'similar' %} do zwykłej{% else %} niż zwykle{% endif %} w tych tygodniach (środek z {{ years }} lat: {{ hist_median|num(0.01) }}).
+
+{% elif check == 'disagrees' %}
+Zdjęcia satelitarne nie potwierdzają w pełni oceny: kondycja roślin ({{ now|num(0.01) }}) jest {{ cmp_pl }}{% if cmp == 'similar' %} do zwykłej{% else %} niż zwykle{% endif %} w tych tygodniach (środek z {{ years }} lat: {{ hist_median|num(0.01) }}). {% if level in ('light', 'moderate', 'severe') %}Rośliny często reagują na brak wody z opóźnieniem 1–3 tygodni, a satelita widzi zieleń liści, nie wodę w glebie — dlatego ocenę opieramy na bilansie wody, a zdjęcia tylko obniżają jej pewność.{% else %}Słabsza kondycja może mieć inne przyczyny niż woda (choroby, nawożenie, termin siewu).{% endif %}
+
+{% elif now is none %}
+W ostatnich tygodniach nie było bezchmurnego zdjęcia satelitarnego tej działki, więc kondycji roślin teraz nie oceniamy.
+
+{% endif %}

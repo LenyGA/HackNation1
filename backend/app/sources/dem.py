@@ -5,12 +5,16 @@ surface model (trees and buildings raise the height). Resampled bilinearly to a 
 flow directions follow the parcel outline; the native resolution is reported so analysis does not
 over-interpret it.
 
-Optional: GUGiK NMT 1 m WCS (enable with RSW_DEM_TRY_NMT=true). From the event network a 500 × 500 m
-subset took > 30 s, so it is off by default and tried with a strict timeout before the fallback when enabled.
+Preferred: GUGiK NMT 1 m (lidar) sampled on a regular 5 m grid (coarser for big parcels) through the GUGiK
+point-height service (GetHByPointList, about 1.5 s for 10 000 points). The NMT WCS GetCoverage never answered
+from the event network (all requests timed out), so it is no longer used. On failure: Copernicus 30 m.
+Disable with RSW_DEM_TRY_NMT=false.
 """
 
+import asyncio
 import logging
 import math
+import random
 from datetime import date, timedelta
 from typing import Any, Literal
 
@@ -20,8 +24,6 @@ from affine import Affine
 from pydantic import BaseModel
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
-from rasterio.errors import RasterioError
-from rasterio.io import MemoryFile
 from rasterio.warp import reproject
 from shapely.geometry import mapping
 from shapely.geometry.base import BaseGeometry
@@ -49,16 +51,23 @@ NAME = "dem"
 COP_COLLECTION = "cop-dem-glo-30"
 SOURCE_COP = "Copernicus DEM GLO-30 (ESA/Airbus), katalog Microsoft Planetary Computer, https://planetarycomputer.microsoft.com/"
 LICENSE_COP = "Licencja Copernicus DEM — bezpłatna, wymagane podanie źródła"
-NMT_URL = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WCS/DigitalTerrainModelFormatTIFF"
-NMT_COVERAGE = "DTM_PL-KRON86-NH_TIFF"
-SOURCE_NMT = "GUGiK, Numeryczny Model Terenu (NMT, 1 m), usługa WCS, https://www.geoportal.gov.pl/"
+NMT_URL = "https://services.gugik.gov.pl/nmt/"
+SOURCE_NMT = (
+    "GUGiK, Numeryczny Model Terenu (NMT, 1 m, lidar), usługa wysokości punktów GetHByPointList, "
+    "https://services.gugik.gov.pl/nmt/"
+)
 LICENSE_NMT = "Dane publiczne GUGiK, udostępniane bezpłatnie"
 
 BUFFER_M = 150.0
 COP_RESOLUTION_M = 10.0
 NMT_RESOLUTION_M = 5.0
 MAX_CELLS = 400  # per side; resolution is coarsened for very large parcels
-NMT_TIMEOUT_S = 8.0
+NMT_TIMEOUT_S = 7.0
+NMT_MAX_POINTS = 8_000  # per parcel; the sampling step grows for big parcels
+NMT_CHUNK = 1_000  # the service returns heights for at most 1000 points per request
+NMT_PARALLEL = 3  # more parallel requests trip the GUGiK firewall (redirects to an error page)
+NMT_DEADLINE_S = 9.0  # retries of firewall-blocked requests stop here (then Copernicus)
+NMT_RETRY_PAUSE_S = 0.4
 BUDGET_S = 18.0  # hard limit for the whole source (NMT attempt + Copernicus)
 # Copernicus result cached after a failed NMT attempt expires, so NMT is retried later.
 NMT_RETRY_TTL = timedelta(hours=6)
@@ -171,40 +180,79 @@ async def _from_copernicus(geom_wgs84: BaseGeometry, geom_2180: BaseGeometry) ->
     return grid
 
 
-def parse_nmt(content: bytes, geom_2180: BaseGeometry) -> ElevationGrid:
-    if not content.startswith((b"II", b"MM")):
-        raise SourceError("Usługa NMT nie zwróciła rastra.")
-    transform, width, height, res = target_grid(geom_2180, NMT_RESOLUTION_M)
-    dst = np.full((height, width), np.nan, dtype="float32")
-    try:
-        with MemoryFile(content) as mf, mf.open() as ds:
-            src = ds.read(1)
-            # The NMT WCS response is in EPSG:2180; this only resamples 1 m -> working resolution.
-            _reproject_into(dst, src, ds.transform, ds.crs or CRS.from_epsg(METRIC_CRS), ds.nodata, transform)
-    except RasterioError as exc:
-        raise SourceError("Nieczytelny raster z usługi NMT.") from exc
-    if not np.isfinite(dst).any():
-        raise SourceError("Usługa NMT zwróciła pusty raster.")
-    return to_model(dst, transform, res, "gugik_nmt", 1.0)
+def nmt_grid_points(geom_2180: BaseGeometry) -> tuple[Affine, int, int, float, list[tuple[float, float]]]:
+    """Cell centres (E, N) of the working grid for the NMT point sampling."""
+    minx, miny, maxx, maxy = geom_2180.buffer(BUFFER_M).bounds
+    res = max(NMT_RESOLUTION_M, math.ceil(math.sqrt((maxx - minx) * (maxy - miny) / NMT_MAX_POINTS)))
+    transform, width, height, res = target_grid(geom_2180, res)
+    points = [
+        (transform.c + (c + 0.5) * res, transform.f - (r + 0.5) * res)
+        for r in range(height)
+        for c in range(width)
+    ]
+    return transform, width, height, res, points
+
+
+def parse_nmt_points(text: str, expected: int) -> list[float]:
+    """'N E H,N E H,...' → heights in request order.
+
+    "No data" comes as a point without a height ('N E'). Outside Poland the service answers 0.0; a real
+    height can also be 0.0 m (polders of Żuławy lie at or below sea level), so 0.0 counts as "no data" only
+    when every height of the chunk is 0.0.
+    """
+    out: list[float] = []
+    for item in text.strip().split(","):
+        parts = item.split()
+        if len(parts) not in (2, 3):
+            raise SourceError("Usługa NMT zwróciła nieczytelną odpowiedź.")
+        try:
+            out.append(float(parts[2]) if len(parts) == 3 else math.nan)
+        except ValueError as exc:
+            raise SourceError("Usługa NMT zwróciła nieczytelną odpowiedź.") from exc
+    if len(out) != expected:
+        raise SourceError("Usługa NMT zwróciła niepełną odpowiedź.")
+    present = [h for h in out if not math.isnan(h)]
+    if present and all(h == 0.0 for h in present):
+        return [math.nan] * len(out)
+    return out
+
+
+async def _nmt_chunk(
+    points: list[tuple[float, float]], slots: asyncio.Semaphore, deadline: float
+) -> list[float]:
+    """One request of ≤ 1000 points.
+
+    GUGiK's web firewall randomly answers part of the requests with a redirect to an error page
+    (302 → integracja01.gugik.gov.pl, a body announced as 4 GB). Redirects are never followed; such a
+    request is repeated after a short pause until NMT_DEADLINE_S, then the source falls back to Copernicus.
+    """
+    body = {"request": "GetHByPointList", "list": ",".join(f"{n:.1f} {e:.1f}" for e, n in points)}
+    loop = asyncio.get_running_loop()
+    while True:
+        try:
+            async with slots:
+                resp = await request(
+                    "POST", NMT_URL, data=body, timeout_s=NMT_TIMEOUT_S, retries=0, follow_redirects=False
+                )
+            return parse_nmt_points(resp.text, len(points))
+        except (httpx.HTTPError, SourceError) as exc:
+            if loop.time() + NMT_RETRY_PAUSE_S >= deadline:
+                if isinstance(exc, SourceError):
+                    raise
+                raise SourceError("Usługa NMT (GUGiK) nie odpowiedziała poprawnie na czas.") from exc
+        await asyncio.sleep(NMT_RETRY_PAUSE_S + random.random() * NMT_RETRY_PAUSE_S)
 
 
 async def _from_nmt(geom_2180: BaseGeometry) -> ElevationGrid:
-    minx, miny, maxx, maxy = geom_2180.buffer(BUFFER_M).bounds
-    params = [
-        ("SERVICE", "WCS"),
-        ("VERSION", "2.0.1"),
-        ("REQUEST", "GetCoverage"),
-        ("COVERAGEID", NMT_COVERAGE),
-        ("FORMAT", "image/tiff"),
-        ("SUBSET", f"x({minx:.0f},{maxx:.0f})"),
-        ("SUBSET", f"y({miny:.0f},{maxy:.0f})"),
-    ]
-    try:
-        resp = await request("GET", NMT_URL, params=params, timeout_s=NMT_TIMEOUT_S, retries=0)
-    except httpx.HTTPError as exc:
-        raise SourceError("Usługa NMT (GUGiK) nie odpowiedziała na czas.") from exc
-    grid: ElevationGrid = await planetary.run_in_pool(parse_nmt, resp.content, geom_2180)
-    return grid
+    transform, width, height, res, points = nmt_grid_points(geom_2180)
+    chunks = [points[i : i + NMT_CHUNK] for i in range(0, len(points), NMT_CHUNK)]
+    slots = asyncio.Semaphore(NMT_PARALLEL)
+    deadline = asyncio.get_running_loop().time() + NMT_DEADLINE_S
+    parts = await asyncio.gather(*(_nmt_chunk(c, slots, deadline) for c in chunks))
+    heights = np.array([h for part in parts for h in part], dtype="float32").reshape(height, width)
+    if np.isnan(heights).mean() > 0.5:
+        raise SourceError("Usługa NMT nie ma danych dla tego miejsca.")
+    return to_model(heights, transform, res, "gugik_nmt", 1.0)
 
 
 async def fetch(parcel: Parcel, analysis_date: date) -> SourceResult[ElevationGrid]:
@@ -234,14 +282,21 @@ async def _fetch(parcel: Parcel) -> SourceResult[ElevationGrid]:
     cached = cache.get(NAME, params)
     grid: ElevationGrid | None = ElevationGrid.model_validate(cached) if cached is not None else None
     notes: list[str] = []
+    cop_task: asyncio.Task[ElevationGrid] | None = None
     if grid is None and try_nmt:
+        # Copernicus is fetched at the same time, so a slow or blocked NMT costs no extra time.
+        cop_task = asyncio.create_task(_from_copernicus(geom, geom_2180))
+        # A Copernicus error is read here when NMT succeeded (no "exception never retrieved" warning).
+        cop_task.add_done_callback(lambda t: None if t.cancelled() else t.exception())
         try:
             grid = await _from_nmt(geom_2180)
         except SourceError as exc:
             notes.append(exc.message_pl)
+        if grid is not None:
+            cop_task.cancel()
     if grid is None:
         try:
-            grid = await _from_copernicus(geom, geom_2180)
+            grid = await cop_task if cop_task is not None else await _from_copernicus(geom, geom_2180)
         except SourceError as exc:
             return missing(
                 NAME,
@@ -260,7 +315,12 @@ async def _fetch(parcel: Parcel) -> SourceResult[ElevationGrid]:
             grid,
             source=SOURCE_NMT,
             license=LICENSE_NMT,
-            uncertainty=unc(Confidence.HIGH, "Numeryczny model terenu 1 m z pomiaru lotniczego (lidar)."),
+            uncertainty=unc(
+                Confidence.HIGH,
+                "Numeryczny model terenu z pomiaru lotniczego (lidar), "
+                f"próbkowany co {grid.resolution_m:.0f} m; wysokości podane co 0,1 m, więc spadki poniżej "
+                "ok. 1 % są na granicy dokładności.",
+            ),
         )
     return result(
         NAME,

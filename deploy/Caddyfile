@@ -32,7 +32,7 @@
 		# Map tiles come from OpenStreetMap and the Geoportal (GUGiK) WMS services (KIEG redirects every tile to
 		# integracja01/02.gugik.gov.pl, hence the wildcard); MapLibre runs in a blob/self worker
 		# and sets inline styles. Everything else is same-origin.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://mapy.geoportal.gov.pl https://*.gugik.gov.pl; connect-src 'self' https://tile.openstreetmap.org https://mapy.geoportal.gov.pl https://*.gugik.gov.pl; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org https://mapy.geoportal.gov.pl https://*.gugik.gov.pl https://wody.isok.gov.pl; connect-src 'self' https://tile.openstreetmap.org https://mapy.geoportal.gov.pl https://*.gugik.gov.pl https://wody.isok.gov.pl; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 		-Server
 	}
 

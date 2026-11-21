@@ -1,0 +1,17 @@
+{#- Slope profile across the parcel. -#}
+{% if pr.along_long_axis %}
+{% if pr.mean_slope_pct|abs < 1 %}Teren działki jest prawie płaski, więc przekrój{% else %}Działka jest długa i wąska, więc przekrój{% endif %} pokazuje ją wzdłuż dłuższego boku (od wyższego końca): na długości ok. {{ pr.length_m|num(10) }} m wysokość {% if pr.drop_m|abs < 0.1 %}prawie się nie zmienia{% else %}zmienia się o {{ pr.drop_m|abs|num(0.1) }} m{% endif %}.
+
+{% else %}
+Przekrój działki wzdłuż głównego kierunku spływu wody{% if direction_pl %} (w stronę: {{ direction_pl }}){% endif %}: na długości ok. {{ pr.length_m|num(10) }} m teren {% if pr.drop_m < 0.1 %}prawie nie opada{% else %}opada o {{ pr.drop_m|num(0.1) }} m{% endif %}, czyli średnio {{ pr.mean_slope_pct|num(0.1) }} % wzdłuż tej linii (średni spadek w sekcji 3 liczymy ze wszystkich kierunków, także w poprzek pola).
+
+{% endif %}
+{% if hollows %}
+Na przekroju widać {{ hollows }} {{ hollows|plural('obniżenie', 'obniżenia', 'obniżeń') }}, w {{ hollows|plural('którym', 'których', 'których') }} po deszczu zbiera się woda — to dobre miejsca na zatrzymanie wody (oczko, zastawka, pas zieleni). Rejon dolnego końca przekroju to miejsce, którym woda opuszcza pole — tu opłaca się pas buforowy z trawy lub zadrzewień.
+
+{% elif not pr.along_long_axis and pr.mean_slope_pct >= 2 %}
+Na przekroju nie ma obniżeń, więc woda spływa w dół pola — zatrzymuj ją pasami zieleni w poprzek spadku i pasem buforowym przy dolnej krawędzi.
+
+{% endif %}
+Dokładność przekroju zależy od mapy wysokości (oczko siatki ok. {{ pr.resolution_m|num }} m){% if pr.resolution_m >= 20 %} — to ogólnoświatowy model powierzchni, w którym drzewa i zabudowa podnoszą wysokość, więc „obniżenia” przy zadrzewieniach mogą być pozorne, a drobne nierówności pola nie są widoczne{% endif %}.
+

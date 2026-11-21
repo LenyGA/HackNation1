@@ -58,3 +58,18 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+@media print {
+  /* Disclosures are opened by a beforeprint handler (ReportPage); keep their content visible on paper. */
+  details::details-content {
+    content-visibility: visible;
+    display: block;
+  }
+  details > summary svg {
+    display: none;
+  }
+  figure,
+  table {
+    break-inside: avoid;
+  }
+}

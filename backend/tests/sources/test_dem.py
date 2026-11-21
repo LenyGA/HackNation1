@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 import respx
 from affine import Affine
-from rasterio.io import MemoryFile
 
 from app.core.cache import DiskCache
 from app.core.config import Settings
@@ -23,6 +22,12 @@ DATE = date(2025, 6, 15)
 LON0, LAT0 = 19.0, 52.0
 SLOPE_EAST = 0.02  # 2 % rising to the east
 M_PER_DEG_LON = 68_640.0  # at 52°N
+
+
+@pytest.fixture(autouse=True)
+def copernicus_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """NMT is on by default; tests that need it switch it on again (never touch the network)."""
+    monkeypatch.setattr(dem, "get_settings", lambda: Settings(dem_try_nmt=False))
 
 
 @pytest.fixture
@@ -140,26 +145,18 @@ async def test_second_call_served_from_cache(
     assert first.data == second.data
 
 
-def _nmt_tiff(parcel: Parcel) -> bytes:
-    """1 m terrain model in EPSG:2180 rising 5 % to the north."""
-    geom = to_crs(dem.parcel_shape(parcel), METRIC_CRS)
-    minx, miny, maxx, maxy = geom.buffer(dem.BUFFER_M + 10).bounds
-    w, h = int(maxx - minx), int(maxy - miny)
-    y = maxy - (np.arange(h) + 0.5)
-    z = (200.0 + 0.05 * (y - miny)).astype("float32")
-    arr = np.repeat(z[:, None], w, axis=1)
-    with MemoryFile() as mf:
-        with mf.open(
-            driver="GTiff",
-            height=h,
-            width=w,
-            count=1,
-            dtype="float32",
-            crs="EPSG:2180",
-            transform=Affine(1, 0, minx, 0, -1, maxy),
-        ) as ds:
-            ds.write(arr, 1)
-        return bytes(mf.read())
+def _nmt_service(request: httpx.Request) -> httpx.Response:
+    """Fake GetHByPointList: terrain rising 5 % to the north; like the real service, max 1000 heights."""
+    from urllib.parse import parse_qs
+
+    form = parse_qs(request.content.decode())
+    assert form["request"] == ["GetHByPointList"]
+    items = form["list"][0].split(",")
+    out = []
+    for i, item in enumerate(items):
+        n, e = item.split()
+        out.append(f"{n} {e} {200.0 + 0.05 * (float(n) - 400000):.2f}" if i < 1000 else f"{n} {e}")
+    return httpx.Response(200, text=",".join(out))
 
 
 async def test_nmt_used_when_enabled(
@@ -167,7 +164,7 @@ async def test_nmt_used_when_enabled(
 ) -> None:
     monkeypatch.setattr(dem, "get_settings", lambda: Settings(dem_try_nmt=True))
     with respx.mock() as mock:
-        mock.get(dem.NMT_URL).mock(return_value=httpx.Response(200, content=_nmt_tiff(parcel)))
+        mock.post(dem.NMT_URL).mock(side_effect=_nmt_service)
         res = await dem.fetch(parcel, DATE)
 
     assert res.status is SourceStatus.OK
@@ -184,11 +181,48 @@ async def test_nmt_failure_falls_back_to_copernicus(
     monkeypatch: pytest.MonkeyPatch, tmp_cache: DiskCache, tmp_path: Path, parcel: Parcel
 ) -> None:
     monkeypatch.setattr(dem, "get_settings", lambda: Settings(dem_try_nmt=True))
+    monkeypatch.setattr(dem, "NMT_DEADLINE_S", 0.5)
     _install(monkeypatch, [{"id": "t", "assets": {"data": {"href": _cop_tile(tmp_path)}}}])
     with respx.mock() as mock:
-        mock.get(dem.NMT_URL).mock(side_effect=httpx.ReadTimeout("slow"))
+        mock.post(dem.NMT_URL).mock(side_effect=httpx.ReadTimeout("slow"))
         res = await dem.fetch(parcel, DATE)
 
     assert res.status is SourceStatus.DEGRADED
     assert res.data is not None and res.data.dataset == "copernicus_glo30"
     assert res.message_pl is not None and "NMT" in res.message_pl
+
+
+def test_nmt_points_parse_no_data() -> None:
+    assert np.isnan(dem.parse_nmt_points("1 2 0.0,3 4", 2)).all()  # all-zero chunk: outside Poland
+    assert dem.parse_nmt_points("1 2 0.0,3 4 -1.2", 2) == [0.0, -1.2]  # Żuławy: 0.0 m is a real height
+    assert dem.parse_nmt_points("1 2 42.5", 1) == [42.5]
+    with pytest.raises(SourceError):
+        dem.parse_nmt_points("1 2 3", 2)
+    with pytest.raises(SourceError):
+        dem.parse_nmt_points("<html>", 1)
+
+
+def test_nmt_grid_points_capped_for_big_parcels() -> None:
+    big = to_crs(dem.parcel_shape(metric_square_parcel(LON0, LAT0, 3000, 3000, METRIC_CRS)), METRIC_CRS)
+    _, w, h, res, pts = dem.nmt_grid_points(big)
+    assert res > dem.NMT_RESOLUTION_M and len(pts) == w * h <= dem.NMT_MAX_POINTS * 1.2
+
+
+async def test_nmt_firewall_redirect_is_retried(
+    monkeypatch: pytest.MonkeyPatch, tmp_cache: DiskCache, parcel: Parcel
+) -> None:
+    """GUGiK's firewall sometimes answers 302 to an error page: never followed, the request is repeated."""
+    monkeypatch.setattr(dem, "get_settings", lambda: Settings(dem_try_nmt=True))
+    monkeypatch.setattr(dem, "NMT_RETRY_PAUSE_S", 0.01)
+    calls = {"n": 0}
+
+    def flaky(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] % 2:
+            return httpx.Response(302, headers={"Location": "https://integracja01.gugik.gov.pl/resp/nmt.php"})
+        return _nmt_service(request)
+
+    with respx.mock(assert_all_called=False) as mock:
+        mock.post(dem.NMT_URL).mock(side_effect=flaky)
+        res = await dem.fetch(parcel, DATE)
+    assert res.status is SourceStatus.OK and res.data is not None and res.data.dataset == "gugik_nmt"

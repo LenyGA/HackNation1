@@ -21,7 +21,7 @@ Dane nie wskazują żadnej z typowych przyczyn niedoboru wody na tej działce.
 {% if p90 is not none and p90pct is not none and p90pct <= 30 %}{% do parts.append('w ostatnich 90 dniach spadło ' ~ (p90|num) ~ ' mm deszczu — ' ~ (p90pct|wetness_pl)) %}{% endif %}
 {% if k60 is not none and k60pct is not none and (k60pct <= 30 or (hot and k60pct < 50)) %}{% do parts.append('przez ostatnie 60 dni ' ~ ('wyparowało o ' ~ (k60|abs|num) ~ ' mm więcej wody, niż spadło deszczu' if k60 < 0 else 'spadło tylko o ' ~ (k60|num) ~ ' mm więcej deszczu, niż wyparowało') ~ ' — ' ~ (k60pct|balance_pl)) %}{% endif %}
 {% if hot %}{% do parts.append('w ostatnich 30 dniach było średnio o ' ~ (anomaly|num(0.1)) ~ ' °C cieplej niż zwykle' ~ (', z ' ~ (e.get('hot_days_30d')|days_instr_pl) ~ ' upału (≥ 30 °C)' if e.get('hot_days_30d') else '')) %}{% endif %}
-Mało deszczu i wysoka temperatura: {{ parts|join('; ') }}.
+{% if hot %}Mało deszczu i wysoka temperatura{% else %}Mało deszczu{% endif %}: {{ parts|join('; ') }}.
 {% elif c.id == 'low_soil_retention' %}
 {% set cat = c.context.get('soil_category') %}
 {% set taw_m = e.get('taw_per_m_mm') %}

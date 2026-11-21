@@ -23,6 +23,9 @@ from app.crops.catalog import Crop
 TABLE_MONTHS = range(3, 11)  # March–October: the months shown to the farmer
 MIN_SEASON_DAYS_IN_MONTH = 7
 STRESS_SHARE = 1 / 3
+# A "severe" deficit month: stress on at least half of its in-season days. Shown next to the deficit count so
+# that parcels with a shallow-rooted crop (almost every summer month counts as a deficit) still differ.
+SEVERE_STRESS_SHARE = 1 / 2
 RISK_FREQUENCY = 0.3
 MIN_YEARS_FOR_PERCENTILE = 5
 MAX_GAP_SHARE = 0.1
@@ -39,6 +42,7 @@ class MonthOutcome:
     stress_days: int | None  # root-zone method only
     crop_balance_mm: float | None  # P − ETc
     deficit: bool | None  # None = not enough data / crop not on the field
+    severe: bool | None = None  # stress on ≥ SEVERE_STRESS_SHARE of the in-season days
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,8 @@ class MonthFrequency:
     month: int
     years_with_data: int
     deficit_years: int
+    severe_years: int = 0
+    mean_stress_days: float | None = None
 
     @property
     def frequency(self) -> float | None:
@@ -121,12 +127,14 @@ def _month_outcome(
 
     stress: int | None = None
     deficit: bool | None = None
+    severe: bool | None = None
     if balance is not None:
         days = [b for b in (balance.at(d) for d in season_days) if b is not None]
         gaps = sum(1 for b in days if b.gap) + (n - len(days))
         if gaps <= MAX_GAP_SHARE * n:
             stress = sum(1 for b in days if b.stressed)
             deficit = stress >= STRESS_SHARE * n
+            severe = stress >= SEVERE_STRESS_SHARE * n
 
     # Crop water balance P − Kc·ET0 over the in-season days (reported with both methods).
     total = 0.0
@@ -138,7 +146,7 @@ def _month_outcome(
             continue
         total += p - crop.kc(d) * e
     crop_balance = total * n / (n - gaps) if gaps <= MAX_GAP_SHARE * n and n > gaps else None
-    return MonthOutcome(n, stress, crop_balance, deficit)
+    return MonthOutcome(n, stress, crop_balance, deficit, severe)
 
 
 def _windows(weather: Weather, end: date) -> tuple[float | None, float | None, float | None]:
@@ -198,7 +206,16 @@ def analyse_history(
     for m in TABLE_MONTHS:
         outcomes = [y.months[m] for y in years if m in y.months and y.months[m].deficit is not None]
         if outcomes:
-            freqs.append(MonthFrequency(m, len(outcomes), sum(1 for o in outcomes if o.deficit)))
+            stress = [o.stress_days for o in outcomes if o.stress_days is not None]
+            freqs.append(
+                MonthFrequency(
+                    m,
+                    len(outcomes),
+                    sum(1 for o in outcomes if o.deficit),
+                    severe_years=sum(1 for o in outcomes if o.severe),
+                    mean_stress_days=sum(stress) / len(stress) if stress else None,
+                )
+            )
 
     risk = sorted(
         (f for f in freqs if f.frequency is not None and f.frequency >= RISK_FREQUENCY),
