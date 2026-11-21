@@ -173,17 +173,17 @@ Czyste funkcje bez I/O, każda z testami jednostkowymi na danych z fixture.
 
 ### M4. Rekomendacje — `backend/app/recommendations/` (A, faza 3)
 
-- [ ] **M4.1 Silnik reguł.** `Rule`: `id`, `category` (`retention|agrotech|irrigation`), `condition(ctx) -> bool`,
+- [x] **M4.1 Silnik reguł.** `Rule`: `id`, `category` (`retention|agrotech|irrigation`), `condition(ctx) -> bool`,
   `evidence(ctx) -> list[Indicator]`, `template`, `priority`. Wynik posortowany: retencja → agrotechnika → nawadnianie.
   Każda rekomendacja niesie listę dowodów (liczba, źródło, data), które uruchomiły regułę.
-- [ ] **M4.2 Reguły retencyjne (ok. 6).** Przykłady warunków: rów przy granicy działki + deficyt w sezonie → zastawka lub piętrzenie;
+- [x] **M4.2 Reguły retencyjne (ok. 6).** Przykłady warunków: rów przy granicy działki + deficyt w sezonie → zastawka lub piętrzenie;
   zagłębienie na działce z dużą akumulacją spływu → oczko lub okresowe zatrzymanie wody; spadek powyżej progu + wylot spływu →
   pas buforowy lub miedza w poprzek stoku w konkretnym miejscu; brak zadrzewień w otoczeniu + gleba lekka → zadrzewienie śródpolne;
   mokradło lub oczko w pobliżu → ochrona, nie odwadnianie.
-- [ ] **M4.3 Reguły agrotechniczne (ok. 7).** Niska zawartość węgla organicznego → obornik, słoma, międzyplony; gleba lekka + częste
+- [x] **M4.3 Reguły agrotechniczne (ok. 7).** Niska zawartość węgla organicznego → obornik, słoma, międzyplony; gleba lekka + częste
   niedobory wiosną → uprawa uproszczona i mulcz; spadek → uprawa w poprzek stoku; okres krytyczny uprawy pokrywa się z miesiącami
   najwyższego ryzyka → odmiany wcześniejsze lub zmiana terminu siewu; pole bez okrywy zimą (uprawa jara) → międzyplon ozimy.
-- [ ] **M4.4 Testy reguł.** Dla każdej reguły test „odpala się” i „nie odpala się”. Test całości: przy braku kompletnej oceny lista jest pusta.
+- [x] **M4.4 Testy reguł.** Dla każdej reguły test „odpala się” i „nie odpala się”. Test całości: przy braku kompletnej oceny lista jest pusta.
 
 **Gotowe, gdy:** dla dwóch różnych działek testowych listy rekomendacji się różnią, a każda pozycja ma co najmniej jeden dowód liczbowy.
 

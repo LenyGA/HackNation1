@@ -206,7 +206,7 @@ def make_inputs(
     soil: SourceResult[SoilData] | None | bool = True,
     sentinel2: SourceResult[Sentinel2Data] | None = None,
     dem: SourceResult[ElevationGrid] | None | bool = True,
-    hydro: bool = True,
+    hydro: bool | HydroData = True,
     parcel: Parcel | None = None,
 ) -> AnalysisInputs:
     """Whole AnalysisInputs; True = default synthetic source, False/None = missing, or an explicit result."""
@@ -232,7 +232,10 @@ def make_inputs(
         d = dem
     else:
         d = absent("dem")
-    h: SourceResult[HydroData] = ok("hydro", hydro_data()) if hydro else absent("hydro")
+    if isinstance(hydro, HydroData):
+        h: SourceResult[HydroData] = ok("hydro", hydro)
+    else:
+        h = ok("hydro", hydro_data()) if hydro else absent("hydro")
     return AnalysisInputs(
         parcel=parcel,
         crop=crop(crop_id),

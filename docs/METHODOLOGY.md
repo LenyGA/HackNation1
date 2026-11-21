@@ -115,3 +115,40 @@ i podatności.
 
 **Warunek kompletności**: dane pogodowe obejmują 90 dni przed datą analizy, a opad z 30 dni i KBW z 60 dni dają się
 policzyć. Inaczej ocena kończy się komunikatem o braku danych i rekomendacje nie powstają.
+
+## 8. Rekomendacje (`recommendations/`)
+
+Silnik reguł uruchamia się **tylko po kompletnej ocenie** (rozdz. 7). Każda reguła sprawdza wartości policzone dla
+tej działki i dołącza je jako dowody (wartość, jednostka, źródło, okres, pewność). Reguła bez choć jednej liczby
+w dowodach jest pomijana. Kolejność na liście: retencja → agrotechnika → nawadnianie (M5), a w kategorii wg priorytetu.
+Teksty po polsku są w `recommendations/texts_pl.py` i wypełniane wyliczonymi wartościami.
+
+„Potrzeba wody” (warunek wielu reguł) = bieżący niedobór co najmniej lekki **albo** co najmniej połowa z 10 lat
+z miesiącem niedoboru (przy progu 30 % warunek byłby spełniony niemal wszędzie). Jako dowód bieżącego niedoboru
+dołączamy tylko wskaźniki, które ustaliły poziom (`CurrentState.basis`).
+„Gleba lekka” = kategoria I–II albo TAW < 100 mm/m.
+
+| Reguła | Kategoria | Warunek | Miejsce na mapie |
+|---|---|---|---|
+| `ditch_check_dam` — zastawka na rowie | retencja | rów ≥ 20 m w pasie 30 m od granicy (OSM) + potrzeba wody | rowy przy granicy |
+| `depression_retention` — rozlewisko / oczko | retencja | zagłębienie ≥ 0,2 m, ≥ 50 % na działce, zlewnia ≥ 1000 m² + potrzeba wody | zagłębienia |
+| `outlet_buffer_strip` — pas zieleni przy wylocie spływu | retencja | przyczyna „nadmierny odpływ” + wyznaczony wylot | wyloty spływu |
+| `grassed_flow_path` — zadarnienie linii spływu | retencja | średni spadek ≥ 2 %, linia spływu ze zlewnią ≥ 0,5 ha + potrzeba wody | linie spływu |
+| `midfield_trees` — zadrzewienie śródpolne | retencja | brak zadrzewień w 500 m (OSM) + gleba lekka + potrzeba wody | — |
+| `protect_wetlands` — ochrona mokradeł i oczek | retencja | mokradło lub zbiornik w 300 m (OSM) | te obiekty |
+| `organic_matter` — obornik, słoma, międzyplony | agrotechnika | węgiel organiczny w warstwie ornej < 10 g/kg | — |
+| `reduced_tillage_mulch` — uprawa uproszczona, mulcz | agrotechnika | gleba lekka + niedobór w kwietniu lub maju w ≥ 30 % lat | — |
+| `contour_tillage` — uprawa w poprzek stoku | agrotechnika | średni spadek ≥ 3 % (nie dla użytków zielonych) | — |
+| `crop_timing_variety` — odmiana / termin siewu | agrotechnika | miesiące ryzyka pokrywają się z okresem krytycznym uprawy | — |
+| `winter_cover_crop` — międzyplon ozimy | agrotechnika | uprawa jara + (potrzeba wody lub gleba lekka) | — |
+| `crop_residues` — resztki pożniwne, płytka uprawa | agrotechnika | niedobór w czerwcu–sierpniu w ≥ 30 % lat | — |
+| `grassland_cutting` — wyższe koszenie | agrotechnika | użytek zielony + (niedobór teraz lub w maju–sierpniu w ≥ 30 % lat) | — |
+
+Teksty zależą od uprawy: resztki pożniwne ze słomą tylko dla zbóż, rzepaku i kukurydzy (dla okopowych i warzyw
+— szybki międzyplon); dla użytków zielonych próchnica bez orki i międzyplonów; dla ozimin odmiana zamiast
+wcześniejszego siewu, dla ziemniaków „sadzenie”. Węgiel organiczny porównujemy z progiem po zaokrągleniu do 0,1 g/kg,
+tak jak go pokazujemy. Na łące „brakuje teraz wody” piszemy tylko w okresie wegetacji.
+
+Elementy z OSM mogą być niepełne (pewność niska), a teren z modelu 30 m nie pokaże drobnych zagłębień — reguły,
+które z nich korzystają, dziedziczą tę pewność w dowodach. Piętrzenie wody na rowach wymaga uzgodnienia ze spółką
+wodną lub Wodami Polskimi, co mówi tekst rekomendacji.

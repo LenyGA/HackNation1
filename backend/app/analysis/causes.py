@@ -122,6 +122,7 @@ def _soil_retention(ctx: Context) -> Cause:
             src,
             level=Confidence.MEDIUM,
             reason="soil_map",
+            step=0.1,
         ),
         indicator("taw_mm", soil.taw_mm, "mm", src, level=Confidence.MEDIUM, reason="soil_map"),
         indicator("taw_per_m_mm", soil.taw_per_m_mm, "mm/m", src, level=Confidence.MEDIUM, reason="soil_map"),

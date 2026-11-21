@@ -29,7 +29,13 @@ from app.analysis.common import (
     level_from_percentile,
 )
 from app.analysis.context import AnalysisInputs, Context, build_context, computed_source
-from app.analysis.history import MIN_YEARS_FOR_PERCENTILE, empirical_percentile, season_stress_days, year_stat
+from app.analysis.history import (
+    MIN_YEARS_FOR_PERCENTILE,
+    HistoryResult,
+    empirical_percentile,
+    season_stress_days,
+    year_stat,
+)
 from app.analysis.series import same_day_in_year
 from app.analysis.soil import SoilCategory, SoilProperties
 from app.analysis.terrain import TerrainResult
@@ -114,6 +120,7 @@ class Assessment:
     terrain: TerrainResult | None
     hydro: HydroData | None
     root_zone: RootZoneBalance | None
+    history: HistoryResult | None
 
 
 # --- current state --------------------------------------------------------------------------------
@@ -632,6 +639,7 @@ def _incomplete(ctx: Context, reason: str) -> Assessment:
         terrain=ctx.terrain,
         hydro=ctx.hydro,
         root_zone=ctx.balance,
+        history=ctx.history,
     )
 
 
@@ -670,4 +678,5 @@ def assess(inputs: AnalysisInputs) -> Assessment:
         terrain=ctx.terrain,
         hydro=ctx.hydro,
         root_zone=ctx.balance,
+        history=ctx.history,
     )
