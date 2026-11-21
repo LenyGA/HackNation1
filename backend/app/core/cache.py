@@ -6,6 +6,8 @@ current data is cached for a short TTL so the farmer does not get stale values.
 
 import hashlib
 import json
+import os
+import threading
 import time
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
@@ -29,7 +31,8 @@ class DiskCache:
     def _path(self, source: str, key: str) -> Path:
         return self.root / source / key[:2] / f"{key}.json"
 
-    def get(self, source: str, params: dict[str, Any], ttl: timedelta | None) -> Any | None:
+    def get(self, source: str, params: dict[str, Any], ttl: timedelta | None = None) -> Any | None:
+        """Cached value or None. Honours the expiry stored at write time and, if given, a read-time `ttl`."""
         path = self._path(source, self.key(source, params))
         if not path.exists():
             return None
@@ -37,15 +40,26 @@ class DiskCache:
             entry = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return None
-        if ttl is not None and time.time() - entry["stored_at"] > ttl.total_seconds():
+        now = time.time()
+        expires_at = entry.get("expires_at")
+        if expires_at is not None and now > expires_at:
+            return None
+        if ttl is not None and now - entry["stored_at"] > ttl.total_seconds():
             return None
         return entry["value"]
 
-    def set(self, source: str, params: dict[str, Any], value: Any) -> None:
+    def set(self, source: str, params: dict[str, Any], value: Any, ttl: timedelta | None = None) -> None:
+        """Store a value. `ttl` is decided by the writer: provisional data expires, final data does not."""
         path = self._path(source, self.key(source, params))
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"stored_at": time.time(), "value": value}, default=str), encoding="utf-8")
+        tmp = path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
+        now = time.time()
+        entry = {
+            "stored_at": now,
+            "expires_at": None if ttl is None else now + ttl.total_seconds(),
+            "value": value,
+        }
+        tmp.write_text(json.dumps(entry, default=str), encoding="utf-8")
         tmp.replace(path)
 
     async def get_or_fetch(
@@ -60,7 +74,7 @@ class DiskCache:
         if cached is not None:
             return cached
         value = await fetch()
-        self.set(source, params, value)
+        self.set(source, params, value, ttl)
         return value
 
 

@@ -1,0 +1,223 @@
+{
+ "_comment": "SYNTHETIC hand-made Overpass API response (`out geom` JSON format); Overpass timed out from the event network. Features are placed around the test parcel box(19.000, 52.000, 19.003, 52.0018): ditch ~5 m south along the boundary, stream ~500 m north, pond ~300 m east, forest ~340 m west, tree row ~34 m east, wetland relation ~800 m south, an unrelated track and a duplicate of the ditch.",
+ "version": 0.6,
+ "generator": "Overpass API (synthetic)",
+ "osm3s": {
+  "timestamp_osm_base": "2026-11-21T00:00:00Z"
+ },
+ "elements": [
+  {
+   "type": "way",
+   "id": 1001,
+   "tags": {
+    "waterway": "ditch"
+   },
+   "geometry": [
+    {
+     "lat": 51.99995,
+     "lon": 19.0
+    },
+    {
+     "lat": 51.99995,
+     "lon": 19.0015
+    },
+    {
+     "lat": 51.99995,
+     "lon": 19.003
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1002,
+   "tags": {
+    "waterway": "stream",
+    "name": "Struga Testowa"
+   },
+   "geometry": [
+    {
+     "lat": 52.0063,
+     "lon": 18.998
+    },
+    {
+     "lat": 52.0063,
+     "lon": 19.006
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1003,
+   "tags": {
+    "natural": "water",
+    "water": "pond"
+   },
+   "geometry": [
+    {
+     "lat": 52.0008,
+     "lon": 19.0074
+    },
+    {
+     "lat": 52.0008,
+     "lon": 19.0077
+    },
+    {
+     "lat": 52.0011,
+     "lon": 19.0077
+    },
+    {
+     "lat": 52.0011,
+     "lon": 19.0074
+    },
+    {
+     "lat": 52.0008,
+     "lon": 19.0074
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1004,
+   "tags": {
+    "landuse": "forest"
+   },
+   "geometry": [
+    {
+     "lat": 51.999,
+     "lon": 18.99
+    },
+    {
+     "lat": 51.999,
+     "lon": 18.995
+    },
+    {
+     "lat": 52.003,
+     "lon": 18.995
+    },
+    {
+     "lat": 52.003,
+     "lon": 18.99
+    },
+    {
+     "lat": 51.999,
+     "lon": 18.99
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1005,
+   "tags": {
+    "natural": "tree_row"
+   },
+   "geometry": [
+    {
+     "lat": 52.0,
+     "lon": 19.0035
+    },
+    {
+     "lat": 52.0018,
+     "lon": 19.0035
+    }
+   ]
+  },
+  {
+   "type": "relation",
+   "id": 2001,
+   "tags": {
+    "natural": "wetland",
+    "type": "multipolygon"
+   },
+   "members": [
+    {
+     "type": "way",
+     "ref": 3001,
+     "role": "outer",
+     "geometry": [
+      {
+       "lat": 51.992,
+       "lon": 19.0
+      },
+      {
+       "lat": 51.992,
+       "lon": 19.003
+      },
+      {
+       "lat": 51.9928,
+       "lon": 19.003
+      },
+      {
+       "lat": 51.9928,
+       "lon": 19.0
+      },
+      {
+       "lat": 51.992,
+       "lon": 19.0
+      }
+     ]
+    },
+    {
+     "type": "way",
+     "ref": 3002,
+     "role": "inner",
+     "geometry": [
+      {
+       "lat": 51.9922,
+       "lon": 19.001
+      },
+      {
+       "lat": 51.9922,
+       "lon": 19.002
+      },
+      {
+       "lat": 51.9926,
+       "lon": 19.002
+      },
+      {
+       "lat": 51.9926,
+       "lon": 19.001
+      },
+      {
+       "lat": 51.9922,
+       "lon": 19.001
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1006,
+   "tags": {
+    "highway": "track"
+   },
+   "geometry": [
+    {
+     "lat": 52.001,
+     "lon": 19.0
+    },
+    {
+     "lat": 52.001,
+     "lon": 19.003
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1001,
+   "tags": {
+    "waterway": "ditch"
+   },
+   "geometry": [
+    {
+     "lat": 51.99995,
+     "lon": 19.0
+    },
+    {
+     "lat": 51.99995,
+     "lon": 19.003
+    }
+   ]
+  }
+ ]
+}

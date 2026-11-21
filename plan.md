@@ -114,28 +114,28 @@ zmierzony czas · decyzja (podstawowe / zapasowe / odrzucone).
 Wspólne wymagania: funkcja `async fetch(parcel, analysis_date) -> SourceResult[...]`, własny timeout, żadnych danych po `analysis_date`,
 cache, test na zapisanej odpowiedzi w `tests/fixtures/`, wpis w `docs/DATA_SOURCES.md`.
 
-- [ ] **M2.1 `uldk.py` (faza 1).** `GetParcelById` i `GetParcelByXY` z `srid=4326`, parsowanie WKT, powierzchnia liczona w EPSG:2180.
+- [x] **M2.1 `uldk.py` (faza 1).** `GetParcelById` i `GetParcelByXY` z `srid=4326`, parsowanie WKT, powierzchnia liczona w EPSG:2180.
   Walidacja formatu identyfikatora, kodowanie znaku `/`. Czytelny błąd po polsku, gdy działki nie ma.
   **Gotowe, gdy:** działa dla `141201_1.0001.6509`, dla numeru z `/` i dla kliknięcia; nieistniejący numer daje komunikat, nie wyjątek.
-- [ ] **M2.2 `open_meteo.py` (faza 1).** Jedno zapytanie do archiwum o 10 lat danych dobowych do `analysis_date`: opad, ET0 (FAO),
+- [x] **M2.2 `open_meteo.py` (faza 1).** Jedno zapytanie do archiwum o 10 lat danych dobowych do `analysis_date`: opad, ET0 (FAO),
   temperatura min/maks/średnia. Gdy `analysis_date` jest w ostatnich 7 dniach, brakujące dni dociągamy z endpointu prognozy
   (`past_days`) i oznaczamy jako wstępne. Prognozę na 7 dni naprzód pobieramy **tylko** dla daty bieżącej (potrzebna w M5).
   **Gotowe, gdy:** dla daty historycznej ostatni dzień w danych = `analysis_date`, a test sprawdza brak późniejszych rekordów.
-- [ ] **M2.3 `sentinel2.py` (faza 2).** Wyszukiwanie STAC `sentinel-2-l2a` po geometrii działki. Wybór scen: do 3 najlepszych z 45 dni
+- [x] **M2.3 `sentinel2.py` (faza 2).** Wyszukiwanie STAC `sentinel-2-l2a` po geometrii działki. Wybór scen: do 3 najlepszych z 45 dni
   przed `analysis_date` (stan bieżący) oraz po 1 najlepszej z okna ±20 dni wokół tego samego dnia roku w każdym z poprzednich lat.
   Odczyt okienkowy B04, B08, B11, SCL w puli wątków, maska chmur z SCL, średnia NDVI i NDMI z pikseli wewnątrz działki.
   Zwraca też liczbę czystych pikseli i liczbę lat z danymi.
   **Gotowe, gdy:** całość < 15 s na zimno, < 1 s z cache; działka < 10 pikseli lub brak czystych scen daje `degraded`/`missing` z opisem.
-- [ ] **M2.4 `soilgrids.py` (faza 2).** Piasek, pył, ił, węgiel organiczny, gęstość objętościowa dla warstw do 100 cm w centroidzie działki.
+- [x] **M2.4 `soilgrids.py` (faza 2).** Piasek, pył, ił, węgiel organiczny, gęstość objętościowa dla warstw do 100 cm w centroidzie działki.
   Twardy timeout 8 s. Pewność najwyżej „średnia” (siatka 250 m). Jeśli M1.4 potwierdzi WMS IUNG, dodać `iung.py` z kategorią gleby.
   **Gotowe, gdy:** zwraca wartości w jednostkach z nazw pól (`sand_pct`, `soc_g_per_kg`), a timeout daje `missing`.
-- [ ] **M2.5 `dem.py` (faza 2).** Wycinek NMT dla działki z buforem 150 m, rozdzielczość robocza 5 m (limit rozmiaru siatki).
+- [x] **M2.5 `dem.py` (faza 2).** Wycinek NMT dla działki z buforem 150 m, rozdzielczość robocza 5 m (limit rozmiaru siatki).
   Zapas: Copernicus DEM 30 m z publicznego katalogu, status `degraded`.
   **Gotowe, gdy:** zwraca siatkę wysokości z transformacją i układem współrzędnych; test na zapisanym wycinku.
-- [ ] **M2.6 `hydro.py` (faza 2).** Overpass w promieniu 1 km: rowy i dreny, cieki, zbiorniki i oczka, mokradła, lasy i zadrzewienia.
+- [x] **M2.6 `hydro.py` (faza 2).** Overpass w promieniu 1 km: rowy i dreny, cieki, zbiorniki i oczka, mokradła, lasy i zadrzewienia.
   Wynik: geometrie GeoJSON + odległość do najbliższego elementu każdego typu + długość rowów przy granicy działki (≤ 30 m).
   **Gotowe, gdy:** pusty wynik odróżnia „nie ma w danych” od „źródło nie odpowiedziało”; w raporcie jest dopisek o niepełności OSM.
-- [ ] **M2.7 `landcover.py` (faza 2).** ESA WorldCover 10 m (odczyt okienkowy): udział pól uprawnych, łąk, drzew i zabudowy na działce.
+- [x] **M2.7 `landcover.py` (faza 2).** ESA WorldCover 10 m (odczyt okienkowy): udział pól uprawnych, łąk, drzew i zabudowy na działce.
   Ostrzeżenie, gdy działka nie wygląda na rolną. To stan z jednego roku, więc trafia do ograniczeń raportu.
   **Gotowe, gdy:** zwraca udziały procentowe; kafel wybierany poprawnie dla całej Polski.
 

@@ -18,7 +18,7 @@ plugins = ["pydantic.mypy"]
 exclude = ["\\.venv", "tests/fixtures"]
 
 [[tool.mypy.overrides]]
-module = ["rasterio.*", "pystac_client.*", "shapely.*", "pyproj.*", "weasyprint.*"]
+module = ["rasterio.*", "affine.*", "pystac_client.*", "shapely.*", "pyproj.*", "weasyprint.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

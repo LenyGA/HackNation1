@@ -43,3 +43,11 @@ async def test_http_retries_once_on_5xx() -> None:
     assert resp.json() == {"ok": True}
     assert route.call_count == 2
     assert "RolnikSzukaWody" in route.calls[0].request.headers["User-Agent"]
+
+
+def test_expiry_decided_at_write_time(tmp_cache: DiskCache) -> None:
+    # Provisional data written with a TTL must expire even if a later reader asks with ttl=None.
+    tmp_cache.set("demo", {"p": 1}, "provisional", ttl=timedelta(seconds=-1))
+    assert tmp_cache.get("demo", {"p": 1}) is None
+    tmp_cache.set("demo", {"p": 2}, "final", ttl=None)
+    assert tmp_cache.get("demo", {"p": 2}) == "final"

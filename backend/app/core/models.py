@@ -8,7 +8,7 @@ from typing import Any, Self
 from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.core.config import HISTORY_YEARS
+from app.core.config import HISTORY_YEARS, today_local
 
 
 class SourceStatus(StrEnum):
@@ -101,7 +101,7 @@ class Parcel(BaseModel):
 
 
 def analysis_date_bounds(today: date | None = None) -> tuple[date, date]:
-    today = today or date.today()
+    today = today or today_local()
     return today - relativedelta(years=HISTORY_YEARS), today
 
 

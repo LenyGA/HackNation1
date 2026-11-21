@@ -46,3 +46,26 @@ Aplikacja nie zawiera żadnych wcześniej przygotowanych wyników.
 - SoilGrids 0–5 cm (piasek / ił / SOC w jednostkach WCS): 52,55° N 17,60° E (Wielkopolska) 716–737 / 73–75 / 507–633 ·
   50,90° N 22,10° E (Lubelszczyzna) 272–293 / 177–193 / 441–467 · 54,10° N 19,00° E (Żuławy) 165–182 / 303–325 / 515–679.
 - WorldCover dla działki testowej: klasy 10 (drzewa) i 50 (zabudowa) w buforze 200 m, co wymaga sprawdzenia na samej geometrii działki.
+
+## Implementacja (krok M2, 21.11.2026)
+
+Każde źródło to moduł w `backend/app/sources/` z funkcją `fetch(parcel, analysis_date) -> SourceResult[...]`
+(wyjątek: `uldk.py`, który zwraca samą działkę). Wszystkie pobierane są **na żywo** w chwili analizy, z cache na dysku.
+
+| Moduł | Źródło | Zakres pobierany dla działki | Timeout | Cache | Status przy problemach |
+|---|---|---|---|---|---|
+| `uldk.py` | GUGiK ULDK | geometria (EPSG:4326), TERYT, gmina, obręb; powierzchnia liczona w EPSG:2180 | 8 s | 1 dzień (po numerze) | błąd po polsku (404 / 503 w API) |
+| `open_meteo.py` | Open-Meteo archiwum → zapas NASA POWER; ostatnie dni i prognoza: Open-Meteo Forecast | dane dobowe od 1.10 roku `rok − 11` do `analysis_date`; prognoza 7 dni tylko gdy `analysis_date` = dziś | 12 s / zapytanie | bez wygasania; 1 h dla dat z ostatnich 10 dni | NASA POWER → `degraded` (ET0 z FAO-56); dni z prognozy oznaczone `provisional_from`; brak obu → `missing` |
+| `sentinel2.py` | Sentinel-2 L2A, Planetary Computer | do 3 scen z 45 dni przed `analysis_date` + 1 scena z okna ±20 dni w każdym z 10 lat; tylko okno działki | 15 s łącznie | profil historyczny bez wygasania | brak czystej sceny bieżącej → `missing`; < 10 pikseli lub < 5 lat → `degraded` |
+| `soilgrids.py` | SoilGrids 2.0 WCS | piasek, pył, ił, SOC, gęstość; 5 warstw do 100 cm; komórka centroidu | 8 s łącznie | bez wygasania | brak w centroidzie → najbliższa komórka (≤ 300 m) i `degraded`; wszystko puste → `missing` |
+| `dem.py` | Copernicus DEM GLO-30 (Planetary Computer); opcjonalnie NMT GUGiK (`RSW_DEM_TRY_NMT=true`) | siatka wysokości działka + 150 m w EPSG:2180, 10 m (z 30 m) | 8 s NMT, 12 s COP | bez wygasania | COP zawsze `degraded` (30 m, DSM); brak → `missing` |
+| `hydro.py` | OSM Overpass (2 serwery równolegle, pierwsza odpowiedź) | rowy, cieki, zbiorniki, mokradła, lasy w 1 km od krawędzi działki; odległości i długość rowów ≤ 30 m od granicy | 12 s | 1 dzień | „brak w OSM” = `ok` z komunikatem; brak odpowiedzi = `missing` |
+| `landcover.py` | ESA WorldCover 2021 v200 (Planetary Computer) | udziały klas pokrycia na działce (piksele 10 m) | 10 s | bez wygasania | < 50% pola i łąki → `degraded` z ostrzeżeniem |
+
+Uwagi:
+- Open-Meteo archiwum odpowiada 429 z sieci wydarzenia (wspólny IP), więc lokalnie działa zapas NASA POWER. Na VPS sprawdzić ponownie.
+- Overpass nie odpowiadał z sieci wydarzenia (oba serwery) — moduł zwraca wtedy jawne `missing`. Na VPS sprawdzić ponownie.
+- NMT GUGiK jest domyślnie wyłączony (pomiar M1: > 30 s). Do ponownego pomiaru z VPS.
+- WorldCover i OSM pokazują stan obecny / z 2021 r., a nie z dnia analizy. Wynika to z dostępności danych i jest opisane w wyniku źródła.
+- Zmierzony czas wszystkich źródeł równolegle dla działki `302108_5.0014.88/8`: 12 s na zimno (ograniczone timeoutem Overpass),
+  < 1 s z cache.

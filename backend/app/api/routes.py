@@ -13,6 +13,7 @@ from app.api.schemas import (
 )
 from app.core.config import APP_TITLE, APP_VERSION
 from app.crops.catalog import load_crops
+from app.sources import uldk
 
 router = APIRouter(prefix="/api")
 
@@ -30,14 +31,29 @@ async def crops() -> list[CropOut]:
 
 
 @router.get(
-    "/parcels", response_model=ParcelOut, responses={400: {"model": ErrorOut}, 404: {"model": ErrorOut}}
+    "/parcels",
+    response_model=ParcelOut,
+    responses={400: {"model": ErrorOut}, 404: {"model": ErrorOut}, 503: {"model": ErrorOut}},
 )
 async def parcel(
     id: str | None = Query(default=None, max_length=64),
     lat: float | None = Query(default=None, ge=48.9, le=55.0),
     lon: float | None = Query(default=None, ge=14.0, le=24.2),
 ) -> ParcelOut:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, NOT_READY)
+    try:
+        if id is not None:
+            found = await uldk.get_parcel_by_id(id)
+        elif lat is not None and lon is not None:
+            found = await uldk.get_parcel_by_xy(lat, lon)
+        else:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Podaj numer działki albo wskaż ją na mapie.")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except uldk.ParcelNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message_pl) from exc
+    except uldk.ParcelServiceError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, exc.message_pl) from exc
+    return ParcelOut.model_validate(found.model_dump())
 
 
 @router.post("/analyses", response_model=AnalysisCreated, status_code=status.HTTP_202_ACCEPTED)
