@@ -5,6 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 APP_TITLE = "RolnikSzukaWody"
@@ -34,6 +35,14 @@ class Settings(BaseSettings):
     dem_try_nmt: bool = False
     # Analyses running at the same time (each fans out to all sources); further ones wait in the queue.
     max_concurrent_analyses: int = 4
+    # Per-client limits (plan M8.2). Generous, because a whole jury room may share one public address.
+    rate_limit_analyses: int = Field(default=30, ge=1)
+    rate_limit_analyses_window_s: float = Field(default=600.0, gt=0)
+    # Short window: one client cannot fill the shared analysis queue at once.
+    rate_limit_analyses_burst: int = Field(default=10, ge=1)
+    rate_limit_analyses_burst_window_s: float = Field(default=60.0, gt=0)
+    rate_limit_parcels: int = Field(default=120, ge=1)
+    rate_limit_parcels_window_s: float = Field(default=60.0, gt=0)
 
 
 def today_local() -> date:

@@ -238,10 +238,11 @@ i otwiera się poprawnie.
   W panelu LH.pl rekord `A` dla subdomeny → adres VPS.
   **Wymaga od zespołu:** założenia VPS, dostępu SSH i dodania rekordu DNS.
   **Gotowe, gdy:** `https://<subdomena>/api/health` odpowiada z zewnątrz, a `docker compose up` działa lokalnie wg README.
-- [ ] **M8.2 Zabezpieczenia (faza 4).** Limit zapytań na `POST /api/analyses` (na adres, bez zapisywania adresu w raporcie), limit
+  _Stan: obraz, compose, Caddy i skrypty `deploy/` gotowe i sprawdzone lokalnie; zostaje uruchomienie `deploy/setup-vps.sh` i `deploy/deploy.sh` na VPS._
+- [x] **M8.2 Zabezpieczenia (faza 4).** Limit zapytań na `POST /api/analyses` (na adres, bez zapisywania adresu w raporcie), limit
   równoległych analiz, CORS tylko dla własnej domeny, nagłówki bezpieczeństwa w Caddy, walidacja wszystkich wejść, przypięte wersje
   zależności, brak sekretów w repo, logi bez danych osobowych.
-- [ ] **M8.3 Rozgrzanie cache.** Skrypt uruchamiający analizę dla działek referencyjnych po wdrożeniu (kafle WorldCover, połączenia).
+- [x] **M8.3 Rozgrzanie cache.** Skrypt uruchamiający analizę dla działek referencyjnych po wdrożeniu (kafle WorldCover, połączenia).
   Nie zapisuje gotowych wyników dla działek jury — wynik zawsze liczy aplikacja.
 
 ### M9. Testy i weryfikacja (A, faza 4)

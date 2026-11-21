@@ -1,11 +1,12 @@
 import asyncio
 import re
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse, Response
 from pydantic import ValidationError
 
 from app.api import jobs
+from app.api.ratelimit import limit_analyses, limit_parcels
 from app.api.schemas import (
     AnalysisCreate,
     AnalysisCreated,
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/api")
 
 MSG_ANALYSIS_NOT_FOUND = "Nie ma takiej analizy albo wygasła. Uruchom analizę ponownie."
 MSG_BUSY = "Serwer liczy teraz wiele analiz. Spróbuj ponownie za minutę."
+BUSY_RETRY_AFTER_S = 60
 MSG_REPORT_NOT_FOUND = "Nie znaleziono raportu. Sprawdź link."
 
 
@@ -44,7 +46,13 @@ async def crops() -> list[CropOut]:
 @router.get(
     "/parcels",
     response_model=ParcelOut,
-    responses={400: {"model": ErrorOut}, 404: {"model": ErrorOut}, 503: {"model": ErrorOut}},
+    responses={
+        400: {"model": ErrorOut},
+        404: {"model": ErrorOut},
+        429: {"model": ErrorOut},
+        503: {"model": ErrorOut},
+    },
+    dependencies=[Depends(limit_parcels)],
 )
 async def parcel(
     id: str | None = Query(default=None, max_length=64),
@@ -76,7 +84,8 @@ def _first_error_pl(exc: ValidationError) -> str:
     "/analyses",
     response_model=AnalysisCreated,
     status_code=status.HTTP_202_ACCEPTED,
-    responses={400: {"model": ErrorOut}},
+    responses={400: {"model": ErrorOut}, 429: {"model": ErrorOut}},
+    dependencies=[Depends(limit_analyses)],
 )
 async def create_analysis(body: AnalysisCreate) -> AnalysisCreated:
     try:
@@ -89,7 +98,9 @@ async def create_analysis(body: AnalysisCreate) -> AnalysisCreated:
     try:
         job = jobs.start(request, crop)
     except jobs.QueueFull as exc:
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, MSG_BUSY) from exc
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, MSG_BUSY, headers={"Retry-After": str(BUSY_RETRY_AFTER_S)}
+        ) from exc
     return AnalysisCreated(id=job.id)
 
 

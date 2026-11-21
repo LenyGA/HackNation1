@@ -1,0 +1,46 @@
+# Local run and production deploy (plan M8.1).
+#   docker compose up -d --build          -> http://localhost (Caddy on :80)
+#   SITE_ADDRESS=moja.domena.pl docker compose up -d --build   -> automatic HTTPS for that domain
+services:
+  app:
+    build: .
+    image: rolnikszukawody:latest
+    restart: unless-stopped
+    environment:
+      # Same-origin in production (Caddy serves API and frontend from one host), so no CORS origins are needed.
+      RSW_CORS_ORIGINS: "[]"
+    volumes:
+      - app-data:/data
+    # The API is reachable only through Caddy.
+    expose:
+      - "8000"
+    mem_limit: 1200m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      # A domain name gets a Let's Encrypt certificate automatically; ":80" serves plain HTTP (local run).
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  app-data:
+  caddy-data:
+  caddy-config:

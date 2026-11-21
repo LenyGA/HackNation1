@@ -1,0 +1,15 @@
+**/.git
+**/.DS_Store
+**/node_modules
+**/__pycache__
+**/.venv
+**/.cache
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+**/*.sqlite3
+**/.env
+frontend/dist
+backend/tests
+docs
+deploy

@@ -3,6 +3,7 @@
 """
 
 import asyncio
+from collections import OrderedDict
 from functools import lru_cache
 
 from app.report.labels_pl import CONFIDENCE_LABELS
@@ -66,9 +67,26 @@ def _render(report: Report) -> bytes:
     return _write_pdf(render_html(report))
 
 
+# Saved reports never change, so a rendered PDF is reused: repeated downloads (or a client hammering one
+# link) cost no WeasyPrint work. Bounded LRU of ~300 KB files.
+PDF_CACHE_SIZE = 32
+_pdf_cache: OrderedDict[str, bytes] = OrderedDict()
+
+
 async def render_pdf(report: Report) -> bytes:
     global _pdf_slots
+    cached = _pdf_cache.get(report.id)
+    if cached is not None:
+        _pdf_cache.move_to_end(report.id)
+        return cached
     if _pdf_slots is None:
         _pdf_slots = asyncio.Semaphore(PDF_CONCURRENCY)
     async with _pdf_slots:
-        return await asyncio.to_thread(_render, report)
+        cached = _pdf_cache.get(report.id)  # rendered by another request while this one waited
+        if cached is not None:
+            return cached
+        pdf = await asyncio.to_thread(_render, report)
+    _pdf_cache[report.id] = pdf
+    while len(_pdf_cache) > PDF_CACHE_SIZE:
+        _pdf_cache.popitem(last=False)
+    return pdf
