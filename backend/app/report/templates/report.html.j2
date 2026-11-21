@@ -43,7 +43,7 @@
   {% for p in s.paragraphs_pl %}<p{% if p in r.missing_data_pl %} class="missing-line"{% endif %}>{{ p }}</p>{% endfor %}
 
   {% if s.id == 'current' and r.satellite and charts.satellite %}
-  <div class="chart"><div class="cap">Kondycja roślin z satelity: teraz i w tych samych tygodniach w poprzednich latach</div>{{ charts.satellite|safe }}<p>{{ r.satellite.text_pl }}</p><div class="src">Źródło: {{ r.satellite.source }}</div></div>
+  <div class="chart"><div class="cap">Kondycja roślin z satelity: na dzień {{ r.analysis_date|date_dmy }} i w tych samych tygodniach w poprzednich latach</div>{{ charts.satellite|safe }}<div class="src">Skala: 0 — brak zieleni, 1 — bujna zieleń; pas: zakres z poprzednich lat; pomarańczowe: zdjęcia z sezonu analizy (DD.MM).</div><p>{{ r.satellite.text_pl }}</p><div class="src">Źródło: {{ r.satellite.source }}</div></div>
   {% endif %}
 
   {% if s.id == 'vulnerability' and r.months %}

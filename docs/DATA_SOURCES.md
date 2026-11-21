@@ -95,3 +95,14 @@ Licencje: dane publiczne Wód Polskich (INSPIRE) i PIG-PIB — bezpłatne, z pod
 Ograniczenia: mapy zagrożenia powodziowego opisują stan z II cyklu planistycznego (mapy 2020–2022) i nie zależą od daty analizy. Automatyczne stacje PSH w wielu miejscach mierzą dopiero od 2026 r., więc dla dat historycznych trendu często nie ma — raport mówi to wprost.
 
 Sprawdzone i odrzucone: BDOT10k / MPHP jako WFS z cieków po bbox — publicznej usługi nie znaleziono (BDOT10k tylko jako paczki GML na powiat, 50–100 MB); zostaje OSM Overpass. IMGW `api/data/hydro` daje tylko stan bieżący (bez historii), więc nie nadaje się dla dat z przeszłości.
+
+## Dane pobrane wcześniej (dołączone do aplikacji)
+
+| Plik | Źródło | Licencja | Zakres | Pobrane | Jak odtworzyć |
+|---|---|---|---|---|---|
+| `frontend/src/components/map/poland.json` (51 KB) | PRG GUGiK (Państwowy Rejestr Granic), WFS `https://mapy.geoportal.gov.pl/wss/service/PZGIK/PRG/WFS/AdministrativeBoundaries`: warstwa `A00_Granice_panstwa` minus `W02_Morze_terytorialne_RP` i `W03_Morskie_wody_wewnetrzne` (ląd) | dane otwarte PZGiK (art. 40a Prawa geodezyjnego i kartograficznego), bezpłatne, z podaniem źródła | obrys lądowej części Polski, bufor 200 m na zewnątrz, uproszczenie 150 m, WGS84, 4 miejsca po przecinku | **21.11.2026** (wcześniej, nie na żywo) | `python backend/scripts/build_poland_outline.py` |
+
+Do czego służy: mapa wyboru działki sprawdza w przeglądarce (punkt w wielokącie, bez zapytania do serwera), czy kliknięcie lub
+„Moja lokalizacja” leży w Polsce, i wyszarza teren poza Polską. Bufor gwarantuje, że uproszczenie nie odrzuci żadnej polskiej działki
+(sprawdzone: poza obrysem zostaje 0,27 km² pasów węższych niż 50 m — falochrony w Świnoujściu i Gdańsku). Kliknięcie do ok. 200 m
+za granicą trafia do ULDK, które rozstrzyga ostatecznie.

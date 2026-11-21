@@ -4,6 +4,7 @@ seasonal water plan, slope profile and the 1–5 year strategy simulator. Texts 
 
 import math
 from dataclasses import dataclass
+from datetime import date
 from statistics import median
 from typing import Any
 
@@ -43,7 +44,7 @@ from app.report.models import (
     WaterPlan,
     WaterPlanMonth,
 )
-from app.report.texts import num, plural, render_text
+from app.report.texts import date_dmy, num, plural, render_text
 from app.sources.base import parcel_shape
 from app.sources.flood import MZP_LAYER, MZP_WMS, FloodData
 from app.sources.groundwater import GroundwaterData
@@ -447,6 +448,7 @@ def _satellite(inputs: AnalysisInputs, a: Assessment) -> SatelliteSeries | None:
     main, _ = render_text(
         "blocks/satellite.j2",
         check=check,
+        day=day,
         now=median(s.ndvi_mean for s in current) if current else None,
         hist_median=median(hist) if hist else None,
         years=len(hist),
@@ -558,7 +560,10 @@ def _climate_tile(t: ClimateTrends | None) -> SummaryTile:
     )
 
 
-def _action_tile(a: Assessment, recs: list[Recommendation], irrigation: IrrigationAdvice) -> SummaryTile:
+def _action_tile(
+    a: Assessment, recs: list[Recommendation], irrigation: IrrigationAdvice, day: date
+) -> SummaryTile:
+    label = f"Najważniejszy ruch na dzień {date_dmy(day)}"
     urgent_irrigation = (
         irrigation.applicable
         and irrigation.dose_mm is not None
@@ -573,7 +578,7 @@ def _action_tile(a: Assessment, recs: list[Recommendation], irrigation: Irrigati
         )
         return SummaryTile(
             id="action",
-            label_pl="Najważniejszy ruch teraz",
+            label_pl=label,
             value_pl=value,
             detail_pl=irrigation.title_pl,
             status="bad",
@@ -588,7 +593,7 @@ def _action_tile(a: Assessment, recs: list[Recommendation], irrigation: Irrigati
         }
         return SummaryTile(
             id="action",
-            label_pl="Najważniejszy ruch teraz",
+            label_pl=label,
             value_pl=first.title_pl,
             detail_pl=f"Zalecenie nr {first.number}"
             + (
@@ -601,7 +606,7 @@ def _action_tile(a: Assessment, recs: list[Recommendation], irrigation: Irrigati
         )
     return SummaryTile(
         id="action",
-        label_pl="Najważniejszy ruch teraz",
+        label_pl=label,
         value_pl="Bez pilnych działań",
         detail_pl="Dane nie wskazują dziś potrzeby dodatkowych działań na tej działce.",
         status="good" if a.complete else "unknown",
@@ -679,7 +684,7 @@ def build_outlook(
     plan = _water_plan(plan_r, inputs)
     tiles = [
         _water_tile(a),
-        _action_tile(a, recs, irrigation),
+        _action_tile(a, recs, irrigation, inputs.analysis_date),
         _climate_tile(trends),
         _dry_year_tile(plan),
         _flood_tile(flood),

@@ -7,10 +7,11 @@ import type {
   TrendMetric,
   WaterPlan,
 } from '@/api/types'
-import { formatDatePl, formatNumberPl } from '@/lib/format'
+import { formatDateDmy, formatDatePl, formatNumberPl } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { AXIS, niceMax, niceStep, useMeasuredWidth } from './chartUtils'
+import { AXIS, niceStep, niceTicks, useMeasuredWidth } from './chartUtils'
 import { Disclosure } from './ReportParts'
+import { YAxis } from './YAxis'
 
 // Plain-SVG charts of the report (no chart library), drawn like SeasonChartView.
 
@@ -27,31 +28,35 @@ function Swatch({ color, round, dashed }: { color: string; round?: boolean; dash
 
 const SAT = { past: '#16a34a', now: '#dc2626', band: '#bbf7d0', median: '#15803d' }
 
-export function SatelliteChart({ data }: { data: SatelliteSeries }) {
+export function SatelliteChart({ data, analysisDate }: { data: SatelliteSeries; analysisDate: string }) {
   const { ref, width: W } = useMeasuredWidth()
   const pts = data.points
   if (pts.length === 0) return null
   const H = W < 480 ? 200 : 240
-  const PAD = { top: 16, right: 14, bottom: 26, left: 40 }
+  const PAD = { top: 24, right: 14, bottom: 26, left: 40 }
   const years = pts.map((p) => p.year)
   const y0 = Math.min(...years)
   const y1 = Math.max(...years)
   const vals = pts.map((p) => p.ndvi)
   // Water or bare soil can give a negative index: the axis goes below 0 when needed.
-  const lo = Math.max(-1, Math.min(0, Math.floor((Math.min(...vals, data.history_min ?? 1) - 0.1) * 10) / 10))
-  const hi = Math.min(1, Math.ceil((Math.max(...vals, data.history_max ?? 0) + 0.1) * 10) / 10)
+  const ticks = niceTicks(
+    Math.max(-1, Math.min(0, Math.min(...vals, data.history_min ?? 1) - 0.05)),
+    Math.min(1, Math.max(...vals, data.history_max ?? 0) + 0.05),
+  )
+  const lo = ticks[0]
+  const hi = ticks[ticks.length - 1]
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
   const x = (year: number) => PAD.left + (y1 === y0 ? innerW / 2 : (innerW * (year - y0)) / (y1 - y0))
   const y = (v: number) => PAD.top + innerH * (1 - (v - lo) / Math.max(0.01, hi - lo))
-  const ticks = [lo, (lo + hi) / 2, hi]
   const yearStep = W < 420 ? 2 : 1
   const current = pts.filter((p) => p.current)
+  const day = formatDateDmy(analysisDate)
   const nowMedian = current.length ? current.map((p) => p.ndvi).sort((a, b) => a - b)[Math.floor(current.length / 2)] : null
 
   return (
     <figure className="space-y-2">
-      <figcaption className="text-sm font-medium">Kondycja roślin z satelity: teraz i w tych samych tygodniach w poprzednich latach</figcaption>
+      <figcaption className="text-sm font-medium">Kondycja roślin z satelity: na dzień {day} i w tych samych tygodniach w poprzednich latach</figcaption>
       <div ref={ref} className="w-full">
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -59,18 +64,11 @@ export function SatelliteChart({ data }: { data: SatelliteSeries }) {
           height={H}
           className="block h-auto w-full"
           role="img"
-          aria-label={`Kondycja roślin teraz: ${nowMedian !== null ? formatNumberPl(nowMedian, 2) : 'brak zdjęcia'}; zwykle w tych tygodniach: ${
+          aria-label={`Kondycja roślin na dzień ${day}: ${nowMedian !== null ? formatNumberPl(nowMedian, 2) : 'brak zdjęcia'}; zwykle w tych tygodniach: ${
             data.history_median !== null ? formatNumberPl(data.history_median, 2) : 'brak danych'
           } (0 — goła ziemia, 1 — gęste, zielone rośliny).`}
         >
-          {ticks.map((t) => (
-            <g key={t}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke={AXIS.grid} />
-              <text x={PAD.left - 6} y={y(t) + 4} textAnchor="end" fontSize="11" fill={AXIS.text}>
-                {formatNumberPl(t, 2)}
-              </text>
-            </g>
-          ))}
+          <YAxis ticks={ticks} y={y} left={PAD.left} right={W - PAD.right} unit="wskaźnik zieleni" />
           {data.history_min !== null && data.history_max !== null && (
             <rect
               x={PAD.left}
@@ -116,7 +114,7 @@ export function SatelliteChart({ data }: { data: SatelliteSeries }) {
       </div>
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <li className="flex items-center gap-2">
-          <Swatch color={SAT.now} round /> Teraz (ostatnie bezchmurne zdjęcia)
+          <Swatch color={SAT.now} round /> Ostatnie bezchmurne zdjęcia przed {day}
         </li>
         <li className="flex items-center gap-2">
           <Swatch color={SAT.past} round /> Te same tygodnie w poprzednich latach
@@ -140,7 +138,7 @@ export function SatelliteChart({ data }: { data: SatelliteSeries }) {
             <li key={`${p.day}-d-${i}`}>
               {formatDatePl(p.day)}: NDVI {formatNumberPl(p.ndvi, 2)}
               {p.ndmi !== null && `, NDMI ${formatNumberPl(p.ndmi, 2)}`}
-              {p.current && ' (teraz)'}
+              {p.current && ' (sezon analizy)'}
             </li>
           ))}
         </ul>
@@ -251,23 +249,19 @@ const LEVEL_PILL: Record<TrendLevel, string> = {
 
 function TrendBars({ metric }: { metric: TrendMetric }) {
   const W = 240
-  const H = 72
-  const PAD = 4
+  const H = 96
+  const PAD = { top: 16, right: 4, bottom: 4, left: 30 }
   const vals = metric.values.map((v) => v.value).filter((v): v is number => v !== null)
   if (vals.length === 0) return null
-  const lo = Math.min(0, ...vals)
-  const hi = Math.max(0, ...vals)
-  const span = hi - lo || 1
-  const n = metric.values.length
-  const bw = (W - 2 * PAD) / n
-  const y = (v: number) => PAD + (H - 2 * PAD) * (1 - (v - lo) / span)
-  // Temperature is far from zero: show the bars relative to the coolest season so differences are visible.
+  // Temperature is far from zero: the axis starts just below the coolest season so differences are visible.
   const relative = metric.key === 'tmean_c'
-  const rlo = relative ? Math.min(...vals) - 0.5 : lo
-  const rspan = relative ? Math.max(...vals) - rlo || 1 : span
-  const yr = (v: number) => PAD + (H - 2 * PAD) * (1 - (v - rlo) / rspan)
-  const yy = relative ? yr : y
-  const base = relative ? H - PAD : y(0)
+  const ticks = relative ? niceTicks(Math.min(...vals) - 0.5, Math.max(...vals), 3) : niceTicks(Math.min(0, ...vals), Math.max(0, ...vals), 3)
+  const lo = ticks[0]
+  const hi = ticks[ticks.length - 1]
+  const n = metric.values.length
+  const bw = (W - PAD.left - PAD.right) / n
+  const y = (v: number) => PAD.top + (H - PAD.top - PAD.bottom) * (1 - (v - lo) / (hi - lo))
+  const base = relative ? y(lo) : y(0)
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
@@ -275,21 +269,22 @@ function TrendBars({ metric }: { metric: TrendMetric }) {
       role="img"
       aria-label={`${metric.label_pl}: ${metric.values.map((v) => `${v.year} ${v.value === null ? 'brak danych' : formatNumberPl(v.value, 1)}`).join(', ')}`}
     >
+      <YAxis ticks={ticks} y={y} left={PAD.left} right={W - PAD.right} unit={metric.unit} fontSize={10} />
       {metric.values.map((v, i) => {
         if (v.value === null) return null
-        const top = Math.min(yy(v.value), base)
-        const h = Math.max(1, Math.abs(base - yy(v.value)))
+        const top = Math.min(y(v.value), base)
+        const h = Math.max(1, Math.abs(base - y(v.value)))
         const recent = i >= n - 2
         return (
-          <rect key={v.year} x={PAD + i * bw + 1.5} width={Math.max(2, bw - 3)} y={top} height={h} fill={recent ? '#c2410c' : '#93c5fd'} rx={1.5}>
+          <rect key={v.year} x={PAD.left + i * bw + 1.5} width={Math.max(2, bw - 3)} y={top} height={h} fill={recent ? '#c2410c' : '#93c5fd'} rx={1.5}>
             <title>{`${v.year}: ${formatNumberPl(v.value, 1)} ${metric.unit}`}</title>
           </rect>
         )
       })}
       {metric.mean_all !== null && (
-        <line x1={PAD} x2={W - PAD} y1={yy(metric.mean_all)} y2={yy(metric.mean_all)} stroke="#334155" strokeDasharray="4 3" strokeWidth={1.2} />
+        <line x1={PAD.left} x2={W - PAD.right} y1={y(metric.mean_all)} y2={y(metric.mean_all)} stroke="#334155" strokeDasharray="4 3" strokeWidth={1.2} />
       )}
-      {!relative && lo < 0 && <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} stroke="#94a3b8" />}
+      {!relative && lo < 0 && <line x1={PAD.left} x2={W - PAD.right} y1={y(0)} y2={y(0)} stroke="#64748b" />}
     </svg>
   )
 }
@@ -315,7 +310,7 @@ export function TrendsView({ data }: { data: ClimateTrends }) {
           <div key={m.key} className="rounded-md border bg-card p-2.5">
             <p className="text-sm font-medium">{m.label_pl}</p>
             <TrendBars metric={m} />
-            <div className="flex justify-between text-[11px] text-muted-foreground">
+            <div className="flex justify-between pl-[12.5%] text-[11px] text-muted-foreground">
               <span>{m.values[0]?.year}</span>
               <span>{m.values[m.values.length - 1]?.year}</span>
             </div>
@@ -347,13 +342,14 @@ export function ProfileChart({ data }: { data: SlopeProfile }) {
   const pts = data.points
   if (pts.length < 2) return null
   const H = W < 480 ? 200 : 240
-  const PAD = { top: 22, right: 14, bottom: 34, left: 52 }
+  const PAD = { top: 24, right: 14, bottom: 34, left: 52 }
   const elev = pts.map((p) => p.elevation_m)
   const zmin = Math.min(...elev)
   const zmax = Math.max(...elev)
   const pad = Math.max(0.5, (zmax - zmin) * 0.15)
-  const lo = Math.floor((zmin - pad) * 2) / 2
-  const hi = Math.ceil((zmax + pad) * 2) / 2
+  const yTicks = niceTicks(zmin - pad, zmax + pad)
+  const lo = yTicks[0]
+  const hi = yTicks[yTicks.length - 1]
   const dmax = pts[pts.length - 1].distance_m || 1
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
@@ -361,11 +357,9 @@ export function ProfileChart({ data }: { data: SlopeProfile }) {
   const y = (z: number) => PAD.top + innerH * (1 - (z - lo) / (hi - lo))
   const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.distance_m).toFixed(1)},${y(p.elevation_m).toFixed(1)}`).join('')
   const area = `${line}L${x(dmax).toFixed(1)},${(PAD.top + innerH).toFixed(1)}L${x(0).toFixed(1)},${(PAD.top + innerH).toFixed(1)}Z`
-  const yTicks = [lo, (lo + hi) / 2, hi]
   const xStep = niceStep(dmax, W < 480 ? 3 : 5)
   const xTicks: number[] = []
   for (let d = 0; d <= dmax * 0.92; d += xStep) xTicks.push(d)
-  const decimals = hi - lo < 5 ? 1 : 0
 
   return (
     <figure className="space-y-2">
@@ -382,17 +376,7 @@ export function ProfileChart({ data }: { data: SlopeProfile }) {
           role="img"
           aria-label={`Na długości ${formatNumberPl(data.length_m)} m teren opada o ${formatNumberPl(data.drop_m, 1)} m.`}
         >
-          {yTicks.map((t) => (
-            <g key={t}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke={AXIS.grid} />
-              <text x={PAD.left - 6} y={y(t) + 4} textAnchor="end" fontSize="11" fill={AXIS.text}>
-                {formatNumberPl(t, decimals)}
-              </text>
-            </g>
-          ))}
-          <text x={4} y={12} fontSize="11" fill={AXIS.text}>
-            m n.p.m.
-          </text>
+          <YAxis ticks={yTicks} y={y} left={PAD.left} right={W - PAD.right} unit="m n.p.m." />
           {xTicks.map((d) => (
             <text key={d} x={x(d)} y={PAD.top + innerH + 14} fontSize="11" fill={AXIS.text} textAnchor="middle">
               {formatNumberPl(d)}
@@ -438,14 +422,14 @@ export function WaterPlanChart({ data }: { data: WaterPlan }) {
   const months = data.months
   if (months.length === 0) return null
   const H = W < 480 ? 210 : 250
-  const PAD = { top: 18, right: 10, bottom: 30, left: 40 }
-  const maxV = niceMax(Math.max(10, ...months.flatMap((m) => [m.deficit_median_mm ?? 0, m.deficit_p80_mm ?? 0, m.deficit_p90_mm ?? 0])))
+  const PAD = { top: 22, right: 10, bottom: 30, left: 40 }
+  const ticks = niceTicks(0, Math.max(10, ...months.flatMap((m) => [m.deficit_median_mm ?? 0, m.deficit_p80_mm ?? 0, m.deficit_p90_mm ?? 0])))
+  const maxV = ticks[ticks.length - 1]
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
   const slot = innerW / months.length
   const bw = Math.min(22, slot * 0.36)
   const y = (v: number) => PAD.top + innerH * (1 - v / maxV)
-  const ticks = [0, 0.5, 1].map((f) => f * maxV)
 
   return (
     <figure className="space-y-2">
@@ -464,17 +448,7 @@ export function WaterPlanChart({ data }: { data: WaterPlan }) {
           {months.map((m, i) =>
             m.critical ? <rect key={`c${m.month}`} x={PAD.left + i * slot} y={PAD.top} width={slot} height={innerH} fill={PLAN.critical} opacity={0.45} /> : null,
           )}
-          {ticks.map((t) => (
-            <g key={t}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke={AXIS.grid} />
-              <text x={PAD.left - 6} y={y(t) + 4} textAnchor="end" fontSize="11" fill={AXIS.text}>
-                {formatNumberPl(t)}
-              </text>
-            </g>
-          ))}
-          <text x={4} y={11} fontSize="11" fill={AXIS.text}>
-            mm
-          </text>
+          <YAxis ticks={ticks} y={y} left={PAD.left} right={W - PAD.right} unit="mm" />
           {months.map((m, i) => {
             const cx = PAD.left + i * slot + slot / 2
             // Missing values are not drawn (never shown as 0 mm, CLAUDE.md rule 4).

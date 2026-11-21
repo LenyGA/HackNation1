@@ -44,7 +44,7 @@ from app.report.models import (
     SourceEntry,
 )
 from app.report.outlook import build_outlook, flood_info, groundwater_info
-from app.report.texts import num, render_line, render_text, years_pl
+from app.report.texts import date_dmy, num, render_line, render_text, years_pl
 from app.sources import open_meteo, uldk
 
 # Hydro features shown on the report map (the source covers 1 km; the map focuses on the surroundings).
@@ -390,7 +390,7 @@ def _sections(
             ReportSection(
                 id=sid,
                 number=n,
-                title_pl=L.SECTION_TITLES[sid],
+                title_pl=L.SECTION_TITLES[sid].format(date=date_dmy(ctx["day"])),
                 paragraphs_pl=main,
                 details_pl=details,
                 indicators=_section_indicators(a, sid),

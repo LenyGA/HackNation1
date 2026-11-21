@@ -21,7 +21,7 @@ INDICATOR_LABELS: dict[str, str] = {
     "root_zone_available_mm": "Woda, która została w glebie dla roślin",
     "root_zone_depletion_pct": "Ubytek wody w strefie korzeni",
     "ks": "Wskaźnik stresu wodnego roślin (1 = brak stresu)",
-    "ndvi_current": "Kondycja roślin teraz (wskaźnik zieleni ze zdjęć satelitarnych)",
+    "ndvi_current": "Kondycja roślin na dzień analizy (wskaźnik zieleni ze zdjęć satelitarnych)",
     "ndvi_history_median": "Typowa kondycja roślin w tym terminie w poprzednich latach",
     "ndvi_pct": "Kondycja roślin na tle lat poprzednich (% lat ze słabszą)",
     "ndvi_history_years": "Lata ze zdjęciami satelitarnymi do porównania",
@@ -94,7 +94,7 @@ CONFIDENCE_LABELS: dict[str, str] = {
 
 SECTION_TITLES: dict[str, str] = {
     "summary": "Podsumowanie",
-    "current": "Sytuacja wodna teraz",
+    "current": "Sytuacja wodna na dzień {date}",
     "vulnerability": "Jak często brakowało wody w ostatnich 10 latach",
     "causes": "Dlaczego brakuje wody",
     "retention": "Zatrzymywanie wody na działce",

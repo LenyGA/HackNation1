@@ -11,6 +11,6 @@ Zdjęcia satelitarne {% if level in ('light', 'moderate', 'severe') %}potwierdza
 Zdjęcia satelitarne nie potwierdzają w pełni oceny: kondycja roślin ({{ now|num(0.01) }}) jest {{ cmp_pl }}{% if cmp == 'similar' %} do zwykłej{% else %} niż zwykle{% endif %} w tych tygodniach (środek z {{ years }} lat: {{ hist_median|num(0.01) }}). {% if level in ('light', 'moderate', 'severe') %}Rośliny często reagują na brak wody z opóźnieniem 1–3 tygodni, a satelita widzi zieleń liści, nie wodę w glebie — dlatego ocenę opieramy na bilansie wody, a zdjęcia tylko obniżają jej pewność.{% else %}Słabsza kondycja może mieć inne przyczyny niż woda (choroby, nawożenie, termin siewu).{% endif %}
 
 {% elif now is none %}
-W ostatnich tygodniach nie było bezchmurnego zdjęcia satelitarnego tej działki, więc kondycji roślin teraz nie oceniamy.
+W ostatnich tygodniach nie było bezchmurnego zdjęcia satelitarnego tej działki, więc kondycji roślin na dzień {{ day|date_dmy }} nie oceniamy.
 
 {% endif %}

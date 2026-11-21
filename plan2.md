@@ -95,18 +95,18 @@ L5.1a przed L5.1b–c. K0.3 przed każdą bramką W. R1 przed R3 (kafle i zdania
 
 ### L1. Widoczne w demo (2,25 h) → lista2 L1
 
-- [ ] **L1.1 Osie Y na wszystkich wykresach.** Jedna funkcja podziałki (istniejące `niceMax` w `chartUtils.ts`; odpowiednik w
+- [x] **L1.1 Osie Y na wszystkich wykresach.** Jedna funkcja podziałki (istniejące `niceMax` w `chartUtils.ts`; odpowiednik w
   `charts_svg.py`), 3–5 okrągłych wartości, polski przecinek, jednostka przy osi. Pliki: `SeasonChartView.tsx`, `Charts.tsx`
   (satelita, trendy, przekrój terenu, plan wody), `backend/app/report/charts_svg.py`.
   **Gotowe, gdy:** każdy wykres na stronie i w PDF ma opisaną oś Y z jednostką; czytelne przy 375 px; test `charts_svg` sprawdza obecność etykiet osi.
-- [ ] **L1.2 „na dzień DD.MM.YYYY” zamiast „teraz”.** Filtr Jinja `date_dmy` (backend) i `formatDateDmy` w `frontend/src/lib/format.ts`.
+- [x] **L1.2 „na dzień DD.MM.YYYY” zamiast „teraz”.** Filtr Jinja `date_dmy` (backend) i `formatDateDmy` w `frontend/src/lib/format.ts`.
   Miejsca wg lista2 L1.2: `labels_pl.py`, `outlook.py`, `Charts.tsx`, `report.html.j2`, `charts_svg.py`, `blocks/satellite.j2`, `sections/current.j2`.
   **Gotowe, gdy:** `grep -rni "teraz" frontend/src backend/app/report` nie znajduje nagłówków ani legend; test szablonu dla 15.07.2019.
-- [ ] **L1.3 Większa mapa wyboru działki + pełny ekran.** `ParcelPickerMap.tsx`: wysokość `60svh` (min. 320 px, maks. 720 px).
+- [x] **L1.3 Większa mapa wyboru działki + pełny ekran.** `ParcelPickerMap.tsx`: wysokość `60svh` (min. 320 px, maks. 720 px).
   Pełny ekran jako własny tryb `fixed inset-0` (działa w Safari na iOS, gdzie Fullscreen API nie obejmuje zwykłych elementów),
   z `map.resize()` po przełączeniu i wyjściem klawiszem Esc. Ten sam przycisk w `ReportMapView.tsx` (wysokość bez zmian).
   **Gotowe, gdy:** na telefonie mapa zajmuje większość ekranu, a strona się przewija; klik działki działa w obu trybach.
-- [ ] **L1.4 Granica Polski, alert i maska.**
+- [x] **L1.4 Granica Polski, alert i maska.**
   - Skrypt jednorazowy `backend/scripts/build_poland_outline.py`: obrys państwa z PRG GUGiK (usługa lub paczka — adres i datę pobrania
     ustalić przy wdrożeniu; zapas: Natural Earth 1:10m), **bufor ok. 200 m na zewnątrz**, potem uproszczenie do 50–100 KB i zapis do
     `frontend/src/components/map/poland.json`. Bufor gwarantuje, że uproszczenie nie odrzuci żadnej polskiej działki; ostatecznie

@@ -68,6 +68,17 @@ def date_pl(value: date | datetime | str | None) -> str:
     return f"{value.day} {MONTHS_GENITIVE_PL[value.month]} {value.year}"
 
 
+def date_dmy(value: date | datetime | str | None) -> str:
+    """'2019-07-15' → '15.07.2019' (headers "na dzień …": the analysis date, never "today")."""
+    if value is None:
+        return "brak daty"
+    if isinstance(value, str):
+        value = date.fromisoformat(value[:10])
+    if isinstance(value, datetime):
+        value = value.astimezone(LOCAL_TZ).date()
+    return f"{value.day:02d}.{value.month:02d}.{value.year}"
+
+
 def day_month_pl(value: date) -> str:
     return f"{value.day} {MONTHS_GENITIVE_PL[value.month]}"
 
@@ -195,6 +206,7 @@ def _env(autoescape: bool) -> Environment:
     env.filters.update(
         num=num,
         date_pl=date_pl,
+        date_dmy=date_dmy,
         day_month_pl=day_month_pl,
         month_pl=month_pl,
         month_in_pl=month_in_pl,

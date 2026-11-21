@@ -2,7 +2,10 @@ import type { FeatureCollection, Geometry } from 'geojson'
 import { type AddLayerObject, Map as MlMap, Marker, NavigationControl, Popup } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import type { FloodInfo, MapFeatureKind, ReportMap } from '@/api/types'
+import { cn } from '@/lib/utils'
+import { FullscreenButton } from './FullscreenButton'
 import { baseStyle, collapseAttribution, geometryBounds, MAP_LOCALE, representativePoint } from './mapStyle'
+import { useMapFullscreen } from './useMapFullscreen'
 
 // Colours per feature kind, shared by the map layers and the legend.
 const KIND_COLORS: Record<MapFeatureKind, string> = {
@@ -71,6 +74,7 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
   // The legend entry appears only once a flood tile has really loaded (CSP or a slow service may block them),
   // so an empty map never reads as "no flood zone".
   const [loadedFloodUrl, setLoadedFloodUrl] = useState<string | null>(null)
+  const { full, toggle, fullRef } = useMapFullscreen(mapRef)
 
   useEffect(() => {
     if (!container.current) return
@@ -135,7 +139,7 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
       bounds: bounds ?? undefined,
       fitBoundsOptions: { padding: 40, maxZoom: 18 },
       maxZoom: 19,
-      cooperativeGestures: true,
+      cooperativeGestures: !fullRef.current,
       attributionControl: { compact: true },
       locale: MAP_LOCALE,
     })
@@ -183,15 +187,16 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
       mapRef.current = null
       map.remove()
     }
-  }, [data, floodUrl])
+  }, [data, floodUrl, fullRef])
 
   const kinds = KIND_ORDER.filter((k) => data.legend_pl[k])
   const hasNumbered = data.features.some((f) => f.recommendation_numbers.length > 0)
 
   return (
     <div className="space-y-3">
-      <div className="relative h-[300px] overflow-hidden rounded-lg border sm:h-[400px]">
+      <div className={cn('overflow-hidden border', full ? 'fixed inset-0 z-50 bg-background' : 'relative h-[300px] rounded-lg sm:h-[400px]')}>
         <div ref={container} className="h-full w-full" aria-label="Mapa działki z miejscami zatrzymywania wody" />
+        <FullscreenButton full={full} onToggle={toggle} />
       </div>
       <ul className="grid grid-cols-1 gap-1.5 text-sm sm:grid-cols-2">
         <li className="flex items-center gap-2">

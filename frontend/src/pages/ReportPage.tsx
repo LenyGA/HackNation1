@@ -132,7 +132,7 @@ function SectionExtras({ section, report }: { section: ReportSection; report: Re
       return (
         <>
           {report.chart && <SeasonChartView chart={report.chart} />}
-          {report.satellite && <SatelliteChart data={report.satellite} />}
+          {report.satellite && <SatelliteChart data={report.satellite} analysisDate={report.analysis_date} />}
         </>
       )
     case 'vulnerability':

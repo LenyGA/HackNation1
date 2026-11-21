@@ -1,11 +1,24 @@
 import type { FeatureCollection, Geometry } from 'geojson'
 import { type GeoJSONSource, Map as MlMap, NavigationControl } from 'maplibre-gl'
-import { Crosshair, Loader2 } from 'lucide-react'
+import { Crosshair, Loader2, MapPinOff, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api, ApiRequestError } from '@/api/client'
 import type { Parcel } from '@/api/types'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { baseStyle, collapseAttribution, geometryBounds, insidePoland, MAP_LOCALE, PARCELS_MIN_ZOOM, POLAND_BOUNDS } from './mapStyle'
+import { cn } from '@/lib/utils'
+import { FullscreenButton } from './FullscreenButton'
+import {
+  baseStyle,
+  collapseAttribution,
+  geometryBounds,
+  insidePoland,
+  MAP_LOCALE,
+  outsidePolandMask,
+  PARCELS_MIN_ZOOM,
+  POLAND_BOUNDS,
+} from './mapStyle'
+import { useMapFullscreen } from './useMapFullscreen'
 
 interface Props {
   selected: Parcel | null
@@ -14,7 +27,6 @@ interface Props {
 }
 
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
-const OUTSIDE_PL = 'Wskazane miejsce leży poza Polską. Wybierz działkę na terenie Polski.'
 
 function parcelCollection(parcel: Parcel | null): FeatureCollection {
   if (!parcel) return EMPTY
@@ -44,6 +56,9 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
   const [busy, setBusy] = useState(false)
   const [locating, setLocating] = useState(false)
   const [zoom, setZoom] = useState(5)
+  // Shown on the map, without asking the server, when a click or the location is outside Poland (plan2 L1.4).
+  const [outside, setOutside] = useState(false)
+  const { full, toggle } = useMapFullscreen(mapRef)
 
   useEffect(() => {
     handlers.current = { onPick, onError }
@@ -54,10 +69,19 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
     const map = new MlMap({
       container: container.current,
       // The outline layers are part of the initial style, so they never wait for the WMS tiles.
-      style: baseStyle({ selected: { type: 'geojson', data: parcelCollection(selectedRef.current) } }, [
-        { id: 'selected-fill', type: 'fill', source: 'selected', paint: { 'fill-color': '#facc15', 'fill-opacity': 0.25 } },
-        { id: 'selected-line', type: 'line', source: 'selected', paint: { 'line-color': '#facc15', 'line-width': 3 } },
-      ]),
+      style: baseStyle(
+        {
+          selected: { type: 'geojson', data: parcelCollection(selectedRef.current) },
+          outside: { type: 'geojson', data: outsidePolandMask() },
+        },
+        [
+          // Grey veil over everything outside Poland, under the parcel outline.
+          { id: 'outside-fill', type: 'fill', source: 'outside', paint: { 'fill-color': '#334155', 'fill-opacity': 0.45 } },
+          { id: 'outside-line', type: 'line', source: 'outside', paint: { 'line-color': '#dc2626', 'line-width': 1.5, 'line-opacity': 0.7 } },
+          { id: 'selected-fill', type: 'fill', source: 'selected', paint: { 'fill-color': '#facc15', 'fill-opacity': 0.25 } },
+          { id: 'selected-line', type: 'line', source: 'selected', paint: { 'line-color': '#facc15', 'line-width': 3 } },
+        ],
+      ),
       bounds: POLAND_BOUNDS,
       maxBounds: [
         [12, 47.5],
@@ -81,14 +105,16 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
     // Only the latest click may update the selection, whatever order the responses arrive in.
     let clickSeq = 0
     map.on('click', async (e) => {
+      const { lat, lng } = e.lngLat
+      // Checked at every zoom level, before anything is asked from the server.
+      if (!insidePoland(lat, lng)) {
+        setOutside(true)
+        return
+      }
+      setOutside(false)
       if (map.getZoom() < PARCELS_MIN_ZOOM - 2) {
         // Zoomed out too far to hit one parcel: zoom in towards the click instead.
         map.easeTo({ center: e.lngLat, zoom: Math.min(map.getZoom() + 3, PARCELS_MIN_ZOOM) })
-        return
-      }
-      const { lat, lng } = e.lngLat
-      if (!insidePoland(lat, lng)) {
-        handlers.current.onError(OUTSIDE_PL)
         return
       }
       const seq = ++clickSeq
@@ -139,9 +165,10 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
         setLocating(false)
         const { latitude, longitude } = pos.coords
         if (!insidePoland(latitude, longitude)) {
-          onError(OUTSIDE_PL)
+          setOutside(true)
           return
         }
+        setOutside(false)
         mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 17 })
       },
       (err) => {
@@ -154,10 +181,33 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
 
   return (
     <div className="space-y-2">
-      <div className="relative h-[320px] overflow-hidden rounded-lg border sm:h-[420px]">
+      <div
+        className={cn(
+          'overflow-hidden border',
+          full ? 'fixed inset-0 z-50 bg-background' : 'relative h-[60svh] max-h-[720px] min-h-[320px] rounded-lg',
+        )}
+      >
         <div ref={container} className="h-full w-full" aria-label="Mapa do wyboru działki" />
+        <FullscreenButton full={full} onToggle={toggle} />
+        {outside && (
+          <div className="absolute inset-x-2.5 top-20 z-10 flex justify-center">
+            <Alert variant="destructive" className="max-w-md pr-10 shadow-lg">
+              <MapPinOff />
+              <AlertTitle>To miejsce jest poza Polską</AlertTitle>
+              <AlertDescription>Aplikacja działa tylko dla działek w Polsce. Kliknij na terenie Polski.</AlertDescription>
+              <button
+                type="button"
+                className="absolute top-2 right-2 rounded p-1 text-muted-foreground hover:bg-muted"
+                onClick={() => setOutside(false)}
+                aria-label="Zamknij komunikat"
+              >
+                <X className="size-4" />
+              </button>
+            </Alert>
+          </div>
+        )}
         {busy && (
-          <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center">
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
             <span className="flex items-center gap-2 rounded-full bg-background/90 px-3 py-1 text-sm shadow">
               <Loader2 className="size-4 animate-spin" /> Szukam działki…
             </span>

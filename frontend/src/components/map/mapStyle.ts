@@ -32,9 +32,8 @@ export const POLAND_BOUNDS: LngLatBoundsLike = [
   [24.2, 55.0],
 ]
 
-export function insidePoland(lat: number, lon: number): boolean {
-  return lat >= 48.9 && lat <= 55.0 && lon >= 14.0 && lon <= 24.2
-}
+// The real border check (outline of Poland, point in polygon) lives in a pure module so it can be unit-tested.
+export { insidePoland, outsidePolandMask } from './poland'
 
 // Polish texts for MapLibre's built-in controls (keys of maplibre's defaultLocale).
 export const MAP_LOCALE: Record<string, string> = {

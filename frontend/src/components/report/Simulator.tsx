@@ -2,8 +2,9 @@ import { useState } from 'react'
 import type { Simulation, StrategyId } from '@/api/types'
 import { formatNumberPl } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { AXIS, niceMax, useMeasuredWidth } from './chartUtils'
+import { AXIS, niceTicks, useMeasuredWidth } from './chartUtils'
 import { Disclosure } from './ReportParts'
+import { YAxis } from './YAxis'
 
 const COLORS: Record<StrategyId, string> = {
   none: '#64748b',
@@ -20,9 +21,10 @@ function val(v: number | null, unit: string, step = 0): string {
 function StressLines({ sim, chosen, year }: { sim: Simulation; chosen: StrategyId; year: number }) {
   const { ref, width: W } = useMeasuredWidth()
   const H = W < 480 ? 190 : 220
-  const PAD = { top: 16, right: 12, bottom: 28, left: 40 }
+  const PAD = { top: 22, right: 12, bottom: 28, left: 40 }
   const all = sim.strategies.flatMap((s) => s.years.map((y) => y.stress_days_median ?? 0))
-  const maxV = niceMax(Math.max(5, ...all))
+  const ticks = niceTicks(0, Math.max(5, ...all))
+  const maxV = ticks[ticks.length - 1]
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
   const x = (k: number) => PAD.left + (innerW * (k - 1)) / 4
@@ -40,17 +42,7 @@ function StressLines({ sim, chosen, year }: { sim: Simulation; chosen: StrategyI
           .map((s) => `${s.label_pl}: ${s.years.map((y) => (y.stress_days_median === null ? 'brak danych' : formatNumberPl(y.stress_days_median))).join(', ')}`)
           .join('; ')}`}
       >
-        {[0, 0.5, 1].map((f) => (
-          <g key={f}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(f * maxV)} y2={y(f * maxV)} stroke={AXIS.grid} />
-            <text x={PAD.left - 6} y={y(f * maxV) + 4} textAnchor="end" fontSize="11" fill={AXIS.text}>
-              {formatNumberPl(f * maxV)}
-            </text>
-          </g>
-        ))}
-        <text x={4} y={11} fontSize="11" fill={AXIS.text}>
-          dni
-        </text>
+        <YAxis ticks={ticks} y={y} left={PAD.left} right={W - PAD.right} unit="dni" />
         <line x1={x(year)} x2={x(year)} y1={PAD.top} y2={PAD.top + innerH} stroke="#cbd5e1" strokeDasharray="3 3" />
         {[1, 2, 3, 4, 5].map((k) => (
           <text key={k} x={x(k)} y={H - 8} fontSize="11" fill={k === year ? '#0f172a' : AXIS.text} fontWeight={k === year ? 700 : 400} textAnchor="middle">

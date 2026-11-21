@@ -1,6 +1,8 @@
 import { type PointerEvent, useEffect, useRef, useState } from 'react'
 import type { ChartPoint, SeasonChart } from '@/api/types'
 import { formatDatePl, formatMonthPl, formatNumberPl, formatShortDatePl } from '@/lib/format'
+import { niceTicks } from './chartUtils'
+import { YAxis } from './YAxis'
 
 // Plain SVG chart (no chart library): cumulative rain this season against the range of the previous years,
 // and the cumulative water need of the crop.
@@ -17,12 +19,6 @@ const COLORS = {
 }
 
 type Key = 'precip_mm' | 'crop_need_mm' | 'precip_hist_median_mm'
-
-function niceMax(v: number): number {
-  if (v <= 0) return 10
-  const step = 10 ** Math.floor(Math.log10(v))
-  return Math.ceil(v / step) * step
-}
 
 function linePath(points: ChartPoint[], key: Key, x: (i: number) => number, y: (v: number) => number): string {
   let d = ''
@@ -76,7 +72,8 @@ export function SeasonChartView({ chart }: { chart: SeasonChart }) {
   const H = W < 480 ? 220 : 280
 
   const values = pts.flatMap((p) => [p.precip_mm, p.crop_need_mm, p.precip_hist_max_mm]).filter((v): v is number => v !== null)
-  const yMax = niceMax(Math.max(0, ...values))
+  const yTicks = niceTicks(0, Math.max(10, ...values))
+  const yMax = yTicks[yTicks.length - 1]
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
   // Points are not evenly spaced in time (weekly, then the analysis day), so x follows the date.
@@ -85,7 +82,6 @@ export function SeasonChartView({ chart }: { chart: SeasonChart }) {
   const xs = pts.map((p) => PAD.left + (innerW * (dayNumber(p.day) - d0)) / span)
   const x = (i: number) => xs[i]
   const y = (v: number) => PAD.top + innerH * (1 - v / yMax)
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * yMax)
   // A tick at the first point of every month, skipping ticks that would overlap on a narrow screen.
   const minGap = 46
   const xTicks: { i: number; day: string }[] = []
@@ -127,17 +123,7 @@ export function SeasonChartView({ chart }: { chart: SeasonChart }) {
           // On touch the chosen day stays shown after the finger lifts; with a mouse it resets on leaving.
           onPointerLeave={(e) => e.pointerType === 'mouse' && setHover(null)}
         >
-          {yTicks.map((t) => (
-            <g key={t}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke="#e5e7eb" />
-              <text x={PAD.left - 6} y={y(t) + 4} textAnchor="end" fontSize="11" fill="#6b7280">
-                {formatNumberPl(t)}
-              </text>
-            </g>
-          ))}
-          <text x={4} y={11} fontSize="11" fill="#6b7280">
-            mm
-          </text>
+          <YAxis ticks={yTicks} y={y} left={PAD.left} right={W - PAD.right} unit="mm" />
           {xTicks.map(({ i, day }) => (
             <text key={day} x={x(i)} y={H - 8} fontSize="11" fill="#6b7280" textAnchor={i === 0 ? 'start' : 'middle'}>
               {i === 0 ? formatShortDatePl(day) : formatMonthPl(day)}

@@ -74,3 +74,9 @@ export function formatNumberPl(value: number, maxFractionDigits = 0): string {
 export function formatAreaHa(areaHa: number): string {
   return `${formatNumberPl(areaHa, areaHa < 10 ? 2 : 1)} ha`
 }
+
+/** '2019-07-15' → '15.07.2019' — the analysis date in headers ("na dzień …"), never "today". */
+export function formatDateDmy(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-')
+  return `${d}.${m}.${y}`
+}

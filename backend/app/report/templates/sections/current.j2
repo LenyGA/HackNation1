@@ -97,6 +97,6 @@ Współczynnik stresu wodnego Ks = {{ v.get('ks')|num(0.01) }}; ubytek wody Dr =
 KBW z 60 dni = {{ v.get('kbw_60d_mm')|num }} mm (percentyl {{ v.get('kbw_60d_pct')|num }}); opad z 30 dni: percentyl {{ v.get('precip_30d_pct')|num }}; z 90 dni: percentyl {{ v.get('precip_90d_pct')|num }}. Percentyl empiryczny z 10 poprzednich lat (10 lat to za mało na klasyczny SPI).
 {% endif %}
 {% if c.sat.get('ndvi_current') is not none %}
-NDVI teraz: {{ c.sat.get('ndvi_current')|num(0.01) }}, mediana z {{ c.sat.get('ndvi_history_years')|num }} lat: {{ c.sat.get('ndvi_history_median')|num(0.01) }} (percentyl {{ c.sat.get('ndvi_pct')|num }}). Satelita zmienia tylko pewność wyniku, nigdy sam poziom niedoboru.
+NDVI na dzień {{ day|date_dmy }}: {{ c.sat.get('ndvi_current')|num(0.01) }}, mediana z {{ c.sat.get('ndvi_history_years')|num }} lat: {{ c.sat.get('ndvi_history_median')|num(0.01) }} (percentyl {{ c.sat.get('ndvi_pct')|num }}). Satelita zmienia tylko pewność wyniku, nigdy sam poziom niedoboru.
 {% endif %}
 {% endif %}
