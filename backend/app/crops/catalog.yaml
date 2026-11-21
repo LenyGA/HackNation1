@@ -1,21 +1,147 @@
-# Crop catalogue. Agronomic parameters (Kc, stage lengths, rooting depth, p, critical periods) are added in plan step M3.1,
-# each with its source. For now only identifiers and Polish names.
+# Crop catalogue: agronomic parameters for the water balance (plan step M3.1).
+#
+# Sources:
+#   [FAO56-T11] Allen R.G. et al. (1998) FAO Irrigation and Drainage Paper 56, Table 11 (lengths of crop development stages).
+#   [FAO56-T12] ibid., Table 12 (single crop coefficients Kc_ini, Kc_mid, Kc_end, sub-humid climate, RHmin ~45%, u2 ~2 m/s).
+#               Kc_ini 0.4 for winter cereals and rapeseed follows the Table 12 footnote for winter crops on frozen soils.
+#   [FAO56-T22] ibid., Table 22 (maximum effective rooting depth Zr, soil water depletion fraction p for no stress).
+#   [PL-CAL]    Sowing dates and stage lengths shifted to typical Polish calendars (COBORU / IUNG-PIB cultivation
+#               recommendations). They are mean dates for the whole country; local dates can differ by 1–3 weeks.
+#   [CRIT]      Water-critical periods: Dzieżyc J. (red.) (1988) "Rolnictwo w warunkach nawadniania", PWN;
+#               Kuchar L., Iwański S. et al. (IUNG-PIB) crop drought sensitivity periods used in the Agricultural Drought
+#               Monitoring System (susza.iung.pulawy.pl).
+#
+# Fields:
+#   sowing: MM-DD start of the initial stage (for perennial grassland: start of spring regrowth).
+#   stages_days: [initial, development, mid-season, late-season] lengths in days; the season ends after their sum.
+#   kc_ini / kc_mid / kc_end: FAO-56 single crop coefficients; Kc is linear between stages as in FAO-56 Fig. 25.
+#   kc_off_season: Kc outside the season. 0 = field without a crop (bare soil is handled in the water balance).
+#   root_depth_m: effective rooting depth used for TAW (single value, the FAO-56 lower bound of the range).
+#   p: depletion fraction for no stress (FAO-56 Table 22).
+#   critical_periods: water-critical development phases, MM-DD ranges within the season.
 crops:
   - id: winter_wheat
     name_pl: Pszenica ozima
+    winter: true
+    sowing: "09-25"          # [PL-CAL]
+    stages_days: [190, 35, 60, 30]  # [FAO56-T11] winter wheat, initial stage stretched over winter [PL-CAL]
+    kc_ini: 0.4              # [FAO56-T12] footnote, frozen soils
+    kc_mid: 1.15             # [FAO56-T12]
+    kc_end: 0.25             # [FAO56-T12] harvested dry
+    kc_off_season: 0.0
+    root_depth_m: 1.5        # [FAO56-T22] 1.5–1.8
+    p: 0.55                  # [FAO56-T22]
+    critical_periods:        # [CRIT] stem elongation – heading – grain filling
+      - {start: "05-01", end: "06-20", name_pl: "strzelanie w źdźbło, kłoszenie i nalewanie ziarna"}
+
   - id: rye
     name_pl: Żyto
+    winter: true
+    sowing: "09-20"          # [PL-CAL]
+    stages_days: [190, 30, 55, 30]  # [FAO56-T11] as small grains, adjusted [PL-CAL]
+    kc_ini: 0.4              # [FAO56-T12] winter cereals, frozen soils
+    kc_mid: 1.15             # [FAO56-T12] small grains
+    kc_end: 0.25             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 1.5        # [FAO56-T22] small grains 1.0–1.5 (rye roots deep)
+    p: 0.55                  # [FAO56-T22]
+    critical_periods:        # [CRIT]
+      - {start: "04-25", end: "06-10", name_pl: "strzelanie w źdźbło i kłoszenie"}
+
   - id: spring_barley
     name_pl: Jęczmień jary
+    winter: false
+    sowing: "03-25"          # [PL-CAL]
+    stages_days: [20, 30, 50, 25]   # [FAO56-T11] barley, [PL-CAL]
+    kc_ini: 0.3              # [FAO56-T12]
+    kc_mid: 1.15             # [FAO56-T12]
+    kc_end: 0.25             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 1.0        # [FAO56-T22] 1.0–1.5
+    p: 0.55                  # [FAO56-T22]
+    critical_periods:        # [CRIT]
+      - {start: "05-01", end: "06-15", name_pl: "strzelanie w źdźbło i kłoszenie"}
+
   - id: winter_rapeseed
     name_pl: Rzepak ozimy
+    winter: true
+    sowing: "08-25"          # [PL-CAL]
+    stages_days: [220, 25, 50, 30]  # [FAO56-T11] rapeseed, initial stage stretched over winter [PL-CAL]
+    kc_ini: 0.4              # [FAO56-T12] footnote, frozen soils (table value 0.35)
+    kc_mid: 1.10             # [FAO56-T12] 1.0–1.15
+    kc_end: 0.35             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 1.0        # [FAO56-T22] 1.0–1.5
+    p: 0.6                   # [FAO56-T22]
+    critical_periods:        # [CRIT] flowering – pod formation
+      - {start: "04-20", end: "06-10", name_pl: "kwitnienie i zawiązywanie łuszczyn"}
+
   - id: maize
     name_pl: Kukurydza
+    winter: false
+    sowing: "04-25"          # [PL-CAL]
+    stages_days: [30, 40, 50, 40]   # [FAO56-T11] maize (grain), [PL-CAL]
+    kc_ini: 0.3              # [FAO56-T12]
+    kc_mid: 1.20             # [FAO56-T12]
+    kc_end: 0.35             # [FAO56-T12] harvested dry (0.60 when harvested fresh)
+    kc_off_season: 0.0
+    root_depth_m: 1.0        # [FAO56-T22] 1.0–1.7
+    p: 0.55                  # [FAO56-T22]
+    critical_periods:        # [CRIT] tasselling – silking – grain filling
+      - {start: "07-01", end: "08-20", name_pl: "wiechowanie, kwitnienie i nalewanie ziarna"}
+
   - id: potato
     name_pl: Ziemniaki
+    winter: false
+    sowing: "04-20"          # [PL-CAL]
+    stages_days: [25, 30, 45, 30]   # [FAO56-T11] potato, [PL-CAL]
+    kc_ini: 0.5              # [FAO56-T12]
+    kc_mid: 1.15             # [FAO56-T12]
+    kc_end: 0.75             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 0.4        # [FAO56-T22] 0.4–0.6
+    p: 0.35                  # [FAO56-T22]
+    critical_periods:        # [CRIT] tuber initiation and bulking
+      - {start: "06-15", end: "08-15", name_pl: "zawiązywanie i przyrost bulw"}
+
   - id: sugar_beet
     name_pl: Buraki cukrowe
+    winter: false
+    sowing: "04-05"          # [PL-CAL]
+    stages_days: [30, 45, 80, 45]   # [FAO56-T11] sugar beet, [PL-CAL]
+    kc_ini: 0.35             # [FAO56-T12]
+    kc_mid: 1.20             # [FAO56-T12]
+    kc_end: 0.70             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 0.7        # [FAO56-T22] 0.7–1.2
+    p: 0.55                  # [FAO56-T22]
+    critical_periods:        # [CRIT] canopy closure and root growth
+      - {start: "07-01", end: "08-31", name_pl: "intensywny przyrost korzeni"}
+
   - id: grassland
     name_pl: Użytki zielone
+    winter: false
+    sowing: "04-01"          # spring regrowth [PL-CAL]
+    stages_days: [10, 20, 150, 30]  # [FAO56-T11] pasture/hay, season limited to Polish vegetation period
+    kc_ini: 0.40             # [FAO56-T12] grazing pasture
+    kc_mid: 0.95             # [FAO56-T12] 0.85–1.05
+    kc_end: 0.85             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 0.5        # [FAO56-T22] 0.5–1.5
+    p: 0.6                   # [FAO56-T22]
+    critical_periods:        # [CRIT] first and second cut regrowth
+      - {start: "04-15", end: "06-30", name_pl: "odrost przed pierwszym i drugim pokosem"}
+
   - id: field_vegetables
     name_pl: Warzywa polowe
+    winter: false
+    sowing: "04-15"          # [PL-CAL]
+    stages_days: [25, 35, 40, 20]   # [FAO56-T11] small vegetables, [PL-CAL]
+    kc_ini: 0.7              # [FAO56-T12] small vegetables
+    kc_mid: 1.05             # [FAO56-T12]
+    kc_end: 0.95             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 0.3        # [FAO56-T22] 0.3–0.6
+    p: 0.3                   # [FAO56-T22]
+    critical_periods:        # [CRIT]
+      - {start: "06-01", end: "08-10", name_pl: "wzrost i plonowanie"}  # ends before harvest (08-12)

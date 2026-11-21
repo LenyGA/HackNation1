@@ -1,0 +1,16 @@
+# Critical climatic water balance (KBW) values per crop × IUNG soil category × period (plan, decision 5).
+#
+# Values must be copied from a publication (IUNG-PIB Agricultural Drought Monitoring System methodology), never
+# typed from memory. The published table was not obtained during the event (plan step M1.4 is still open), so the
+# table is intentionally empty. While it is empty, the current-state assessment relies on the 10-year empirical
+# percentile of KBW and on the FAO-56 root-zone balance, and the report states that IUNG thresholds were not used.
+#
+# Expected format once filled:
+#   source: "<full citation with URL and access date>"
+#   thresholds:
+#     - crop_id: winter_wheat
+#       soil_category: I        # I–IV, IUNG categories
+#       period_end: "06-30"     # end of the 60-day period (MM-DD)
+#       kbw_critical_mm: -XXX
+source: null
+thresholds: []

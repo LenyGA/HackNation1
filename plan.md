@@ -143,24 +143,24 @@ cache, test na zapisanej odpowiedzi w `tests/fixtures/`, wpis w `docs/DATA_SOURC
 
 Czyste funkcje bez I/O, każda z testami jednostkowymi na danych z fixture.
 
-- [ ] **M3.1 `crops/catalog.yaml` + `crops/catalog.py` (faza 1).** Dla 9 upraw: Kc (ini/mid/end) i długości faz wg FAO-56 dostosowane
+- [x] **M3.1 `crops/catalog.yaml` + `crops/catalog.py` (faza 1).** Dla 9 upraw: Kc (ini/mid/end) i długości faz wg FAO-56 dostosowane
   do terminów w Polsce, głębokość korzeni, współczynnik `p`, okresy krytyczne dla wody, czy ozima. Każda wartość ze źródłem w komentarzu.
   **Gotowe, gdy:** `kc(crop, date)` zwraca wartość dla każdego dnia roku; test: kukurydza w marcu ma Kc = 0 (pole puste).
-- [ ] **M3.2 `water_balance.py` (faza 1).** Dobowy bilans wody w strefie korzeniowej wg FAO-56: `ETc = Kc·ET0`, wyczerpanie `Dr`,
+- [x] **M3.2 `water_balance.py` (faza 1).** Dobowy bilans wody w strefie korzeniowej wg FAO-56: `ETc = Kc·ET0`, wyczerpanie `Dr`,
   `TAW`, `RAW`, współczynnik stresu `Ks`. Do tego KBW = P − ET0 w oknach 60-dniowych. Gdy brak danych o glebie, bilans glebowy
   ma status `missing`, a ocena opiera się na samym KBW z obniżoną pewnością.
   **Gotowe, gdy:** testy na ręcznie policzonym przykładzie (10 dni) zgadzają się co do 0,1 mm.
-- [ ] **M3.3 `soil.py` (faza 2).** Z uziarnienia i węgla organicznego: polowa pojemność wodna i punkt więdnięcia funkcją pedotransferową
+- [x] **M3.3 `soil.py` (faza 2).** Z uziarnienia i węgla organicznego: polowa pojemność wodna i punkt więdnięcia funkcją pedotransferową
   (Saxton i Rawls 2006), `TAW` w mm dla głębokości korzeni uprawy, kategoria gleby I–IV wg progów uziarnienia IUNG.
   **Gotowe, gdy:** piasek luźny daje kategorię I i niskie TAW, glina ciężka kategorię IV; test obu.
-- [ ] **M3.4 `history.py` (faza 2).** Dla każdego z 10 lat: liczba dni stresu wodnego w sezonie i w podziale na miesiące, KBW w tych
+- [x] **M3.4 `history.py` (faza 2).** Dla każdego z 10 lat: liczba dni stresu wodnego w sezonie i w podziale na miesiące, KBW w tych
   samych oknach, percentyl bieżącego opadu z 30 i 90 dni. Wynik: **częstość lat z niedoborem w każdym miesiącu** (tabela w raporcie)
   oraz miesiące najwyższego ryzyka dla wybranej uprawy.
   **Gotowe, gdy:** test na syntetycznych 10 latach z 3 suchymi czerwcami zwraca 30% dla czerwca.
-- [ ] **M3.5 `terrain.py` (faza 2).** Z siatki wysokości: spadek średni i maksymalny na działce, ekspozycja, akumulacja spływu (D8),
+- [x] **M3.5 `terrain.py` (faza 2).** Z siatki wysokości: spadek średni i maksymalny na działce, ekspozycja, akumulacja spływu (D8),
   zagłębienia bezodpływowe, punkty, w których spływ opuszcza działkę. Wynik zawiera geometrie GeoJSON kandydatów na miejsca retencji.
   **Gotowe, gdy:** test na sztucznej pochyłej płaszczyźnie z niecką znajduje nieckę i punkt wylotu po właściwej stronie.
-- [ ] **M3.6 `assessment.py` + `causes.py` (faza 2).** Składa wyniki w ocenę:
+- [x] **M3.6 `assessment.py` + `causes.py` (faza 2).** Składa wyniki w ocenę:
   - **stan bieżący** (brak / lekki / umiarkowany / silny niedobór) z: KBW względem progu IUNG, `Dr/TAW`, percentyla opadu;
     satelita podnosi lub obniża pewność, nigdy sam nie zmienia poziomu,
   - **podatność strukturalna** (niska / średnia / wysoka) z: TAW i kategorii gleby, częstości lat z niedoborem, spadków,
