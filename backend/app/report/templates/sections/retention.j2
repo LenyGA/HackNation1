@@ -1,0 +1,16 @@
+{#- Section 5: keeping water on the parcel (first in the order of actions). -#}
+{% if not complete %}
+Bez pełnej oceny sytuacji wodnej nie podajemy zaleceń zatrzymywania wody.
+{% elif recs_retention %}
+Najpierw zatrzymaj wodę tam, gdzie spada — to najtańszy sposób na zapas wody dla roślin. Dla tej działki wskazujemy {{ recs_retention|length }} {% if recs_retention|length == 1 %}działanie{% elif recs_retention|length < 5 %}działania{% else %}działań{% endif %} ({{ recs_retention|length|plural('punkt', 'punkty', 'punkty') }} {{ recs_retention|map(attribute='number')|map('string')|list|join_pl }}){% if recs_retention|selectattr('locations')|list %}; miejsca zaznaczyliśmy na mapie{% endif %}.
+{% else %}
+Dane dla tej działki nie wskazują konkretnego miejsca ani potrzeby budowy elementów zatrzymujących wodę.
+{% endif %}
+{% if complete and terrain is none %}
+
+Nie mamy danych o ukształtowaniu terenu, więc nie szukaliśmy zagłębień ani miejsc spływu wody na działce.
+{% endif %}
+{% if complete and hydro is none %}
+
+Nie mamy danych o rowach, oczkach i zadrzewieniach w okolicy, więc zalecenia, które ich dotyczą, nie były sprawdzane.
+{% endif %}

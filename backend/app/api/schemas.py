@@ -1,11 +1,12 @@
 """API contract. Mirrored by hand in frontend/src/api/types.ts — announce changes to the whole team."""
 
-from datetime import date, datetime
+from datetime import date
 from enum import StrEnum
 
 from pydantic import BaseModel
 
 from app.core.models import Parcel, SourceStatus
+from app.report.models import Report
 
 
 class Health(BaseModel):
@@ -61,20 +62,8 @@ class AnalysisStatus(BaseModel):
     error_pl: str | None = None
 
 
-class ReportSection(BaseModel):
-    id: str
-    title_pl: str
-    paragraphs_pl: list[str]
-
-
-class ReportOut(BaseModel):
-    id: str
-    created_at: datetime
-    app: str
-    parcel: Parcel
-    crop: CropOut
-    analysis_date: date
-    sections: list[ReportSection]
+# The report model lives with the report builder; the API serves it unchanged.
+ReportOut = Report
 
 
 class ErrorOut(BaseModel):

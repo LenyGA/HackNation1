@@ -1,0 +1,7 @@
+{#- Missing / degraded data message for the source "soilgrids" (CLAUDE.md rule 4). -#}
+{{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
+{% if status == 'missing' %}
+Bez danych o glebie nie liczymy zapasu wody w glebie, dawki nawadniania ani tego, jak często brakowało wody w poprzednich latach; ocena opiera się na opadach i parowaniu.
+{% elif not message %}
+Dane o glebie są niepełne, więc zapas wody w glebie jest mniej pewny.
+{% endif %}

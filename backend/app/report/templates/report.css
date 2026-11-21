@@ -1,0 +1,48 @@
+/* Print stylesheet of the report: used by WeasyPrint (PDF) and by the browser print view (same file). */
+@page {
+  size: A4;
+  margin: 14mm 13mm 16mm 13mm;
+  @bottom-left { content: "RolnikSzukaWody · raport " string(report-id); font-size: 7.5pt; color: #666; }
+  @bottom-right { content: "str. " counter(page) " z " counter(pages); font-size: 7.5pt; color: #666; }
+}
+* { box-sizing: border-box; }
+html { font-family: "DejaVu Sans", "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 8.8pt; color: #1a1a1a; line-height: 1.38; }
+body { margin: 0; }
+h1 { font-size: 15pt; margin: 0 0 1mm; }
+h2 { font-size: 11pt; margin: 4.5mm 0 1.5mm; padding-bottom: 0.8mm; border-bottom: 0.6pt solid #b9b9b9; break-after: avoid; }
+h3 { font-size: 9.6pt; margin: 2.5mm 0 0.8mm; break-after: avoid; }
+p { margin: 0 0 1.6mm; }
+.report-id { string-set: report-id content(); display: none; }
+.meta { color: #444; font-size: 8.5pt; margin-bottom: 3mm; }
+.meta span { margin-right: 4mm; white-space: nowrap; }
+.headline { border-radius: 2mm; padding: 3mm 4mm; margin: 2mm 0 3mm; border: 0.8pt solid #999; break-inside: avoid; }
+.headline .label { font-weight: bold; font-size: 12pt; }
+.headline .confidence { font-size: 8.2pt; color: #333; margin-top: 1mm; }
+.level-none { background: #e3f2df; border-color: #5b9e4d; }
+.level-light { background: #fff6d6; border-color: #d8b13a; }
+.level-moderate { background: #ffe6cc; border-color: #e07b1a; }
+.level-severe { background: #fbd9d6; border-color: #c62f24; }
+.level-unknown { background: #ececec; border-color: #8a8a8a; }
+.rec { border-left: 2.2pt solid #3d85c6; padding: 0.5mm 0 0.5mm 3mm; margin: 0 0 2.5mm; break-inside: avoid; }
+.rec.agrotech { border-left-color: #6aa84f; }
+.rec.irrigation { border-left-color: #e69138; }
+.rec .why { font-size: 7.2pt; color: #444; margin: 0.6mm 0 0; padding-left: 3.5mm; }
+.rec .why li { margin: 0; }
+.details { font-size: 7.8pt; color: #444; background: #f4f4f4; padding: 1.5mm 2.5mm; margin: 1mm 0 2mm; border-radius: 1mm; }
+.details .t { font-weight: bold; }
+table { border-collapse: collapse; width: 100%; font-size: 8.2pt; margin: 1mm 0 2mm; break-inside: avoid; }
+th, td { border: 0.5pt solid #c8c8c8; padding: 0.8mm 1.5mm; text-align: left; vertical-align: top; }
+th { background: #efefef; }
+td.num { text-align: right; white-space: nowrap; }
+tr.risk td { background: #fde9d9; }
+.critical { font-weight: bold; }
+.map { break-inside: avoid; margin: 1mm 0 2mm; }
+.map svg { display: block; width: 78%; height: auto; margin: 0 auto; border: 0.5pt solid #bbb; }
+.legend { font-size: 7.8pt; columns: 2; margin-top: 1mm; }
+.legend span { display: inline-block; width: 3mm; height: 3mm; margin-right: 1.2mm; vertical-align: middle; border: 0.4pt solid #555; }
+.sources p, .limits p { font-size: 8pt; margin-bottom: 1.1mm; }
+.missing-line { font-weight: bold; color: #8a1c12; }
+.small { font-size: 7.6pt; color: #555; }
+@media screen {
+  body { max-width: 190mm; margin: 8mm auto; padding: 0 6mm; }
+}

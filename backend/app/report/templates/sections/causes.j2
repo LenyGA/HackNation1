@@ -1,0 +1,47 @@
+{#- Section 4: causes of the deficit; each flagged cause is explained with its numbers. -#}
+{% if not complete %}
+Przyczyn niedoboru wody nie oceniamy bez pełnej oceny sytuacji wodnej działki.
+{% else %}
+{% set flagged = causes|selectattr('flagged', 'true')|list %}
+{% set clear = causes|selectattr('flagged', 'false')|list %}
+{% set unknown = causes|selectattr('flagged', 'none')|list %}
+{% if not flagged %}
+Dane nie wskazują żadnej z typowych przyczyn niedoboru wody na tej działce.
+{% endif %}
+{% for c in flagged %}
+{% set e = c.v %}
+{% if c.id == 'precipitation_deficit_heat' %}
+{% set p90 = e.get('precip_90d_mm') %}
+{% set p90pct = e.get('precip_90d_pct') %}
+{% set k60 = e.get('kbw_60d_mm') %}
+{% set k60pct = e.get('kbw_60d_pct') %}
+{% set anomaly = e.get('tmax_30d_anomaly_c') %}
+{% set hot = anomaly is not none and anomaly >= 1.5 %}
+{% set parts = [] %}
+{% if p90 is not none and p90pct is not none and p90pct <= 30 %}{% do parts.append('w ostatnich 90 dniach spadło ' ~ (p90|num) ~ ' mm deszczu — ' ~ (p90pct|wetness_pl)) %}{% endif %}
+{% if k60 is not none and k60pct is not none and (k60pct <= 30 or (hot and k60pct < 50)) %}{% do parts.append('przez ostatnie 60 dni ' ~ ('wyparowało o ' ~ (k60|abs|num) ~ ' mm więcej wody, niż spadło deszczu' if k60 < 0 else 'spadło tylko o ' ~ (k60|num) ~ ' mm więcej deszczu, niż wyparowało') ~ ' — ' ~ (k60pct|balance_pl)) %}{% endif %}
+{% if hot %}{% do parts.append('w ostatnich 30 dniach było średnio o ' ~ (anomaly|num(0.1)) ~ ' °C cieplej niż zwykle' ~ (', z ' ~ (e.get('hot_days_30d')|days_instr_pl) ~ ' upału (≥ 30 °C)' if e.get('hot_days_30d') else '')) %}{% endif %}
+Mało deszczu i wysoka temperatura: {{ parts|join('; ') }}.
+{% elif c.id == 'low_soil_retention' %}
+{% set cat = c.context.get('soil_category') %}
+{% set taw_m = e.get('taw_per_m_mm') %}
+{% set soc = e.get('soc_topsoil_g_per_kg') %}
+{% set parts = [] %}
+{% if cat in ('I', 'II') %}{% do parts.append('to gleba ' ~ {'I': 'bardzo lekka', 'II': 'lekka'}[cat] ~ ((' z ok. ' ~ (e.get('sand_topsoil_pct')|num) ~ ' % piasku w wierzchniej warstwie') if e.get('sand_topsoil_pct') is not none else '')) %}{% endif %}
+{% if taw_m is not none and taw_m < 100 %}{% do parts.append('metr tej gleby mieści tylko ok. ' ~ (taw_m|num) ~ ' mm wody dostępnej dla roślin') %}{% endif %}
+{% if soc is not none and soc < 10 %}{% do parts.append('jest w niej mało próchnicy (ok. ' ~ (soc|num(0.1)) ~ ' g węgla organicznego na kg)') %}{% endif %}
+Gleba słabo zatrzymuje wodę: {{ parts|join('; ') }}.
+{% elif c.id == 'excessive_runoff' %}
+Woda szybko spływa z pola: średni spadek terenu to {{ e.get('slope_mean_pct')|num(0.1) }} %{% if e.get('slope_max_pct') is not none %}, a miejscami do {{ e.get('slope_max_pct')|num(0.1) }} %{% endif %}{% if e.get('main_outlet_area_m2') is not none and e.get('main_outlet_area_m2') >= 10000 %}; głównym wylotem odpływa woda z ok. {{ (e.get('main_outlet_area_m2') / 10000)|num(0.1) }} ha{% endif %}{% if e.get('nearest_retention_element_m') is none and hydro %}; w okolicy nie ma oczek, mokradeł ani zadrzewień, które by ją zatrzymały{% elif e.get('nearest_retention_element_m') is not none and e.get('nearest_retention_element_m') > 500 %}; najbliższe oczko, mokradło lub zadrzewienie jest dopiero ok. {{ e.get('nearest_retention_element_m')|num(10) }} m dalej{% endif %}.
+{% elif c.id == 'crop_sensitivity' %}
+Uprawa jest wrażliwa na brak wody w tym okresie: {% if c.context.get('critical_phase') and current.level != 'none' %}w dniu analizy uprawa ({{ crop }}) jest w fazie „{{ c.context.critical_phase }}”, w której brak wody najbardziej obniża plon{% if critical_risk_months %}, a {% endif %}{% endif %}{% if critical_risk_months %}w ostatnich latach wody często brakowało w miesiącach, gdy uprawa jej najbardziej potrzebuje ({{ critical_risk_months|months_pl }}){% endif %}.
+{% endif %}
+
+{% endfor %}
+{% if clear %}
+Nie stwierdzono: {{ clear|map(attribute='id')|map('cause_title')|list|join_pl|lower }}.
+{% endif %}
+{% if unknown %}
+Nie oceniono z powodu braku danych: {{ unknown|map(attribute='id')|map('cause_title')|list|join_pl|lower }}.
+{% endif %}
+{% endif %}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ r.app }} — raport dla działki {{ r.parcel.id }} ({{ r.analysis_date|date_pl }})</title>
+<style>{{ css|safe }}</style>
+</head>
+<body>
+<span class="report-id">{{ r.id }}</span>
+<h1>{{ r.app }}: raport o wodzie na działce</h1>
+<div class="meta">
+  <span>Działka: <b>{{ r.parcel.id }}</b></span>
+  {% if r.parcel.commune %}<span>Gmina: {{ r.parcel.commune }}{% if r.parcel.county %}, pow. {{ r.parcel.county }}{% endif %}{% if r.parcel.voivodeship %}, woj. {{ r.parcel.voivodeship }}{% endif %}</span>{% endif %}
+  <span>Powierzchnia: {{ r.parcel.area_ha|num(0.01) }} ha</span>
+  <span>Uprawa: {{ r.crop.name_pl }}</span>
+  <span>Data analizy: <b>{{ r.analysis_date|date_pl }}</b></span>
+  <span>Raport utworzono: {{ r.created_at|date_pl }}</span>
+</div>
+
+<div class="headline level-{{ r.headline.level }}">
+  <div class="label">{{ r.headline.label_pl }}</div>
+  <div>{{ r.headline.sentence_pl }}</div>
+  <div class="confidence">{{ r.headline.confidence_pl }}</div>
+</div>
+
+{% for s in r.sections %}
+<section class="section-{{ s.id }}{% if s.id == 'sources' %} sources{% elif s.id == 'limitations' %} limits{% endif %}">
+  <h2>{{ s.number }}. {{ s.title_pl }}</h2>
+  {% for p in s.paragraphs_pl %}<p{% if p in r.missing_data_pl %} class="missing-line"{% endif %}>{{ p }}</p>{% endfor %}
+
+  {% if s.id == 'vulnerability' and r.months %}
+  <table>
+    <thead><tr><th>Miesiąc</th><th>Lata z niedoborem wody</th><th>Częstość</th><th>Uwagi</th></tr></thead>
+    <tbody>
+    {% for m in r.months %}
+      <tr class="{% if m.risk %}risk{% endif %}">
+        <td class="{% if m.critical %}critical{% endif %}">{{ m.month_pl }}</td>
+        <td class="num">{{ m.deficit_years }} z {{ m.years_with_data }}</td>
+        <td class="num">{% if m.frequency_pct is not none %}{{ m.frequency_pct|num }} %{% else %}brak danych{% endif %}</td>
+        <td>{% if m.critical %}okres, gdy uprawa najbardziej potrzebuje wody{% endif %}{% if m.risk and m.critical %}; {% endif %}{% if m.risk %}częsty niedobór{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if s.id == 'retention' and (r.map.features or s.recommendation_numbers) %}
+  <div class="map">
+    {{ map_svg|safe }}
+    <div class="legend">
+      <div><span style="background:#ffffff;border:1.4pt solid #000"></span>Granica działki</div>
+      {% for kind, text in r.map.legend_pl.items() %}<div><span style="background:{{ legend_colors[kind] }}"></span>{{ text }}</div>{% endfor %}
+      <div><span style="background:#fff;border-radius:50%"></span>Numer zalecenia</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% for n in s.recommendation_numbers %}
+  {% set rec = recs[n] %}
+  <div class="rec {{ rec.category.value }}">
+    <h3>{{ rec.number }}. {{ rec.title_pl }}</h3>
+    {% if rec.category.value != 'irrigation' %}<p>{{ rec.text_pl }}</p>{% endif %}
+    <ul class="why">
+      {% for e in rec.evidence[:max_evidence] %}<li>{{ e.label_pl }}: <b>{{ e.value_pl }}</b>{% if e.period %} ({{ e.period.start|date_pl }}{% if e.period.end != e.period.start %} – {{ e.period.end|date_pl }}{% endif %}){% endif %}; źródło: {{ e.source|source_short }}; pewność {{ confidence_pl[e.uncertainty.level.value] }}</li>{% endfor %}
+      {% if rec.evidence|length > max_evidence %}<li>… i {{ rec.evidence|length - max_evidence }} {{ (rec.evidence|length - max_evidence)|plural('inna wartość', 'inne wartości', 'innych wartości') }} w raporcie online.</li>{% endif %}
+    </ul>
+  </div>
+  {% endfor %}
+
+  {% if s.details_pl %}
+  <div class="details"><span class="t">Szczegóły dla zainteresowanych.</span> {% for d in s.details_pl %}{{ d }} {% endfor %}</div>
+  {% endif %}
+</section>
+{% endfor %}
+
+<p class="small">Raport wygenerowała aplikacja {{ r.app }} {{ r.version }} (zespół GeoSatel, HackNation 2026) wyłącznie z publicznych danych, bez modeli AI. Wynik jest obliczany na żywo dla tej działki i daty. Link do raportu: /raport/{{ r.id }}</p>
+</body>
+</html>

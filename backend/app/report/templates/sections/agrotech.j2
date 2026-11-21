@@ -1,0 +1,12 @@
+{#- Section 6: field practices (after retention). -#}
+{% if not complete %}
+Bez pełnej oceny sytuacji wodnej nie podajemy zaleceń dotyczących zabiegów na polu.
+{% elif recs_agrotech %}
+Zabiegi na polu, które pomogą glebie zatrzymać więcej wody: {{ recs_agrotech|length }} {% if recs_agrotech|length == 1 %}zalecenie{% elif recs_agrotech|length < 5 %}zalecenia{% else %}zaleceń{% endif %} ({{ recs_agrotech|length|plural('punkt', 'punkty', 'punkty') }} {{ recs_agrotech|map(attribute='number')|map('string')|list|join_pl }}).
+{% else %}
+Dane dla tej działki nie wskazują potrzeby zmiany zabiegów na polu.
+{% endif %}
+{% if complete and soil is none %}
+
+Nie mamy danych o glebie, więc zalecenia dotyczące próchnicy i uprawy gleby nie były sprawdzane.
+{% endif %}

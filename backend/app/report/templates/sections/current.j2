@@ -1,0 +1,102 @@
+{#- Section 2: water situation on analysis_date. -#}
+{% if not complete or not current %}
+{{ incomplete_reason }}
+{% else %}
+{% set c = current %}
+{% if not c.in_vegetation %}
+Dzień analizy ({{ day|date_pl }}) wypada poza okresem wegetacji ({{ season_start|day_month_pl }} – {{ season_end|day_month_pl }}). Oceniamy więc, jak gleba odbudowuje zapas wody od jesieni, oraz jak przebiegł ostatni sezon.
+{% elif not c.crop_on_field %}
+W dniu analizy ({{ day|date_pl }}) na polu nie rośnie jeszcze uprawa ({{ crop }}) albo jest już po zbiorze, więc oceniamy przede wszystkim opady i parowanie wody.
+{% endif %}
+
+{% set avail = v.get('root_zone_available_mm') %}
+{% if c.root_zone and avail is not none %}
+W dniu analizy w strefie korzeni (ok. {{ root_depth_m|num(0.1) }} m) zostało ok. {{ avail|num }} mm wody dostępnej dla roślin z {{ v.get('taw_mm')|num }} mm, które gleba mieści po pełnym nasyceniu.
+{% set dr = v.get('root_zone_depletion_mm') %}
+{% set raw = v.get('raw_mm') %}
+{% if dr is not none and raw is not none %}
+{% if dr > raw %}
+Rośliny odczuwają już brak wody — zużyły więcej niż zapas, który pobierają bez wysiłku (ok. {{ raw|num }} mm).
+{% else %}
+Rośliny mają jeszcze wodę, którą pobierają bez wysiłku — brak wody zacznie się, gdy z gleby ubędzie kolejne ok. {{ (raw - dr)|num }} mm.
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% set p30 = v.get('precip_30d_mm') %}
+{% set p90 = v.get('precip_90d_mm') %}
+{% if p30 is not none %}
+W ostatnich 30 dniach spadło {{ p30|num }} mm deszczu — {{ v.get('precip_30d_pct')|wetness_pl }}{% if typical_p30 is not none %} (zwykle w tym okresie ok. {{ typical_p30|num }} mm){% endif %}.
+{% endif %}
+{% if p90 is not none %}
+W ostatnich 90 dniach spadło {{ p90|num }} mm — {{ v.get('precip_90d_pct')|wetness_pl }}{% if typical_p90 is not none %} (zwykle ok. {{ typical_p90|num }} mm){% endif %}.
+{% endif %}
+
+{% set k60 = v.get('kbw_60d_mm') %}
+{% if k60 is not none %}
+{% if k60 < 0 %}
+Przez ostatnie 60 dni z pola wyparowało o ok. {{ k60|abs|num }} mm więcej wody, niż spadło deszczu
+{% else %}
+Przez ostatnie 60 dni spadło o ok. {{ k60|num }} mm więcej deszczu, niż wyparowało z pola
+{% endif %}
+— {{ v.get('kbw_60d_pct')|balance_pl }}.
+{% endif %}
+
+{% if not c.in_vegetation %}
+{% set r = v.get('recharge_kbw_mm') %}
+{% if r is not none and c.recharge_start %}
+Od {{ c.recharge_start|date_pl }} {% if r >= 0 %}spadło o {{ r|num }} mm więcej deszczu, niż wyparowało{% else %}wyparowało o {{ r|abs|num }} mm więcej wody, niż spadło deszczu{% endif %} — {{ v.get('recharge_kbw_pct')|balance_pl }}.
+{% endif %}
+{% set ls = c.last_season %}
+{% if ls %}
+W ostatnim sezonie ({{ ls.year }}) uprawie brakowało wody przez {% if ls.stress_days is not none %}{{ ls.stress_days|days_pl }}{% else %}nieznaną liczbę dni{% endif %}{% if ls.stress_pct is not none %}{% if ls.stress_pct >= 70 %}, czyli dłużej niż w większości poprzednich lat{% elif ls.stress_pct <= 30 %}, czyli krócej niż w większości poprzednich lat{% else %}, podobnie jak w większości poprzednich lat{% endif %}{% endif %}{% if ls.deficit_months %}; najtrudniejsze miesiące: {{ ls.deficit_months|months_pl }}{% endif %}.
+{% elif soil is none %}
+Ostatniego sezonu nie oceniamy, bo bez danych o glebie nie da się policzyć zapasu wody w glebie.
+{% endif %}
+{% if winter_crop and c.crop_on_field %}
+Uprawa ozima ({{ crop }}) jest na polu — dobry zapas wody w glebie przed wiosną jest dla niej ważny.
+{% endif %}
+{% endif %}
+
+{% if iung %}
+{% set kp = v.get('kbw_iung_period_mm') %}
+{% if kp is not none %}
+{% if kp <= iung.critical_mm %}
+Bilans opadów i parowania w okresie do {{ iung.period_end|date_pl }} jest poniżej progu suszy rolniczej IUNG-PIB dla tej uprawy i gleby — to oznacza suszę rolniczą.
+{% else %}
+Bilans opadów i parowania w okresie do {{ iung.period_end|date_pl }} jest powyżej progu suszy rolniczej IUNG-PIB dla tej uprawy i gleby.
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% set npct = c.sat.get('ndvi_pct') %}
+{% set low_ndvi = npct is not none and npct <= 25 %}
+{% if c.satellite == 'agrees' %}
+Zdjęcia satelitarne potwierdzają tę ocenę: kondycja roślin na działce jest {% if low_ndvi %}słabsza niż zwykle{% else %}typowa{% endif %} w porównaniu z tym samym terminem w poprzednich latach.
+{% elif c.satellite == 'disagrees' %}
+Zdjęcia satelitarne nie potwierdzają tej oceny: kondycja roślin jest {% if low_ndvi %}słabsza niż zwykle{% else %}typowa{% endif %} w porównaniu z tym samym terminem w poprzednich latach. Dlatego pewność wyniku jest niższa — może to wynikać z innej uprawy w poprzednich latach.
+{% elif c.satellite == 'not_applicable' %}
+Zdjęć satelitarnych nie używamy w tym terminie do oceny — rośliny są jeszcze małe, pole jest puste albo brakuje zdjęć z poprzednich lat do porównania.
+{% else %}
+Nie ma aktualnych bezchmurnych zdjęć satelitarnych działki, więc kondycji roślin nie sprawdzamy.
+{% endif %}
+
+{% if landcover and not landcover.looks_agricultural %}
+Uwaga: według mapy użytkowania terenu ({{ landcover.map_year }}) działka nie wygląda na pole ani łąkę (pola {{ landcover.cropland_pct|num }} %, łąki {{ landcover.grassland_pct|num }} %, drzewa {{ landcover.trees_pct|num }} %, zabudowa {{ landcover.built_up_pct|num }} %). Sprawdź, czy wybrano właściwą działkę.
+{% endif %}
+
+Pewność oceny stanu bieżącego: {{ current_confidence_level_pl }}. {{ current_confidence }}
+
+== details ==
+Poziom niedoboru wyznaczono z: {% for b in c.basis %}{{ {'root_zone': 'bilansu wody w strefie korzeni wg FAO-56 (współczynnik stresu Ks)', 'kbw_percentile': 'percentyla 60-dniowego klimatycznego bilansu wodnego KBW = P − ET0 w 10-letnim rozkładzie', 'precip_percentile': 'percentyla opadu z 30 dni w 10-letnim rozkładzie', 'recharge_percentile': 'percentyla KBW od ' ~ ((c.recharge_start|date_pl) if c.recharge_start else '1 października') ~ ' w 10-letnim rozkładzie', 'iung': 'progu krytycznego KBW wg IUNG-PIB'}[b] }}{% if not loop.last %}; {% endif %}{% endfor %}.
+
+{% if v.get('ks') is not none %}
+Współczynnik stresu wodnego Ks = {{ v.get('ks')|num(0.01) }}; ubytek wody Dr = {{ v.get('root_zone_depletion_mm')|num }} mm przy TAW = {{ v.get('taw_mm')|num }} mm i RAW = {{ v.get('raw_mm')|num }} mm.
+{% endif %}
+{% if v.get('kbw_60d_mm') is not none %}
+KBW z 60 dni = {{ v.get('kbw_60d_mm')|num }} mm (percentyl {{ v.get('kbw_60d_pct')|num }}); opad z 30 dni: percentyl {{ v.get('precip_30d_pct')|num }}; z 90 dni: percentyl {{ v.get('precip_90d_pct')|num }}. Percentyl empiryczny z 10 poprzednich lat (10 lat to za mało na klasyczny SPI).
+{% endif %}
+{% if c.sat.get('ndvi_current') is not none %}
+NDVI teraz: {{ c.sat.get('ndvi_current')|num(0.01) }}, mediana z {{ c.sat.get('ndvi_history_years')|num }} lat: {{ c.sat.get('ndvi_history_median')|num(0.01) }} (percentyl {{ c.sat.get('ndvi_pct')|num }}). Satelita zmienia tylko pewność wyniku, nigdy sam poziom niedoboru.
+{% endif %}
+{% endif %}

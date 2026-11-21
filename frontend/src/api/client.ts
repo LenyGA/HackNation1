@@ -39,4 +39,5 @@ export const api = {
   analysis: (id: string) => request<AnalysisStatus>(`/analyses/${encodeURIComponent(id)}`),
   report: (id: string) => request<Report>(`/reports/${encodeURIComponent(id)}`),
   reportPdfUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}.pdf`,
+  reportPrintUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}.html`,
 }

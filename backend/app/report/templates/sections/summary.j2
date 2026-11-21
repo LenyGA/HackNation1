@@ -1,0 +1,27 @@
+{#- Section 1: summary in three sentences (state now · 10-year vulnerability · what to do first). -#}
+{% if not complete %}
+{{ incomplete_reason }}
+
+Bez oceny sytuacji wodnej nie podajemy zaleceń, bo każde zalecenie musi wynikać z danych dla tej działki.
+
+Sprawdź sekcję „Ograniczenia analizy i braki danych” — możesz spróbować ponownie za kilka minut lub wybrać inną datę.
+{% else %}
+{{ day|date_pl }}, działka {{ parcel.number or parcel.id }}{% if parcel.commune %}, gmina {{ parcel.commune }}{% endif %}: {{ headline.sentence_pl[:1]|lower }}{{ headline.sentence_pl[1:] }}
+
+{% if vuln and vuln.level %}
+{% if deficit_years is not none and years_with_data %}
+Wody brakowało w {{ deficit_years }} z {{ years_with_data }} poprzednich sezonów, a ogólna podatność działki na suszę (gleba, teren, otoczenie i historia) jest {{ vuln.level_pl }}.
+{% else %}
+Podatność działki na suszę jest {{ vuln.level_pl }} (ocena z gleby, ukształtowania terenu i otoczenia).
+{% endif %}
+{% else %}
+Podatności działki na suszę w ostatnich 10 latach nie oceniamy, bo brakuje danych o zbyt wielu czynnikach.
+{% endif %}
+
+{% if recs %}
+{% set first = recs[0] %}
+Najważniejsze działanie: {{ first.title_pl[:1]|lower }}{{ first.title_pl[1:] }} (punkt {{ first.number }}){% if recs|length > 1 %} — w sumie {{ recs|length }} {{ recs|length|plural('zalecenie', 'zalecenia', 'zaleceń') }} poniżej, od zatrzymywania wody{% if recs_irrigation %} po nawadnianie{% else %} po zabiegi na polu{% endif %}{% endif %}.
+{% else %}
+Dane dla tej działki nie wskazują dziś potrzeby dodatkowych działań — warto powtórzyć analizę w okresie wzrostu roślin.
+{% endif %}
+{% endif %}

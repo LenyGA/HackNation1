@@ -1,0 +1,21 @@
+{#- Section 9: limitations and explicit missing data (CLAUDE.md rule 4). -#}
+{% if missing_data %}
+Braki danych w tej analizie:
+
+{% for line in missing_data %}
+{{ line }}
+
+{% endfor %}
+{% else %}
+Wszystkie źródła danych odpowiedziały w pełni.
+
+{% endif %}
+Pewność całej oceny: {{ confidence_pl }}. {{ confidence.reason_pl }}
+
+Ograniczenia analizy:
+
+{% for line in limitations %}
+{{ line }}
+
+{% endfor %}
+Analiza nie uwzględnia: dostępu do wody i pozwoleń wodnoprawnych, stanu drenażu i melioracji, rzeczywistych terminów siewu i odmiany na tym polu, zabiegów wykonanych w poprzednich latach ani lokalnych różnic w glebie mniejszych niż kilkaset metrów. Raport nie zastępuje oględzin pola ani porady doradcy rolniczego.

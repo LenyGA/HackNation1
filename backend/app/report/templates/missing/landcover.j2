@@ -1,0 +1,7 @@
+{#- Missing / degraded data message for the source "landcover" (CLAUDE.md rule 4). -#}
+{{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
+{% if status == 'missing' %}
+Bez mapy użytkowania terenu nie sprawdzamy, czy działka jest polem lub łąką.
+{% elif not message %}
+Mapa użytkowania terenu pokrywa działkę tylko częściowo.
+{% endif %}

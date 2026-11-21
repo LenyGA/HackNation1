@@ -1,6 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query, status
-from fastapi.responses import Response
+import asyncio
+import re
 
+from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import HTMLResponse, Response
+from pydantic import ValidationError
+
+from app.api import jobs
 from app.api.schemas import (
     AnalysisCreate,
     AnalysisCreated,
@@ -12,12 +17,18 @@ from app.api.schemas import (
     ReportOut,
 )
 from app.core.config import APP_TITLE, APP_VERSION
-from app.crops.catalog import load_crops
+from app.core.models import AnalysisRequest
+from app.crops.catalog import get_crop, load_crops
+from app.report.models import Report
+from app.report.pdf import render_html, render_pdf
+from app.report.storage import load_report
 from app.sources import uldk
 
 router = APIRouter(prefix="/api")
 
-NOT_READY = "Ta funkcja jest w budowie."
+MSG_ANALYSIS_NOT_FOUND = "Nie ma takiej analizy albo wygasła. Uruchom analizę ponownie."
+MSG_BUSY = "Serwer liczy teraz wiele analiz. Spróbuj ponownie za minutę."
+MSG_REPORT_NOT_FOUND = "Nie znaleziono raportu. Sprawdź link."
 
 
 @router.get("/health", response_model=Health)
@@ -56,21 +67,78 @@ async def parcel(
     return ParcelOut.model_validate(found.model_dump())
 
 
-@router.post("/analyses", response_model=AnalysisCreated, status_code=status.HTTP_202_ACCEPTED)
+def _first_error_pl(exc: ValidationError) -> str:
+    msg = str(exc.errors()[0].get("msg", "Nieprawidłowe dane."))
+    return msg.removeprefix("Value error, ")
+
+
+@router.post(
+    "/analyses",
+    response_model=AnalysisCreated,
+    status_code=status.HTTP_202_ACCEPTED,
+    responses={400: {"model": ErrorOut}},
+)
 async def create_analysis(body: AnalysisCreate) -> AnalysisCreated:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, NOT_READY)
+    try:
+        request = AnalysisRequest.model_validate(body.model_dump())
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, _first_error_pl(exc)) from exc
+    crop = get_crop(request.crop_id)
+    if crop is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Wybierz uprawę z listy.")
+    try:
+        job = jobs.start(request, crop)
+    except jobs.QueueFull as exc:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, MSG_BUSY) from exc
+    return AnalysisCreated(id=job.id)
 
 
 @router.get("/analyses/{analysis_id}", response_model=AnalysisStatus, responses={404: {"model": ErrorOut}})
 async def analysis_status(analysis_id: str) -> AnalysisStatus:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, NOT_READY)
+    job = jobs.get_job(analysis_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, MSG_ANALYSIS_NOT_FOUND)
+    return job.status()
 
 
-@router.get("/reports/{report_id}.pdf", response_class=Response, responses={404: {"model": ErrorOut}})
+async def _report_or_404(report_id: str) -> Report:
+    report = await load_report(report_id)
+    if report is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, MSG_REPORT_NOT_FOUND)
+    return report
+
+
+def _pdf_filename(report: Report) -> str:
+    safe = re.sub(r"[^0-9A-Za-z_.-]+", "-", report.parcel.id)
+    return f"raport-{safe}-{report.analysis_date.isoformat()}.pdf"
+
+
+@router.get(
+    "/reports/{report_id}.pdf",
+    response_class=Response,
+    responses={404: {"model": ErrorOut}, 200: {"content": {"application/pdf": {}}}},
+)
 async def report_pdf(report_id: str) -> Response:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, NOT_READY)
+    report = await _report_or_404(report_id)
+    pdf = await render_pdf(report)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{_pdf_filename(report)}"'},
+    )
+
+
+@router.get(
+    "/reports/{report_id}.html",
+    response_class=HTMLResponse,
+    responses={404: {"model": ErrorOut}},
+)
+async def report_print(report_id: str) -> HTMLResponse:
+    """Print view: the same HTML and stylesheet as the PDF, for printing from the browser."""
+    report = await _report_or_404(report_id)
+    return HTMLResponse(await asyncio.to_thread(render_html, report))
 
 
 @router.get("/reports/{report_id}", response_model=ReportOut, responses={404: {"model": ErrorOut}})
-async def report(report_id: str) -> ReportOut:
-    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, NOT_READY)
+async def report(report_id: str) -> Report:
+    return await _report_or_404(report_id)

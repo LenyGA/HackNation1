@@ -38,7 +38,7 @@ CONFIDENCE_REASONS: dict[str, str] = {
     "satellite_disagrees": "zdjęcia satelitarne nie potwierdzają oceny",
     "root_zone_unavailable": "zapasu wody w glebie nie udało się policzyć na dzień analizy",
     "few_years": "za mało lat z danymi do porównania z historią",
-    "iung_missing": "nie użyto progów IUNG (brak opublikowanej tabeli w aplikacji)",
+    "iung_missing": "nie użyto oficjalnych progów suszy rolniczej IUNG-PIB dla tej uprawy i gleby",
     "components_unknown": "część czynników nie została oceniona z powodu braku danych",
     "base": "ocena oparta na danych pogodowych, glebowych i 10-letniej historii",
 }

@@ -1,0 +1,33 @@
+{#- One sentence under the coloured status indicator. Only rendered for a complete assessment. -#}
+{% set c = current %}
+{% set avail = v.get('root_zone_available_mm') %}
+{% if c.in_vegetation and c.root_zone and avail is not none %}
+{% if c.level == 'none' %}
+Uprawie ({{ crop }}) nie brakuje wody — w glebie jest ok. {{ avail|num }} mm wody dostępnej dla roślin.
+{% elif c.level == 'light' %}
+Uprawie ({{ crop }}) zaczyna brakować wody — w glebie zostało ok. {{ avail|num }} mm wody dostępnej dla roślin.
+{% elif c.level == 'moderate' %}
+Uprawie ({{ crop }}) brakuje wody — w glebie zostało tylko ok. {{ avail|num }} mm wody dostępnej dla roślin.
+{% else %}
+Uprawie ({{ crop }}) bardzo brakuje wody — w glebie zostało zaledwie ok. {{ avail|num }} mm wody dostępnej dla roślin.
+{% endif %}
+{% elif c.in_vegetation %}
+{% set p30 = v.get('precip_30d_mm') %}
+{% if c.level == 'none' %}Nie widać niedoboru wody{% elif c.level == 'light' %}Widać lekki niedobór wody{% elif c.level == 'moderate' %}Jest umiarkowany niedobór wody{% else %}Jest silny niedobór wody{% endif %}
+{% if p30 is not none %}
+ — w ostatnich 30 dniach spadło {{ p30|num }} mm deszczu, {{ v.get('precip_30d_pct')|wetness_pl }}.
+{% else %}
+.
+{% endif %}
+{% elif c.root_zone and avail is not none %}
+Poza sezonem wegetacji: uprawa ({{ crop }}) jest na polu, a w glebie {% if c.level == 'none' %}jest ok. {{ avail|num }} mm wody dostępnej dla roślin, więc nie brakuje jej wody{% elif c.level == 'light' %}zostało ok. {{ avail|num }} mm wody dostępnej dla roślin — zaczyna jej brakować wody{% else %}zostało tylko ok. {{ avail|num }} mm wody dostępnej dla roślin — brakuje jej wody{% endif %}.
+{% else %}
+{% set r = v.get('recharge_kbw_mm') %}
+Poza sezonem wegetacji:
+{% if c.level == 'none' %}gleba odbudowuje zapas wody normalnie{% elif c.level == 'light' %}gleba odbudowuje zapas wody nieco wolniej niż zwykle{% elif c.level == 'moderate' %}gleba odbudowuje zapas wody wyraźnie wolniej niż zwykle{% else %}gleba prawie nie odbudowuje zapasu wody{% endif %}
+{% if r is not none and c.recharge_start %}
+ (od {{ c.recharge_start|date_pl }} {% if r >= 0 %}spadło o {{ r|num }} mm więcej deszczu, niż wyparowało{% else %}wyparowało o {{ r|abs|num }} mm więcej wody, niż spadło deszczu{% endif %}).
+{% else %}
+.
+{% endif %}
+{% endif %}

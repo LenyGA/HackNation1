@@ -1,0 +1,10 @@
+{#- Section 7: irrigation — the last resort; the text itself comes from recommendations/irrigation.py. -#}
+{{ irrigation.text_pl }}
+{% for caveat in irrigation.caveats_pl %}
+
+{{ caveat }}
+{% endfor %}
+{% if irrigation.projection %}
+== details ==
+Projekcja ubytku wody w strefie korzeni (Dr) z prognozy opadu i ET0: {% for d in irrigation.projection %}{{ d.day|day_month_pl }}: {{ d.depletion_mm|num }} mm{% if not loop.last %}; {% endif %}{% endfor %}.
+{% endif %}

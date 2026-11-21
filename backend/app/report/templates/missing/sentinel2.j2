@@ -1,0 +1,7 @@
+{#- Missing / degraded data message for the source "sentinel2" (CLAUDE.md rule 4). -#}
+{{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
+{% if status == 'missing' %}
+Bez zdjęć satelitarnych nie sprawdzamy kondycji roślin; ocena opiera się na pogodzie i glebie.
+{% elif not message %}
+Zdjęć satelitarnych jest mało albo są częściowo zachmurzone, więc kondycję roślin sprawdzamy z mniejszą pewnością.
+{% endif %}

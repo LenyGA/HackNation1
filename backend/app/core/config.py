@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     source_timeout_s: float = 12.0
     # GUGiK NMT WCS was too slow from the event network (> 30 s); enable only after re-checking from the VPS.
     dem_try_nmt: bool = False
+    # Analyses running at the same time (each fans out to all sources); further ones wait in the queue.
+    max_concurrent_analyses: int = 4
 
 
 def today_local() -> date:

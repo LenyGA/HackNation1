@@ -1,0 +1,7 @@
+{#- Missing / degraded data message for the source "dem" (CLAUDE.md rule 4). -#}
+{{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
+{% if status == 'missing' %}
+Bez modelu wysokości terenu nie oceniamy spadków, spływu wody ani miejsc, w których woda się zbiera.
+{% elif not message %}
+Model wysokości terenu jest mniej dokładny (oczka 30 m), więc drobne zagłębienia i rowy mogą być niewidoczne.
+{% endif %}

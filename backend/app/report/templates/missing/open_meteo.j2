@@ -1,0 +1,7 @@
+{#- Missing / degraded data message for the source "open_meteo" (CLAUDE.md rule 4). -#}
+{{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
+{% if status == 'missing' %}
+Bez danych pogodowych nie da się ocenić sytuacji wodnej działki — to dane niezbędne.
+{% elif not message %}
+Dane pogodowe pochodzą ze źródła zapasowego albo mają luki, więc wynik jest mniej pewny.
+{% endif %}

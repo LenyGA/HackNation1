@@ -1,0 +1,7 @@
+{#- Missing / degraded data message for the source "hydro" (CLAUDE.md rule 4). -#}
+{{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
+{% if status == 'missing' %}
+Bez mapy rowów, cieków, oczek i zadrzewień nie sprawdzamy zaleceń, które ich dotyczą.
+{% elif not message %}
+Mapa rowów, oczek i zadrzewień jest niepełna.
+{% endif %}

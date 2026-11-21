@@ -200,14 +200,14 @@ mówi, że nawadnianie nie dotyczy.
 
 ### M6. Raport — `backend/app/report/` (B)
 
-- [ ] **M6.1 Składanie raportu i zapis (faza 1).** `report/builder.py` buduje `Report` (JSON) z sekcjami w obowiązkowej kolejności:
+- [x] **M6.1 Składanie raportu i zapis (faza 1).** `report/builder.py` buduje `Report` (JSON) z sekcjami w obowiązkowej kolejności:
   1) podsumowanie w 3 zdaniach, 2) sytuacja wodna teraz, 3) podatność w ostatnich 10 latach, 4) przyczyny, 5) zatrzymywanie wody,
   6) zabiegi na polu, 7) nawadnianie, 8) źródła danych z datami, 9) ograniczenia analizy i braki danych.
   Zapis do SQLite pod losowym, nieodgadnialnym ID. `GET /api/reports/{id}`.
-- [ ] **M6.2 Szablony tekstów (faza 3).** `report/templates/*.j2`: zdania po polsku prostym językiem, wypełniane wyliczonymi wartościami.
+- [x] **M6.2 Szablony tekstów (faza 3).** `report/templates/*.j2`: zdania po polsku prostym językiem, wypełniane wyliczonymi wartościami.
   Bez słów „NDVI”, „KBW”, „percentyl” w treści głównej (tylko w części „Szczegóły dla zainteresowanych”). Zaokrąglenia wg `CLAUDE.md`.
   Osobne szablony komunikatów braku danych dla każdego źródła.
-- [ ] **M6.3 PDF (faza 3).** `report/pdf.py`: szablon HTML do druku + WeasyPrint, ze statyczną mapką działki (obrys + miejsca retencji
+- [x] **M6.3 PDF (faza 3).** `report/pdf.py`: szablon HTML do druku + WeasyPrint, ze statyczną mapką działki (obrys + miejsca retencji
   narysowane jako SVG, bez zewnętrznych kafli). `GET /api/reports/{id}.pdf`. Ten sam arkusz stylów obsługuje druk z przeglądarki.
 
 **Gotowe, gdy:** raport ma wszystkie 9 sekcji także wtedy, gdy 2 źródła mają status `missing`; PDF mieści się na 2–4 stronach A4
