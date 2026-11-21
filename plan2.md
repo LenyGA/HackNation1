@@ -53,6 +53,8 @@ L5.1a przed L5.1b–c. K0.3 przed każdą bramką W. Poza tym moduły są niezal
 
 **Bramka W po każdym module (W1…W6):**
 1. `pytest -m e2e` na działkach referencyjnych (K0.3) — raport w < 30 s, komplet sekcji, jawne braki danych.
+   Gdy lokalny adres ma blokadę (ULDK, dzienny limit Open-Meteo), po wdrożeniu: `deploy/e2e-vps.sh root@129.121.162.156 -k 2019`
+   (6 przypadków historycznych; każdy przypadek zużywa limit Open-Meteo adresu produkcyjnego, więc nie tuż przed demo).
 2. `deploy/deploy.sh root@129.121.162.156` (wdraża tylko zacommitowany `main`).
 3. Na publicznym adresie: jedna działka dla daty bieżącej i dla **15.07.2019**, obejrzeć raport i pobrać PDF. Z telefonu choć raz na moduł.
 4. Porównać poziom niedoboru z wynikami bazowymi z K0.3. Zmienić może się tylko to, co moduł miał zmienić (L1, L3.2, L4.2, L5 — nic).
@@ -61,19 +63,23 @@ L5.1a przed L5.1b–c. K0.3 przed każdą bramką W. Poza tym moduły są niezal
 
 ### K0. Start (0,75 h)
 
-- [ ] **K0.1 Cofnięcie zmian w katalogu.** `git checkout -- backend/app/crops/catalog.py backend/app/crops/catalog.yaml`.
+- [x] **K0.1 Cofnięcie zmian w katalogu.** `git checkout -- backend/app/crops/catalog.py backend/app/crops/catalog.yaml`.
   **Gotowe, gdy:** `git status` pokazuje czyste drzewo (poza nowymi plikami planu), `pytest` zielony.
-- [ ] **K0.2 Wdrożenie bazowe (M8.1).** Sprawdzić, czy `https://129.121.162.156.sslip.io` odpowiada. Jeśli nie: `deploy/setup-vps.sh`
+- [x] **K0.2 Wdrożenie bazowe (M8.1).** Sprawdzić, czy `https://129.121.162.156.sslip.io` odpowiada. Jeśli nie: `deploy/setup-vps.sh`
   (Docker na VPS), potem `deploy/deploy.sh root@129.121.162.156`. Zapisać w `README.md` publiczny adres.
   **Gotowe, gdy:** raport dla dowolnej działki powstaje pod publicznym adresem z innej sieci; M8.1 odhaczone w `plan.md`.
-- [ ] **K0.3 Działki referencyjne i E2E (M9.1–M9.2).** `backend/tests/e2e/parcels.yaml`: 6 działek znalezionych przez ULDK (`GetParcelByXY`
+- [x] **K0.3 Działki referencyjne i E2E (M9.1–M9.2).** `backend/tests/e2e/parcels.yaml`: 6 działek znalezionych przez ULDK (`GetParcelByXY`
   w punktach na gruntach rolnych, sprawdzone na ortofotomapie):
   1. gleba lekka — Wielkopolska lub Kujawy, 2. gleba ciężka — Żuławy lub Lubelszczyzna (lessy), 3. stok — Pogórze Karpackie,
-  4. dolina rzeki z rowami — dolina Noteci lub Biebrzy, 5. okolice odkrywki Bełchatów (dla L6.2), 6. sad — rejon Grójca (dla L2).
+  4. dolina rzeki z rowami — dolina Noteci lub Biebrzy, 5. okolice odkrywki Bełchatów (dla L6.2), 6. sad — rejon Grójca (dla L2;
+  do czasu L2.1 liczony jako `spring_barley`, L2 zmienia go na `orchard_pome` i przepisuje wynik bazowy).
   Każda z uprawą i dwiema datami (bieżąca, 15.07.2019). `backend/tests/e2e/test_reports.py` (`-m e2e`): czas < 30 s, komplet sekcji,
   żadna wartość bez źródła, braki jawne. Wyniki bazowe (poziom niedoboru, lista identyfikatorów rekomendacji) zapisać do
   `backend/tests/e2e/baseline.json` jako punkt odniesienia dla bramki W.
   **Gotowe, gdy:** `pytest -m e2e` przechodzi na obecnym `main`; plik z wynikami bazowymi w repo.
+  **Wykonane 21.11.2026:** 12/12 na VPS, 13–18 s na przypadek. Pokrycie terenu sprawdzone mapą ESA WorldCover, a nie ortofotomapą.
+  W wyniku bazowym `hydro` = `missing` wszędzie (Overpass przeciążony tego wieczoru), więc gdy Overpass znów odpowiada, rekomendacje
+  nie są porównywane (ostrzeżenie `BaselineNote`). Wtedy przepisać bazę: `deploy/e2e-vps.sh root@129.121.162.156 --update -k 2019`.
 
 ### L1. Widoczne w demo (2,25 h) → lista2 L1
 

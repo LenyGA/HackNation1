@@ -4,6 +4,8 @@ Zespół **GeoSatel** · HackNation 2026 · zadanie KOWR „Zatrzymaj wodę, chr
 
 Pełne README (uruchomienie, architektura, źródła danych, licencje) powstanie w trakcie prac — patrz `plan.md`, rozdz. M10.
 
+**Działająca wersja:** https://129.121.162.156.sslip.io (VPS, wdrażana z `main` skryptem `deploy/deploy.sh`).
+
 ## Uruchomienie (Docker)
 
 Wymagany jest tylko Docker z Compose v2. Żaden klucz API nie jest potrzebny.

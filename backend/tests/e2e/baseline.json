@@ -1,0 +1,291 @@
+{
+  "heavy_soil@2019-07-15": {
+    "analysis_date": "2019-07-15",
+    "level": "none",
+    "complete": true,
+    "recommendations": [
+      "crop_residues",
+      "crop_timing_variety",
+      "depression_retention"
+    ],
+    "irrigation": "late_stage",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "ok",
+      "groundwater": "missing"
+    },
+    "elapsed_s": 13.9
+  },
+  "heavy_soil@current": {
+    "analysis_date": "2026-11-21",
+    "level": "none",
+    "complete": true,
+    "recommendations": [
+      "crop_residues",
+      "crop_timing_variety",
+      "depression_retention"
+    ],
+    "irrigation": "off_season",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "ok",
+      "groundwater": "ok"
+    },
+    "elapsed_s": 15.1
+  },
+  "light_soil@2019-07-15": {
+    "analysis_date": "2019-07-15",
+    "level": "severe",
+    "complete": true,
+    "recommendations": [
+      "contour_tillage",
+      "crop_residues",
+      "crop_timing_variety",
+      "grassed_flow_path",
+      "outlet_buffer_strip",
+      "reduced_tillage_mulch"
+    ],
+    "irrigation": "late_stage",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "degraded",
+      "groundwater": "missing"
+    },
+    "elapsed_s": 14.0
+  },
+  "light_soil@current": {
+    "analysis_date": "2026-11-21",
+    "level": "light",
+    "complete": true,
+    "recommendations": [
+      "contour_tillage",
+      "crop_residues",
+      "crop_timing_variety",
+      "grassed_flow_path",
+      "outlet_buffer_strip",
+      "reduced_tillage_mulch"
+    ],
+    "irrigation": "off_season",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "ok",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "degraded",
+      "groundwater": "degraded"
+    },
+    "elapsed_s": 17.6
+  },
+  "opencast_mine@2019-07-15": {
+    "analysis_date": "2019-07-15",
+    "level": "severe",
+    "complete": true,
+    "recommendations": [
+      "crop_residues",
+      "crop_timing_variety",
+      "depression_retention",
+      "irrigation",
+      "winter_cover_crop"
+    ],
+    "irrigation": "irrigate",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "degraded",
+      "groundwater": "missing"
+    },
+    "elapsed_s": 13.5
+  },
+  "opencast_mine@current": {
+    "analysis_date": "2026-11-21",
+    "level": "none",
+    "complete": true,
+    "recommendations": [
+      "crop_residues",
+      "crop_timing_variety",
+      "depression_retention",
+      "winter_cover_crop"
+    ],
+    "irrigation": "off_season",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "ok",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "degraded",
+      "groundwater": "degraded"
+    },
+    "elapsed_s": 14.7
+  },
+  "orchard@2019-07-15": {
+    "analysis_date": "2019-07-15",
+    "level": "severe",
+    "complete": true,
+    "recommendations": [
+      "crop_residues",
+      "crop_timing_variety",
+      "winter_cover_crop"
+    ],
+    "irrigation": "late_stage",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "degraded",
+      "flood": "degraded",
+      "groundwater": "missing"
+    },
+    "elapsed_s": 13.5
+  },
+  "orchard@current": {
+    "analysis_date": "2026-11-21",
+    "level": "none",
+    "complete": true,
+    "recommendations": [
+      "crop_residues",
+      "crop_timing_variety",
+      "winter_cover_crop"
+    ],
+    "irrigation": "off_season",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "ok",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "degraded",
+      "groundwater": "degraded"
+    },
+    "elapsed_s": 14.1
+  },
+  "river_valley@2019-07-15": {
+    "analysis_date": "2019-07-15",
+    "level": "severe",
+    "complete": true,
+    "recommendations": [
+      "grassland_cutting",
+      "irrigation"
+    ],
+    "irrigation": "irrigate",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "ok",
+      "groundwater": "missing"
+    },
+    "elapsed_s": 13.7
+  },
+  "river_valley@current": {
+    "analysis_date": "2026-11-21",
+    "level": "moderate",
+    "complete": true,
+    "recommendations": [
+      "grassland_cutting"
+    ],
+    "irrigation": "off_season",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "ok",
+      "soilgrids": "degraded",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "ok",
+      "groundwater": "ok"
+    },
+    "elapsed_s": 14.5
+  },
+  "slope@2019-07-15": {
+    "analysis_date": "2019-07-15",
+    "level": "moderate",
+    "complete": true,
+    "recommendations": [
+      "contour_tillage",
+      "crop_residues",
+      "crop_timing_variety",
+      "grassed_flow_path",
+      "irrigation",
+      "outlet_buffer_strip",
+      "winter_cover_crop"
+    ],
+    "irrigation": "irrigate",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "ok",
+      "groundwater": "missing"
+    },
+    "elapsed_s": 13.3
+  },
+  "slope@current": {
+    "analysis_date": "2026-11-21",
+    "level": "none",
+    "complete": true,
+    "recommendations": [
+      "contour_tillage",
+      "crop_residues",
+      "crop_timing_variety",
+      "grassed_flow_path",
+      "outlet_buffer_strip",
+      "winter_cover_crop"
+    ],
+    "irrigation": "off_season",
+    "sources": {
+      "uldk": "ok",
+      "open_meteo": "ok",
+      "sentinel2": "degraded",
+      "soilgrids": "ok",
+      "dem": "ok",
+      "hydro": "missing",
+      "landcover": "ok",
+      "flood": "ok",
+      "groundwater": "degraded"
+    },
+    "elapsed_s": 15.2
+  }
+}

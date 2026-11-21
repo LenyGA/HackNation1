@@ -95,11 +95,43 @@ async def test_service_failure_raises_service_error(
     assert "GUGiK" in exc_info.value.message_pl
 
 
-async def test_garbage_response_is_service_error(tmp_cache: DiskCache) -> None:
+@pytest.fixture
+def no_retry_pause(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(uldk, "RETRY_PAUSE_S", 0.0)
+
+
+async def test_garbage_response_is_service_error(tmp_cache: DiskCache, no_retry_pause: None) -> None:
     with respx.mock(assert_all_called=False) as mock:
-        mock.get(uldk.URL).mock(return_value=httpx.Response(200, text="<html>oops</html>"))
+        route = mock.get(uldk.URL).mock(return_value=httpx.Response(200, text="<html>oops</html>"))
         with pytest.raises(uldk.ParcelServiceError):
             await uldk.get_parcel_by_id("141201_1.0001.6509")
+    assert route.call_count == uldk.READ_ATTEMPTS
+
+
+@pytest.mark.parametrize(
+    "bad_body", ["", "0\n", "0\nSRID=4326;POLYGON((1 2"], ids=["empty", "no_record", "garbled"]
+)
+async def test_unreadable_answers_are_retried(
+    tmp_cache: DiskCache, no_retry_pause: None, bad_body: str
+) -> None:
+    """ULDK sometimes answers with an empty body twice in a row before a valid one (seen live, 21.11.2026)."""
+    bad = httpx.Response(200, text=bad_body)
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get(uldk.URL).mock(side_effect=[bad, bad, _ok("by_id_141201_1.0001.6509.txt")])
+        parcel = await uldk.get_parcel_by_id("141201_1.0001.6509")
+    assert parcel.id == "141201_1.0001.6509"
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get(uldk.URL).mock(side_effect=[bad, _ok("by_id_slash_302108_5.0014.88-8.txt")])
+        clicked = await uldk.get_parcel_by_xy(52.40017, 17.35004)
+    assert clicked.id == "302108_5.0014.88/8"
+
+
+async def test_not_found_is_not_retried(tmp_cache: DiskCache, no_retry_pause: None) -> None:
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.get(uldk.URL).mock(return_value=_ok("not_found.txt"))
+        with pytest.raises(uldk.ParcelNotFound):
+            await uldk.get_parcel_by_xy(52.0, 19.0)
+    assert route.call_count == 1
 
 
 async def test_second_lookup_served_from_cache(tmp_cache: DiskCache) -> None:
@@ -109,3 +141,42 @@ async def test_second_lookup_served_from_cache(tmp_cache: DiskCache) -> None:
         second = await uldk.get_parcel_by_id("141201_1.0001.6509")
     assert route.call_count == 1
     assert first.model_dump(mode="json") == second.model_dump(mode="json")
+
+
+async def test_redirect_is_not_followed(tmp_cache: DiskCache, no_retry_pause: None) -> None:
+    """A throttled ULDK answers 302 to an endpoint that streams junk; it must never be downloaded."""
+    trap = "https://integracja01.gugik.gov.pl/resp/uldk.php"
+    redirect = httpx.Response(302, headers={"Location": trap})
+    with respx.mock(assert_all_called=False) as mock:
+        trap_route = mock.get(trap).mock(return_value=httpx.Response(200, text="0\n0101"))
+        route = mock.get(uldk.URL).mock(side_effect=[redirect, _ok("by_id_141201_1.0001.6509.txt")])
+        parcel = await uldk.get_parcel_by_id("141201_1.0001.6509")
+        assert parcel.id == "141201_1.0001.6509"
+        route.mock(return_value=redirect)
+        with pytest.raises(uldk.ParcelServiceError) as exc_info:
+            await uldk.get_parcel_by_xy(52.0, 19.0)
+    assert trap_route.call_count == 0
+    assert route.call_count == 2 + uldk.READ_ATTEMPTS
+    assert exc_info.value.message_pl == uldk.MSG_UNAVAILABLE
+
+
+async def test_invalid_record_is_not_retried(tmp_cache: DiskCache, no_retry_pause: None) -> None:
+    """A complete record that is invalid (a point, not a polygon) comes back the same on every try."""
+    point = "0\nSRID=4326;POINT(17 52)|141201_1.0001.6509|mazowieckie|powiat|gmina|obręb|6509"
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.get(uldk.URL).mock(return_value=httpx.Response(200, text=point))
+        with pytest.raises(uldk.ParcelServiceError) as exc_info:
+            await uldk.get_parcel_by_id("141201_1.0001.6509")
+    assert route.call_count == 1
+    assert exc_info.value.message_pl == uldk.MSG_BAD_RESPONSE
+
+
+async def test_retries_stop_at_deadline(tmp_cache: DiskCache, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Retries end once the next pause would pass RETRY_DEADLINE_S, even with attempts left."""
+    monkeypatch.setattr(uldk, "RETRY_PAUSE_S", 0.01)
+    monkeypatch.setattr(uldk, "RETRY_DEADLINE_S", 0.025)  # room for the 1st pause (0.01), not the 2nd (0.02)
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.get(uldk.URL).mock(return_value=httpx.Response(200, text=""))
+        with pytest.raises(uldk.ParcelServiceError):
+            await uldk.get_parcel_by_xy(52.0, 19.0)
+    assert route.call_count == 2

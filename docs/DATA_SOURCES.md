@@ -62,9 +62,19 @@ Każde źródło to moduł w `backend/app/sources/` z funkcją `fetch(parcel, an
 | `hydro.py` | OSM Overpass (2 serwery równolegle, pierwsza odpowiedź) | rowy, cieki, zbiorniki, mokradła, lasy w 1 km od krawędzi działki; odległości i długość rowów ≤ 30 m od granicy | 12 s | 1 dzień | „brak w OSM” = `ok` z komunikatem; brak odpowiedzi = `missing` |
 | `landcover.py` | ESA WorldCover 2021 v200 (Planetary Computer) | udziały klas pokrycia na działce (piksele 10 m) | 10 s | bez wygasania | < 50% pola i łąki → `degraded` z ostrzeżeniem |
 
+**ULDK pod obciążeniem (obserwacja 21.11.2026):** usługa czasem zwraca pustą odpowiedź, a gdy ogranicza klienta, odpowiada `302` na
+`integracja01.gugik.gov.pl/resp/uldk.php` — adres bez parametrów zapytania, który wysyła gigabajty śmieci. `uldk.py` nie podąża za
+przekierowaniami i ponawia pustą/nieczytelną odpowiedź lub przekierowanie do 4 razy (łącznie ok. 3 s przerw); potem zwraca polski komunikat
+„chwilowo nie odpowiada”. Ograniczenie trwa kilka–kilkanaście minut po serii kilkudziesięciu zapytań z jednego adresu.
+
 Uwagi:
-- Open-Meteo archiwum odpowiada 429 z sieci wydarzenia (wspólny IP), więc lokalnie działa zapas NASA POWER. Na VPS sprawdzić ponownie.
-- Overpass nie odpowiadał z sieci wydarzenia (oba serwery) — moduł zwraca wtedy jawne `missing`. Na VPS sprawdzić ponownie.
+- Open-Meteo archiwum odpowiada 429 z sieci wydarzenia (wspólny IP), więc lokalnie działa zapas NASA POWER. Z VPS działa (sprawdzone
+  21.11.2026). Darmowy limit jest dzienny na adres IP, a zapytanie o 11 lat danych dobowych liczy się jak wiele zwykłych zapytań: po kilkunastu
+  analizach na zimno z jednego adresu archiwum odpowiada `429` „Daily API request limit exceeded” do końca doby (obserwacja 21.11.2026).
+  Cache na dysku (bez wygasania dla dat historycznych) sprawia, że ponowna analiza tej samej okolicy nie zużywa limitu.
+- Overpass nie odpowiadał z sieci wydarzenia (oba serwery) — moduł zwraca wtedy jawne `missing`. 21.11.2026 wieczorem także z VPS:
+  `overpass-api.de` zgłaszał „currently at capacity” (proste zapytanie ok. 26 s, powyżej naszego timeoutu 12 s), `overpass.kumi.systems`
+  nie odpowiadał. To przeciążenie publicznych serwerów, nie błąd zapytania.
 - NMT GUGiK: WCS GetCoverage nie odpowiedział ani razu (21.11.2026, wszystkie zapytania > 30–60 s), dlatego używamy usługi wysokości punktów `https://services.gugik.gov.pl/nmt/` (`GetHByPointList`, POST, lista `N E` w EPSG:2180). Usługa zwraca wysokości dla maks. 1000 punktów na zapytanie; brak danych to punkt bez wysokości albo `0.0`. 5700 punktów (działka 0,27 ha + 150 m) ≈ 2,8 s.
 - WorldCover i OSM pokazują stan obecny / z 2021 r., a nie z dnia analizy. Wynika to z dostępności danych i jest opisane w wyniku źródła.
 - Zmierzony czas wszystkich źródeł równolegle dla działki `302108_5.0014.88/8`: 12 s na zimno (ograniczone timeoutem Overpass),

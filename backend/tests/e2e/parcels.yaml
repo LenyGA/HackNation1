@@ -1,0 +1,33 @@
+# Reference parcels for `pytest -m e2e` (plan2 K0.3, plan M9.1). Found 21.11.2026 with ULDK GetParcelByXY at points
+# on farmland; land cover checked with ESA WorldCover 2020 (share of the parcel area in brackets).
+# Each parcel runs for every date below; "current" = today's date in Poland.
+dates:
+  - current
+  - 2019-07-15
+
+parcels:
+  - key: light_soil
+    id: 302111_4.0001.468/1        # Murowana Goślina (wielkopolskie), 1.0 ha, cropland 100%
+    crop: rye
+    purpose: light sandy soil of the Wielkopolska plain, flat
+  - key: heavy_soil
+    id: 221002_5.0019.131/1        # Tuja, Nowy Dwór Gdański (Żuławy, pomorskie), 12.6 ha, cropland 99%
+    crop: winter_wheat
+    purpose: heavy alluvial soil of the Vistula delta, flat, dense ditch network
+  - key: slope
+    id: 121601_5.0007.53           # Kipszna, Ciężkowice (Pogórze Ciężkowickie, małopolskie), 0.66 ha, cropland 74%
+    crop: potato
+    purpose: hillslope in the Carpathian foothills, small parcel
+  - key: river_valley
+    id: 301902_2.0002.364          # Dębówko Nowe, Białośliwie (Noteć valley, wielkopolskie), 3.3 ha, grassland 100%
+    crop: grassland
+    purpose: river valley meadow with drainage ditches
+  - key: opencast_mine
+    id: 100104_2.0013.756/1        # Łuszczanowice, Kleszczów (next to the Bełchatów open pit, łódzkie), 4.0 ha, cropland 78%
+    crop: maize
+    purpose: groundwater lowered by the lignite mine (plan2 L6.2)
+  - key: orchard
+    id: 140605_5.0028.4/4          # Pabierowice, Grójec (mazowieckie), 3.6 ha, trees 72% (orchard)
+    # spring_barley until the fruit crops exist; plan2 L2 switches it to orchard_pome and rewrites the baseline
+    crop: spring_barley
+    purpose: apple orchard of the Grójec fruit region (plan2 L2)

@@ -233,7 +233,7 @@ i otwiera się poprawnie.
 
 ### M8. Wdrożenie (B)
 
-- [ ] **M8.1 Pierwsze wdrożenie (faza 1, przed T+5 h).** `Dockerfile` wieloetapowy (budowa frontu → obraz Pythona z bibliotekami
+- [x] **M8.1 Pierwsze wdrożenie (faza 1, przed T+5 h).** `Dockerfile` wieloetapowy (budowa frontu → obraz Pythona z bibliotekami
   WeasyPrint), `docker-compose.yml` (aplikacja + Caddy + wolumen na cache i SQLite), `Caddyfile`. VPS 2 GB RAM z Ubuntu i Dockerem.
   W panelu LH.pl rekord `A` dla subdomeny → adres VPS.
   **Wymaga od zespołu:** założenia VPS, dostępu SSH i dodania rekordu DNS.
@@ -247,10 +247,10 @@ i otwiera się poprawnie.
 
 ### M9. Testy i weryfikacja (A, faza 4)
 
-- [ ] **M9.1 Działki referencyjne.** `backend/tests/e2e/parcels.yaml`: 5 działek z różnych regionów (gleba lekka w Wielkopolsce lub
+- [x] **M9.1 Działki referencyjne.** `backend/tests/e2e/parcels.yaml`: 5 działek z różnych regionów (gleba lekka w Wielkopolsce lub
   na Kujawach, gleba ciężka na Żuławach lub Lubelszczyźnie, teren ze spadkami na Podkarpaciu lub w Małopolsce, mała wąska działka,
   łąka w dolinie rzeki), każda z dwiema datami: bieżącą i z suszy w czerwcu–lipcu jednego z ostatnich lat.
-- [ ] **M9.2 Testy E2E.** `pytest -m e2e`: raport powstaje w < 30 s, ma 9 sekcji, braki danych są jawne, żaden rekord nie jest
+- [x] **M9.2 Testy E2E.** `pytest -m e2e`: raport powstaje w < 30 s, ma 9 sekcji, braki danych są jawne, żaden rekord nie jest
   późniejszy niż `analysis_date`.
 - [ ] **M9.3 Porównanie z referencją.** Dla dat historycznych zestawić ocenę aplikacji z raportami Systemu Monitoringu Suszy
   Rolniczej IUNG dla tej samej gminy i okresu. Rozbieżności i ich wyjaśnienie zapisać w `docs/METHODOLOGY.md` (rozdział o weryfikacji).
