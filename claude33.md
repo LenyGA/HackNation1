@@ -107,7 +107,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | G9 | **Synteza metod retencji (3.2 pkt 2: miejsca i sposoby)**: oczko lub staw w zagłębieniu, zastawka lub drenaż kontrolowany, deszczówka z dachów, studnia, pasy zadrzewień. Każda ma status POLECANE / WARUNKOWO / NIEZALECANE z uzasadnieniem z danych działki. Karta „% pokrycia potrzeb”: objętość zagłębienia vs potrzeby nawadniania (rok suchy, pełne i ratunkowe) | ❌ | Jest tylko objętość zagłębienia; brak porównania z potrzebami i tabeli metod. Progi Prawa wodnego (staw ≤ 5000 m², pobór ≤ 5 m³/dobę) **sprawdzić w ISAP przed wpisaniem do reguł** |
 | G10 | **Dobór technologii nawadniania + opłacalność (3.2 pkt 3: zasadność i zakres)**: areał i kształt z ULDK (minimum rotated rectangle) → pivot / szpulowa / kroplowe / brak inwestycji; werdykt „opłacalne / na granicy / nieopłacalne” | ❌ | Ceny i koszty jako **widełki z jawnymi, edytowalnymi założeniami i źródłem** (GUS, CDR), bez kwot co do złotówki (zasada 6) |
 | G11 | **Gospodarstwo / sąsiednie działki (3.1, 3.2 „w obrębie działki lub gospodarstwa”)**: „+ Dodaj działkę” (ID lub klik), suma areału, wspólna retencja i opłacalność; pogodę i wody gruntowe pobieramy raz | ❌ | Domyślnie zostaje 1 działka i < 30 s. Robić po P0 i G9–G10 |
-| G12 | **Wyszukiwanie działki po gminie, obrębie i numerze** (jury podaje „numer działki”, nie zawsze pełny TERYT): ULDK `GetParcelByIdOrNr` + podpowiedzi przy niejednoznacznym wyniku | ❌ | `sources/uldk.py` obsługuje tylko `GetParcelById` i `GetParcelByXY` |
+| G12 | *(udogodnienie, nie wymóg; 3.2 wymaga identyfikatora lub mapy, a P2 to spełnia)* Wyszukiwanie po nazwie gminy, obrębie i numerze (ULDK `GetParcelByIdOrNr`) na wypadek, gdy ktoś poda sam numer typu „12/3” | ➖ opcjonalne | Dziś niepełny numer jest odrzucany komunikatem z `frontend/src/lib/format.ts` |
 | G13 | **Kontrola krzyżowa z oficjalnymi ocenami suszy** (6: jury porównuje z danymi referencyjnymi): IUNG Monitoring Suszy / mapa podatności gleb, EDO CDI (WMS) pokazane obok naszego werdyktu, z opisem zgodności | ❌ | EDO i IUNG są tylko wspomniane, nie są pobierane. Wzmacnia też R9 |
 
 ### Zgłoszenie (4.1) i README (4.2, 5.3–5.6)
@@ -157,8 +157,8 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | Z8 | `LICENSE`: „Copyright … Łukasz Dębski”. Regulamin § 6 ust. 2 każe identyfikować rozwiązanie nazwą zespołu, a § 5 przewiduje przeniesienie praw na KOWR | ⚠️ | Zmienić właściciela na „GeoSatel”; decyzja zespołu |
 | Z9 | Finał: demo na żywo dla 1–3 działek i dat jury w 2–3 min | ❌ | Scenariusz demo, rozgrzany cache, zapasowe PDF-y z Z6 na wypadek awarii sieci |
 
-**Priorytet (od największego wpływu na punkty):** T1 → **Q1–Q7** → G3 → G1 → G7 → **G12** → Z6 → **G9 → G10** → R1–R12 →
-T4/T5 → G13 → G8 → G5 → **G11** → Z2/Z4/Z5/Z9 (materiały zgłoszeniowe zawsze z zapasem czasu przed zamknięciem Platformy).
+**Priorytet (od największego wpływu na punkty):** T1 → **Q1–Q7** → G3 → G1 → G7 → Z6 → **G9 → G10** → R1–R12 →
+T4/T5 → G13 → G8 → G5 → **G11** → G12 → Z2/Z4/Z5/Z9 (materiały zgłoszeniowe zawsze z zapasem czasu przed zamknięciem Platformy).
 
 ## Stack
 
