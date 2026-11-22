@@ -1,5 +1,7 @@
 import asyncio
 import re
+from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse, Response
@@ -20,8 +22,9 @@ from app.api.schemas import (
 from app.core.config import APP_TITLE, APP_VERSION
 from app.core.models import AnalysisRequest
 from app.crops.catalog import get_crop, load_crops
+from app.report.chart_range import DEFAULT_RANGE, RangeKey
 from app.report.models import Report
-from app.report.pdf import Variant, render_html, render_pdf
+from app.report.pdf import Variant, chart_window, render_html, render_pdf
 from app.report.storage import load_report
 from app.sources import geocode, uldk
 
@@ -144,15 +147,40 @@ def _pdf_filename(report: Report, variant: Variant) -> str:
     return f"raport-{safe}-{report.analysis_date.isoformat()}{suffix}.pdf"
 
 
+MSG_BAD_RANGE = (
+    "Nieprawidłowy zakres dat wykresu: wybierz daty z ostatnich 10 lat, nie późniejsze niż data analizy."
+)
+
+
+def _window(
+    report: Report, variant: Variant, key: RangeKey, start: date | None, end: date | None
+) -> tuple[date, date] | None:
+    """Water chart window chosen on the page; an invalid custom range is refused, not silently replaced.
+    The basic variant has no chart, so it ignores the range."""
+    if variant == "basic":
+        return None
+    window = chart_window(report, key, start, end)
+    if window is None and key == "custom" and report.water_daily is not None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, MSG_BAD_RANGE)
+    return window
+
+
 @router.get(
     "/reports/{report_id}.pdf",
     response_class=Response,
     responses={404: {"model": ErrorOut}, 200: {"content": {"application/pdf": {}}}},
 )
-async def report_pdf(report_id: str, variant: Variant = "basic") -> Response:
-    """`variant`: basic (1–2 pages, default) or full (every section with charts, map and tables)."""
+async def report_pdf(
+    report_id: str,
+    variant: Variant = "basic",
+    chart_range: Annotated[RangeKey, Query(alias="range")] = DEFAULT_RANGE,
+    start: date | None = None,
+    end: date | None = None,
+) -> Response:
+    """`variant`: basic (1–2 pages, default) or full (every section with charts, map and tables).
+    `range` (+ `start`, `end` for "custom"): time range of the water situation chart in the full variant."""
     report = await _report_or_404(report_id)
-    pdf = await render_pdf(report, variant)
+    pdf = await render_pdf(report, variant, _window(report, variant, chart_range, start, end))
     return Response(
         content=pdf,
         media_type="application/pdf",
@@ -165,10 +193,17 @@ async def report_pdf(report_id: str, variant: Variant = "basic") -> Response:
     response_class=HTMLResponse,
     responses={404: {"model": ErrorOut}},
 )
-async def report_print(report_id: str, variant: Variant = "basic") -> HTMLResponse:
+async def report_print(
+    report_id: str,
+    variant: Variant = "basic",
+    chart_range: Annotated[RangeKey, Query(alias="range")] = DEFAULT_RANGE,
+    start: date | None = None,
+    end: date | None = None,
+) -> HTMLResponse:
     """Print view: the same HTML and stylesheet as the PDF, for printing from the browser."""
     report = await _report_or_404(report_id)
-    return HTMLResponse(await asyncio.to_thread(render_html, report, variant=variant))
+    window = _window(report, variant, chart_range, start, end)
+    return HTMLResponse(await asyncio.to_thread(render_html, report, variant=variant, window=window))
 
 
 @router.get("/reports/{report_id}", response_model=ReportOut, responses={404: {"model": ErrorOut}})

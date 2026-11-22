@@ -1,5 +1,8 @@
 """New report blocks (tiles, heat map, trends, water plan, profile, simulator) and the stage-1 fixes."""
 
+import pytest
+
+from app.report import pdf
 from app.report.pdf import render_html
 from tests.recommendations.builders import LOAMY_SAND
 from tests.report.builders import report_for, rich_report, two_missing_report
@@ -67,8 +70,15 @@ def test_pdf_has_new_charts_and_tiles() -> None:
     html = render_html(rich_report())
     assert 'class="tiles"' in html
     assert "Plan wody na sezon" in html
-    assert "Porównanie strategii" in html
     assert "Przekrój terenu" in html
+    assert "Deszcz i potrzeby wodne uprawy od" in html  # water chart with the default range (6 months)
+    # The 1–5 year simulator is hidden for now (pdf.SHOW_SIMULATION), although it is still computed.
+    assert "Porównanie strategii" not in html
+
+
+def test_pdf_shows_simulator_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pdf, "SHOW_SIMULATION", True)
+    assert "Porównanie strategii" in render_html(rich_report())
 
 
 def test_rescue_irrigation_in_a_dry_year_has_one_value_everywhere() -> None:

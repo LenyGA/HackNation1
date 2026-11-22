@@ -1,5 +1,5 @@
 {#- Section 8: data sources with dates (CLAUDE.md rule 5). -#}
-Wszystkie dane pomiarowe pobrano na żywo z bezpłatnych, publicznych źródeł. Wynik obliczyła aplikacja RolnikSzukaWody {{ created_at|date_pl }} — nie zawiera ona żadnych wcześniej przygotowanych ocen.
+Wszystkie dane pomiarowe pobrano na żywo z bezpłatnych, publicznych źródeł. Wynik obliczyła aplikacja GeoSatel {{ created_at|date_pl }} — nie zawiera ona żadnych wcześniej przygotowanych ocen.
 
 {% for s in sources %}
 {{ s.label_pl }}: {{ {'ok': 'dane pobrane', 'degraded': 'dane pobrane z ograniczeniami', 'missing': 'brak danych'}[s.status.value] }}. Źródło: {{ s.source }}. Licencja: {{ s.license }}. Pobrano {{ s.fetched_at|date_pl }}{% if s.period %}; dane za okres {{ s.period.start|date_pl }} – {{ s.period.end|date_pl }}{% endif %}.

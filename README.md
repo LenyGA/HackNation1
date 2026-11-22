@@ -1,6 +1,6 @@
-# RolnikSzukaWody
+# GeoSatel
 
-Zespół **GeoSatel** · HackNation 2026 (Bydgoszcz, 21–22.11.2026) · zadanie KOWR **„Zatrzymaj wodę, chroń plony”**.
+HackNation 2026 (Bydgoszcz, 21–22.11.2026) · zadanie KOWR **„Zatrzymaj wodę, chroń plony”**.
 
 Aplikacja webowa dla rolnika. Wystarczy podać numer działki ewidencyjnej, kliknąć działkę na mapie albo wpisać adres, a potem
 wybrać uprawę i datę analizy (dziś lub dowolny dzień z ostatnich 10 lat). Aplikacja pobiera dane publiczne o pogodzie, zdjęcia
@@ -93,7 +93,9 @@ z przyszłości nie przeciekają do analizy.
 
 1. **Podsumowanie:** kafelki z kolorem: zapas wody w glebie, najważniejsze działanie, zmiana klimatu na działce, woda
    potrzebna w roku suchym, zagrożenie powodzią.
-2. **Stan bieżący:** zapas wody w glebie (X z Y mm) i próg, poniżej którego uprawa cierpi, bilans opadu i parowania z 60 dni na tle 10 lat,
+2. **Stan bieżący:** zapas wody w glebie (X z Y mm) i próg, poniżej którego uprawa cierpi, bilans opadu i parowania z 60 dni na tle 10 lat, wykres deszczu i potrzeb wodnych uprawy na tle
+   tych samych dni w 10 poprzednich latach z wyborem zakresu („Dane z ostatnich: 24 h / 7 dni / miesiąc / 6 miesięcy / rok /
+   własny”; wybrany zakres trafia też do PDF i wydruku),
    porównanie z oficjalnym progiem suszy rolniczej IUNG-PIB dla uprawy i kategorii gleby, kondycja roślin z satelity
    (w kontekście uprawy i fazy rozwoju) oraz poziom wód gruntowych z najbliższej stacji PIG-PIB.
 3. **Podatność 10-letnia:** w ilu latach i miesiącach było za sucho, trendy klimatu na działce, strefy zagrożenia powodziowego
@@ -108,7 +110,6 @@ z przyszłości nie przeciekają do analizy.
    osobne reguły (ściółkowanie, murawa w międzyrzędziach).
 7. **Nawadnianie (na końcu):** termin i dawka, plan wody na sezon (mediana i rok suchy, 80. percentyl), dobór technologii
    (deszczownia szpulowa, pivot, kroplowe) na podstawie kształtu działki oraz opłacalność z widełkami i jawnymi założeniami.
-   Symulator 1–5 lat porównuje strategie: bez działań, retencja, podlewanie, retencja z podlewaniem.
 8. **Zalecenia** podzielone na „teraz” (dopasowane do daty i fazy uprawy) i „przed następnym sezonem”.
 9. **Źródła danych** z datą pobrania, **ograniczenia analizy** i jawne braki danych (np. „zdjęcie satelitarne niedostępne:
    chmury”).

@@ -9,7 +9,7 @@ def test_health() -> None:
     r = client.get("/api/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
-    assert r.json()["app"] == "RolnikSzukaWody"
+    assert r.json()["app"] == "GeoSatel"
 
 
 def test_crops_list() -> None:

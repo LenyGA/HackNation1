@@ -6,13 +6,15 @@ background is fetched by the server and embedded as a data URI.
 import asyncio
 import base64
 from collections import OrderedDict
+from datetime import date
 from functools import lru_cache
 from typing import Any, Literal
 
-from app.report.charts_svg import profile_svg, satellite_svg, trends_svgs, water_plan_svg
+from app.report.chart_range import DEFAULT_RANGE, RangeKey, range_chart, resolve_window
+from app.report.charts_svg import profile_svg, satellite_svg, season_svg, trends_svgs, water_plan_svg
 from app.report.labels_pl import CONFIDENCE_LABELS
 from app.report.map_svg import STYLE, map_frame, parcel_map_svg
-from app.report.models import Report
+from app.report.models import Report, SeasonChart
 from app.report.texts import TEMPLATES_DIR, html_env
 from app.sources import orthophoto
 
@@ -39,14 +41,40 @@ def _legend_colors() -> dict[str, str]:
     return out
 
 
-def _charts(report: Report) -> dict[str, object]:
+def water_chart(report: Report, window: tuple[date, date] | None) -> SeasonChart | None:
+    """Water situation chart for the window chosen on the page; older reports without daily data keep
+    the season chart."""
+    if report.water_daily is None:
+        return report.chart
+    if window is None:
+        window = resolve_window(report.water_daily, report.analysis_date, DEFAULT_RANGE)
+    return range_chart(report.water_daily, *window) if window else None
+
+
+def chart_window(
+    report: Report, key: RangeKey = DEFAULT_RANGE, start: date | None = None, end: date | None = None
+) -> tuple[date, date] | None:
+    """Window of the water chart for a range key from the page (None: not applicable / invalid)."""
+    if report.water_daily is None:
+        return None
+    return resolve_window(report.water_daily, report.analysis_date, key, start, end)
+
+
+def _charts(report: Report, window: tuple[date, date] | None) -> dict[str, object]:
+    season = water_chart(report, window)
     return {
+        "season": season_svg(season) if season and len(season.points) >= 2 else "",
+        "season_chart": season,
         "water_plan": water_plan_svg(report.water_plan) if report.water_plan else "",
         "profile": profile_svg(report.profile) if report.profile and len(report.profile.points) >= 2 else "",
         "trends": trends_svgs(report.trends) if report.trends else [],
         "satellite": satellite_svg(report.satellite) if report.satellite else "",
     }
 
+
+# The 1–5 year strategy simulator is hidden from the report for now (team decision 22.11); it is still
+# computed and kept in the report model so it can come back.
+SHOW_SIMULATION = False
 
 # Colour of the retention method status (G9).
 METHOD_PILL = {"recommended": "good", "conditional": "warn", "not_recommended": "bad", "no_data": "unknown"}
@@ -60,6 +88,7 @@ def render_html(
     basemap_uri: str | None = None,
     basemap_requested: bool = False,
     variant: Variant = "full",
+    window: tuple[date, date] | None = None,
 ) -> str:
     """`basemap_requested`: the server asked Geoportal for the orthophoto (PDF). The print view does not,
     so it never claims that the service failed. The basic variant has no map, charts or tables."""
@@ -72,11 +101,12 @@ def render_html(
             logo_uri=_logo_uri(),
             map_svg=parcel_map_svg(report, basemap_uri),
             basemap="ok" if basemap_uri is not None else ("failed" if basemap_requested else "none"),
-            charts=_charts(report),
+            charts=_charts(report, window),
             recs={rec.number: rec for rec in report.recommendations},
             legend_colors=_legend_colors(),
             confidence_pl=CONFIDENCE_LABELS,
             method_pill=METHOD_PILL,
+            show_simulation=SHOW_SIMULATION,
         )
     )
 
@@ -102,19 +132,30 @@ _pdf_slots: asyncio.Semaphore | None = None
 PDF_CONCURRENCY = 2
 
 
-def _render(report: Report, basemap_uri: str | None, variant: Variant) -> bytes:
-    return _write_pdf(render_html(report, basemap_uri, basemap_requested=variant == "full", variant=variant))
+def _render(
+    report: Report, basemap_uri: str | None, variant: Variant, window: tuple[date, date] | None
+) -> bytes:
+    full = variant == "full"
+    html = render_html(report, basemap_uri, basemap_requested=full, variant=variant, window=window)
+    return _write_pdf(html)
 
 
 # Saved reports never change, so a rendered PDF is reused: repeated downloads (or a client hammering one
 # link) cost no WeasyPrint work. Bounded LRU of ~300 KB files.
 PDF_CACHE_SIZE = 32
-_pdf_cache: OrderedDict[tuple[str, Variant], bytes] = OrderedDict()
+_pdf_cache: OrderedDict[tuple[str, Variant, tuple[date, date] | None], bytes] = OrderedDict()
 
 
-async def render_pdf(report: Report, variant: Variant = "full") -> bytes:
+async def render_pdf(
+    report: Report, variant: Variant = "full", window: tuple[date, date] | None = None
+) -> bytes:
+    """`window`: range of the water chart chosen on the page (full variant only; None = default range)."""
     global _pdf_slots
-    key = (report.id, variant)
+    if variant == "basic":
+        window = None  # the basic variant has no charts
+    elif window is None:
+        window = chart_window(report)  # the default range shares its cache entry with an explicit one
+    key = (report.id, variant, window)
     cached = _pdf_cache.get(key)
     if cached is not None:
         _pdf_cache.move_to_end(key)
@@ -128,7 +169,7 @@ async def render_pdf(report: Report, variant: Variant = "full") -> bytes:
         cached = _pdf_cache.get(key)  # rendered by another request while this one waited
         if cached is not None:
             return cached
-        pdf = await asyncio.to_thread(_render, report, basemap, variant)
+        pdf = await asyncio.to_thread(_render, report, basemap, variant, window)
     if variant == "full" and basemap is None:
         return pdf  # not cached: the next download tries the orthophoto again
     _pdf_cache[key] = pdf

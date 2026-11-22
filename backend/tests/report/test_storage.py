@@ -40,3 +40,14 @@ def test_stored_body_has_no_personal_data(tmp_path: Path) -> None:
     asyncio.run(save_report(r, db))
     cols = [row[1] for row in sqlite3.connect(db).execute("PRAGMA table_info(reports)")]
     assert cols == ["id", "created_at", "body"]
+
+
+def test_old_reports_show_the_current_app_name(tmp_path: Path) -> None:
+    """Reports saved before 22.11.2026 carry the former test name in their stored texts."""
+    db = tmp_path / "r.sqlite3"
+    report = rich_report().model_copy(update={"app": "RolnikSzukaWody"})
+    asyncio.run(save_report(report, db))
+    loaded = asyncio.run(load_report(report.id, db))
+    assert loaded is not None
+    assert "RolnikSzukaWody" not in loaded.model_dump_json()
+    assert loaded.app == "GeoSatel"

@@ -1,6 +1,6 @@
-# RolnikSzukaWody — opis zgłoszenia (Z2)
+# GeoSatel — opis zgłoszenia (Z2)
 
-**Zespół:** GeoSatel · **Tytuł:** RolnikSzukaWody · **Zadanie:** KOWR „Zatrzymaj wodę, chroń plony”
+**Zespół i rozwiązanie:** GeoSatel · **Zadanie:** KOWR „Zatrzymaj wodę, chroń plony”
 **Działająca wersja:** https://129.121.162.156.sslip.io
 
 *Szkic do wklejenia na Platformę. Zespół: skrócić do limitu znaków z formularza.*
@@ -20,7 +20,7 @@ rowy i cieki, strefy powodziowe, wody gruntowe. Są jednak rozproszone w kilkuna
 - Podatność wieloletnia: w ilu latach było za sucho, trendy klimatu na działce, zagrożenie powodzią i podtopieniami.
 - Przyczyny niedoboru z dowodem liczbowym, a potem działania w kolejności z zadania: retencja (5 metod ze statusem
   POLECANE / WARUNKOWO / NIEZALECANE / BRAK DANYCH i formalnościami z Prawa wodnego), agrotechnika, nawadnianie (termin, dawka, dobór
-  technologii, opłacalność), symulator strategii na 1–5 lat.
+  technologii, opłacalność).
 - Raport Podstawowy (1–2 strony) i Pełny, zapisany pod stałym linkiem, PDF i druk. Każda liczba ma źródło i datę, a braki
   danych i ograniczenia są podane wprost.
 

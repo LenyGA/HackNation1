@@ -98,7 +98,7 @@ def surroundings_nearest_m(s: Surroundings, hydro_kind: str) -> float | None:
 
 
 def computed_source(*sources: str) -> str:
-    return "Obliczenia RolnikSzukaWody z danych: " + "; ".join(s for s in sources if s)
+    return "Obliczenia GeoSatel z danych: " + "; ".join(s for s in sources if s)
 
 
 @dataclass(frozen=True)

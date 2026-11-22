@@ -33,7 +33,7 @@ def _call(base: str, path: str, body: dict[str, str] | None = None) -> dict[str,
         f"{base}/api{path}",
         data=data,
         method="POST" if body is not None else "GET",
-        headers={"Content-Type": "application/json", "User-Agent": "RolnikSzukaWody-warm-cache"},
+        headers={"Content-Type": "application/json", "User-Agent": "GeoSatel-warm-cache"},
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
         result: dict[str, object] = json.loads(resp.read())

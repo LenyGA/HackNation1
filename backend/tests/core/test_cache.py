@@ -42,7 +42,7 @@ async def test_http_retries_once_on_5xx() -> None:
     resp = await request("GET", "https://example.test/flaky", timeout_s=5)
     assert resp.json() == {"ok": True}
     assert route.call_count == 2
-    assert "RolnikSzukaWody" in route.calls[0].request.headers["User-Agent"]
+    assert "GeoSatel" in route.calls[0].request.headers["User-Agent"]
 
 
 def test_expiry_decided_at_write_time(tmp_cache: DiskCache) -> None:

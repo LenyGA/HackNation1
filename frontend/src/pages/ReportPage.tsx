@@ -19,8 +19,8 @@ import { RetentionMethods } from '@/components/report/RetentionMethods'
 import { ProfileChart, SatelliteChart, StressHeatmapView, TrendsView, WaterPlanChart } from '@/components/report/Charts'
 import { FloodBlock, GroundwaterBlock } from '@/components/report/HydroBlocks'
 import { BasicReport } from '@/components/report/BasicReport'
-import { SeasonChartView } from '@/components/report/SeasonChartView'
-import { Simulator } from '@/components/report/Simulator'
+import { type ChartRange, WaterChart } from '@/components/report/WaterChart'
+import { DEFAULT_RANGE, resolveWindow } from '@/components/report/chartRange'
 import { SummaryTiles } from '@/components/report/SummaryTiles'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -50,7 +50,12 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-function Actions({ report, variant }: { report: Report; variant: ReportVariant }) {
+function Actions({ report, variant, range: chosen }: { report: Report; variant: ReportVariant; range: ChartRange }) {
+  // An incomplete or invalid custom range (still being typed) must not turn the PDF into an error page:
+  // the PDF and the print view then use the default range.
+  const valid =
+    !report.water_daily || resolveWindow(report.water_daily, report.analysis_date, chosen.key, chosen.start, chosen.end) !== null
+  const range = valid ? chosen : { key: DEFAULT_RANGE }
   const [copied, setCopied] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -59,7 +64,7 @@ function Actions({ report, variant }: { report: Report; variant: ReportVariant }
   useEffect(() => () => frameRef.current?.remove(), [])
 
   function print() {
-    const url = api.reportPrintUrl(report.id, variant)
+    const url = api.reportPrintUrl(report.id, variant, range)
     // iOS Safari ignores print() inside a frame and prints the parent page: open the print view instead.
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
     if (ios) {
@@ -106,7 +111,7 @@ function Actions({ report, variant }: { report: Report; variant: ReportVariant }
     <div className="space-y-2">
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
       <Button asChild variant="navy" size="lg" className="h-12">
-        <a href={api.reportPdfUrl(report.id, variant)} download>
+        <a href={api.reportPdfUrl(report.id, variant, range)} download>
           <Download /> Pobierz PDF {variant === 'basic' ? '(podstawowy)' : '(pełny)'}
         </a>
       </Button>
@@ -160,7 +165,17 @@ function VariantSwitch({ variant, onChange }: { variant: ReportVariant; onChange
   )
 }
 
-function SectionExtras({ section, report }: { section: ReportSection; report: Report }) {
+function SectionExtras({
+  section,
+  report,
+  range,
+  onRangeChange,
+}: {
+  section: ReportSection
+  report: Report
+  range: ChartRange
+  onRangeChange: (r: ChartRange) => void
+}) {
   const recs = report.recommendations.filter((r) => section.recommendation_numbers.includes(r.number))
   const cards = (hideIrrigationText = false) =>
     recs.map((r) => <RecommendationCard key={r.number} rec={r} hideText={hideIrrigationText && r.category === 'irrigation'} />)
@@ -168,7 +183,13 @@ function SectionExtras({ section, report }: { section: ReportSection; report: Re
     case 'current':
       return (
         <>
-          {report.chart && <SeasonChartView chart={report.chart} />}
+          <WaterChart
+            daily={report.water_daily}
+            fallback={report.chart}
+            analysisDate={report.analysis_date}
+            range={range}
+            onRangeChange={onRangeChange}
+          />
           {report.satellite && <SatelliteChart data={report.satellite} analysisDate={report.analysis_date} />}
         </>
       )
@@ -211,7 +232,7 @@ function SectionExtras({ section, report }: { section: ReportSection; report: Re
           {cards(true)}
           {report.water_plan && <WaterPlanChart data={report.water_plan} />}
           {report.irrigation_economics && <IrrigationEconomicsBlock e={report.irrigation_economics} />}
-          {report.simulation && <Simulator sim={report.simulation} farmCount={report.farm?.count} />}
+          {/* The 1–5 year simulator (components/report/Simulator.tsx) is hidden for now (team decision 22.11). */}
         </>
       )
     case 'sources':
@@ -228,7 +249,17 @@ function sectionParagraphs(section: ReportSection, report: Report): string[] {
   return section.paragraphs_pl.filter((p) => !labels.some((l) => p.startsWith(l)))
 }
 
-function SectionCard({ section, report }: { section: ReportSection; report: Report }) {
+function SectionCard({
+  section,
+  report,
+  range,
+  onRangeChange,
+}: {
+  section: ReportSection
+  report: Report
+  range: ChartRange
+  onRangeChange: (r: ChartRange) => void
+}) {
   return (
     <Card id={`sekcja-${section.number}`} className="scroll-mt-4 gap-4">
       <CardHeader>
@@ -240,7 +271,7 @@ function SectionCard({ section, report }: { section: ReportSection; report: Repo
       <CardContent className="space-y-4">
         {section.id === 'irrigation' && report.irrigation.applicable && <IrrigationBlock irrigation={report.irrigation} farmCount={report.farm?.count} />}
         <Paragraphs items={sectionParagraphs(section, report)} />
-        <SectionExtras section={section} report={report} />
+        <SectionExtras section={section} report={report} range={range} onRangeChange={onRangeChange} />
         {section.indicators.length > 0 && (
           <Disclosure summary="Liczby, na których opiera się ocena">
             <EvidenceList items={section.indicators} />
@@ -298,6 +329,11 @@ export function ReportPage() {
     // view, which has no sections, otherwise the deep-link effect below would switch straight back to full.
     navigate({ search: search ? `?${search}` : '', hash: v === 'full' ? window.location.hash : '' }, { replace: true })
   }
+  // Time range of the water chart; it also shapes the full PDF and the print view.
+  // Tagged with the report id: another report (another analysis date) starts again from the default range.
+  const [rangeState, setRangeState] = useState<{ id: string; range: ChartRange }>({ id, range: { key: DEFAULT_RANGE } })
+  const chartRange = rangeState.id === id ? rangeState.range : { key: DEFAULT_RANGE }
+  const setChartRange = (range: ChartRange) => setRangeState({ id, range })
   // Result tagged with the id it belongs to, so a stale report is never shown after navigating to another one.
   const [loaded, setLoaded] = useState<{ id: string; report?: Report; error?: string } | null>(null)
   const report = loaded?.id === id ? (loaded.report ?? null) : null
@@ -340,7 +376,7 @@ export function ReportPage() {
   useEffect(() => {
     if (!report) return
     const previous = document.title
-    document.title = `Raport: działka ${report.parcel.number ?? report.parcel.id} · ${report.app}`
+    document.title = `Raport: działka ${report.parcel.number ?? report.parcel.id} · GeoSatel`
     return () => {
       document.title = previous
     }
@@ -417,7 +453,7 @@ export function ReportPage() {
         </p>
       )}
       <VariantSwitch variant={variant} onChange={setVariant} />
-      <Actions report={report} variant={variant} />
+      <Actions report={report} variant={variant} range={chartRange} />
 
       {variant === 'basic' ? (
         <BasicReport report={report} />
@@ -437,7 +473,7 @@ export function ReportPage() {
           </nav>
 
           {report.sections.map((s) => (
-            <SectionCard key={s.id} section={s} report={report} />
+            <SectionCard key={s.id} section={s} report={report} range={chartRange} onRangeChange={setChartRange} />
           ))}
         </>
       )}

@@ -238,6 +238,11 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
 - [x] **M8.10 Zaznaczanie kilku działek naraz** (zrobione w M7) (klik na mapie i ID) — zakres i kroki jak w **M7.1–M7.3** (G11); robić tamte kroki,
   nie duplikować. Przeniesione tu jako obowiązkowe po 09:00, jeśli M7 nie weszło przed zamrożeniem.
 
+- [x] **M8.11 Zmiany zespołu (22.11, 07:00):** nazwa „RolnikSzukaWody” usunięta (nagłówek: samo logo, w tekstach „GeoSatel”,
+  także w zapisanych raportach); symulator 1–5 lat ukryty na stronie i w PDF (kod zostaje, `pdf.SHOW_SIMULATION`);
+  wykres sytuacji wodnej z przełącznikiem „Dane z ostatnich: 24 h / 7 dni / miesiąc / 6 miesięcy / rok / własny”
+  (strona + PDF i druk, `report/chart_range.py` ↔ `chartRange.ts`).
+
   **Uwaga:** M8.5–M8.10 kłócą się z M8.4 (po wdrożeniu bez zmian w kodzie) — robić przed M8.1–M8.2, a po nich wdrożyć ponownie.
 
 ### M9. Lista kontrolna zespołu (do 11:00)

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ r.app }} — raport podstawowy dla działki {{ r.parcel.id }} ({{ r.analysis_date|date_pl }})</title>
+<title>GeoSatel — raport podstawowy dla działki {{ r.parcel.id }} ({{ r.analysis_date|date_pl }})</title>
 <style>{{ css|safe }}</style>
 </head>
 <body class="basic">
@@ -11,8 +11,8 @@
     the recommendations split into "now" and "before the next season", explicit missing data, limitations
     and sources (requirement 3.3 pt 5). Nothing here is computed: all values come from the saved Report. -#}
 <span class="report-id">{{ r.id }}</span>
-<div class="brand"><img src="{{ logo_uri }}" alt="GeoSatel"><span>{{ r.app }}</span></div>
-<h1>{{ r.app }}: raport o wodzie na działce <span class="variant">wariant podstawowy</span></h1>
+<div class="brand"><img src="{{ logo_uri }}" alt="GeoSatel"></div>
+<h1>Raport o wodzie na działce <span class="variant">wariant podstawowy</span></h1>
 <div class="meta">
   <span>Działka: <b>{{ r.parcel.id }}</b></span>
   {% if r.parcel.commune %}<span>{{ r.parcel.commune|with_prefix('gmina')|capitalize_first }}{% if r.parcel.county %}, {{ r.parcel.county|with_prefix('powiat') }}{% endif %}</span>{% endif %}
@@ -125,6 +125,6 @@
   Pełna lista źródeł, licencji i liczb, na których opiera się ocena, jest w wariancie pełnym raportu.
 </div>
 
-<p class="small">Raport wygenerowała aplikacja {{ r.app }} {{ r.version }} (zespół GeoSatel, HackNation 2026) wyłącznie z publicznych danych, bez modeli AI. Link do raportu: /raport/{{ r.id }}</p>
+<p class="small">Raport wygenerowała aplikacja GeoSatel {{ r.version }} (HackNation 2026) wyłącznie z publicznych danych, bez modeli AI. Link do raportu: /raport/{{ r.id }}</p>
 </body>
 </html>

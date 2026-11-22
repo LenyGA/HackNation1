@@ -130,6 +130,6 @@ def test_basic_pdf_is_cached_separately_from_full() -> None:
     full = asyncio.run(render_pdf(r, "full"))
     assert basic.startswith(b"%PDF") and full.startswith(b"%PDF") and basic != full
     assert (
-        pdf_module._pdf_cache.get((r.id, "basic")) is basic
+        pdf_module._pdf_cache.get((r.id, "basic", None)) is basic
     )  # basic never needs the orthophoto: always cached
     assert asyncio.run(render_pdf(r, "basic")) is basic  # second download: served from the cache

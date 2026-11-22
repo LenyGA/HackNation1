@@ -4,7 +4,7 @@ import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-do
 import { Button } from '@/components/ui/button'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
-export const APP_TITLE = 'RolnikSzukaWody'
+export const APP_TITLE = 'GeoSatel'
 export const TEAM = 'GeoSatel'
 
 // Pages load on demand: the map library is large, and a phone in the field should see the first screen fast.
@@ -44,8 +44,6 @@ function Header() {
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-2 sm:px-5">
         <Link to="/" className="flex min-w-0 items-center gap-3" aria-label={`${APP_TITLE} — strona główna`}>
           <img src="/logo.png" alt={TEAM} width={132} height={44} className="h-8 w-auto sm:h-10" />
-          <span className="hidden h-7 w-px bg-border sm:block" aria-hidden />
-          <span className="truncate text-base font-bold tracking-tight text-navy sm:text-lg">{APP_TITLE}</span>
         </Link>
         <nav className="ml-auto flex items-center gap-1 sm:gap-2" aria-label="Menu">
           {onStart && (
@@ -83,7 +81,7 @@ function Footer() {
           Dane publiczne: {DATA_SOURCES.join(' · ')}
         </p>
         <p className="text-xs text-muted-foreground">
-          {APP_TITLE} · zespół {TEAM} © 2026 · HackNation 2026 · bez logowania, bez opłat, bez danych osobowych
+          {TEAM} © 2026 · HackNation 2026 · bez logowania, bez opłat, bez danych osobowych
         </p>
       </div>
     </footer>

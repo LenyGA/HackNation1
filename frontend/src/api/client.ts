@@ -30,6 +30,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
+/** Time range of the water chart chosen on the page; passed to the full PDF and the print view. */
+export interface ChartRangeQuery {
+  key: string
+  start?: string
+  end?: string
+}
+
+function reportQuery(variant: ReportVariant, range?: ChartRangeQuery): string {
+  const q = new URLSearchParams({ variant })
+  if (range && variant === 'full') {
+    q.set('range', range.key)
+    if (range.key === 'custom' && range.start && range.end) {
+      q.set('start', range.start)
+      q.set('end', range.end)
+    }
+  }
+  return q.toString()
+}
+
 export const api = {
   crops: () => request<Crop[]>('/crops'),
   parcelById: (id: string) => request<Parcel>(`/parcels?id=${encodeURIComponent(id)}`),
@@ -39,7 +58,8 @@ export const api = {
     request<AnalysisCreated>('/analyses', { method: 'POST', body: JSON.stringify(body) }),
   analysis: (id: string) => request<AnalysisStatus>(`/analyses/${encodeURIComponent(id)}`),
   report: (id: string) => request<Report>(`/reports/${encodeURIComponent(id)}`),
-  reportPdfUrl: (id: string, variant: ReportVariant) => `/api/reports/${encodeURIComponent(id)}.pdf?variant=${variant}`,
-  reportPrintUrl: (id: string, variant: ReportVariant) =>
-    `/api/reports/${encodeURIComponent(id)}.html?variant=${variant}`,
+  reportPdfUrl: (id: string, variant: ReportVariant, range?: ChartRangeQuery) =>
+    `/api/reports/${encodeURIComponent(id)}.pdf?${reportQuery(variant, range)}`,
+  reportPrintUrl: (id: string, variant: ReportVariant, range?: ChartRangeQuery) =>
+    `/api/reports/${encodeURIComponent(id)}.html?${reportQuery(variant, range)}`,
 }

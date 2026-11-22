@@ -85,10 +85,13 @@ export function SeasonChartView({ chart }: { chart: SeasonChart }) {
   // A tick at the first point of every month, skipping ticks that would overlap on a narrow screen.
   const minGap = 46
   const xTicks: { i: number; day: string }[] = []
+  // Short ranges (up to two months) get day ticks instead.
+  const byDay = span <= 62
   pts.forEach((p, i) => {
     const newMonth = i === 0 || p.day.slice(5, 7) !== pts[i - 1].day.slice(5, 7)
     const prev = xTicks[xTicks.length - 1]
-    if (newMonth && (!prev || xs[i] - xs[prev.i] >= minGap) && xs[i] <= W - PAD.right - minGap / 2) xTicks.push({ i, day: p.day })
+    const room = (!prev || xs[i] - xs[prev.i] >= (byDay ? 56 : minGap)) && (i === 0 || xs[i] <= W - PAD.right - minGap / 2)
+    if ((byDay || newMonth) && room) xTicks.push({ i, day: p.day })
   })
 
   const last = pts[pts.length - 1]
@@ -126,7 +129,8 @@ export function SeasonChartView({ chart }: { chart: SeasonChart }) {
           <YAxis ticks={yTicks} y={y} left={PAD.left} right={W - PAD.right} unit="mm" />
           {xTicks.map(({ i, day }) => (
             <text key={day} x={x(i)} y={H - 8} fontSize="11" fill="#6b7280" textAnchor={i === 0 ? 'start' : 'middle'}>
-              {i === 0 ? formatShortDatePl(day) : formatMonthPl(day)}
+              {/* Tick 0 is the zero point (the day before the range) for ranged charts: label the range start. */}
+              {i === 0 ? formatShortDatePl(chart.start) : byDay ? formatShortDatePl(day) : formatMonthPl(day)}
             </text>
           ))}
           {hasBand && <path d={bandPath(pts, x, y)} fill={COLORS.band} opacity={0.6} />}
@@ -142,9 +146,9 @@ export function SeasonChartView({ chart }: { chart: SeasonChart }) {
       </div>
       <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
         <div className="col-span-full text-xs text-muted-foreground">
-          {hover === null ? 'Stan na dzień analizy' : `Stan na ${formatDatePl(shown.day)}`} · dotknij wykresu lub najedź kursorem, aby zobaczyć inny dzień
+          {`Stan na ${formatDatePl(shown.day)}`} · dotknij wykresu lub najedź kursorem, aby zobaczyć inny dzień
         </div>
-        <LegendRow color={COLORS.precip} label="Deszcz w tym sezonie" value={mm(shown.precip_mm)} />
+        <LegendRow color={COLORS.precip} label="Deszcz w wybranym okresie" value={mm(shown.precip_mm)} />
         <LegendRow color={COLORS.need} label="Potrzeby wodne uprawy" value={mm(shown.crop_need_mm)} />
         {hasBand && (
           <>

@@ -2,7 +2,7 @@
 @page {
   size: A4;
   margin: 14mm 13mm 16mm 13mm;
-  @bottom-left { content: "RolnikSzukaWody · raport " string(report-id); font-size: 7.5pt; color: #666; }
+  @bottom-left { content: "GeoSatel · raport " string(report-id); font-size: 7.5pt; color: #666; }
   @bottom-right { content: "str. " counter(page) " z " counter(pages); font-size: 7.5pt; color: #666; }
 }
 * { box-sizing: border-box; }

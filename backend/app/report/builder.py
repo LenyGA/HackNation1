@@ -37,6 +37,7 @@ from app.report import labels_pl as L
 from app.report.models import (
     SECTION_ORDER,
     ChartPoint,
+    DailyWater,
     EvidenceItem,
     Farm,
     FarmParcel,
@@ -660,6 +661,33 @@ def _r(value: float | None) -> float | None:
     return None if value is None else round(value)
 
 
+def _water_daily(inputs: AnalysisInputs) -> DailyWater | None:
+    """Daily rain and ETc for the range-selectable water chart (0.1 mm: sums stay exact to 1 mm)."""
+    data = inputs.weather.data
+    if data is None:
+        return None
+    weather = Weather.from_daily(data.daily, inputs.analysis_date)
+    if not weather.dates:
+        return None
+    precip: list[float | None] = []
+    need: list[float | None] = []
+    d = weather.first
+    while d <= weather.last:
+        p, e = weather.p_et0(d)
+        precip.append(None if p is None else round(p, 1))
+        need.append(None if e is None else round(inputs.crop.kc(d) * e, 1))
+        d += timedelta(days=1)
+    # Trailing days without rain data (e.g. recent days the forecast did not deliver) are cut, so the
+    # ranges ending "now" end on the last day with data instead of showing no line at all.
+    while precip and precip[-1] is None:
+        precip.pop()
+        need.pop()
+    if not precip:
+        return None
+    source = computed_source(inputs.weather.source)
+    return DailyWater(start=weather.first, precip_mm=precip, crop_need_mm=need, source=source)
+
+
 # --- map --------------------------------------------------------------------------------------------
 
 
@@ -852,6 +880,7 @@ def build_report(
         irrigation=_irrigation(irrigation),
         months=_months(inputs, assessment),
         chart=_chart(inputs),
+        water_daily=_water_daily(inputs),
         summary_tiles=outlook.tiles if assessment.complete else [],
         stress_heatmap=outlook.heatmap,
         trends=outlook.trends,

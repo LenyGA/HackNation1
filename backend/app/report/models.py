@@ -4,7 +4,7 @@ Texts for the farmer are generated once, in the backend (plan, decision 2): the 
 only lay out the sentences below. Every number shown carries its source, period and uncertainty.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -462,6 +462,21 @@ class ChartPoint(BaseModel):
     precip_hist_max_mm: float | None
 
 
+class DailyWater(BaseModel):
+    """Daily rain and crop water need (ETc = Kc·ET0) for the whole fetched period, cut at the analysis date.
+
+    Source of the water situation chart for any time range (`report/chart_range.py`)."""
+
+    start: date
+    precip_mm: list[float | None]
+    crop_need_mm: list[float | None]
+    source: str
+
+    @property
+    def last(self) -> date:
+        return self.start + timedelta(days=len(self.precip_mm) - 1)
+
+
 class SeasonChart(BaseModel):
     """Current season (cumulative precipitation and crop water need) against the 10 previous years."""
 
@@ -548,6 +563,7 @@ class Report(BaseModel):
     irrigation: ReportIrrigation
     months: list[MonthRisk]
     chart: SeasonChart | None = None
+    water_daily: DailyWater | None = None
     summary_tiles: list[SummaryTile] = Field(default_factory=list)
     stress_heatmap: StressHeatmap | None = None
     trends: ClimateTrends | None = None

@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ r.app }} — raport dla działki {{ r.parcel.id }} ({{ r.analysis_date|date_pl }})</title>
+<title>GeoSatel — raport dla działki {{ r.parcel.id }} ({{ r.analysis_date|date_pl }})</title>
 <style>{{ css|safe }}</style>
 </head>
 <body>
 <span class="report-id">{{ r.id }}</span>
-<div class="brand"><img src="{{ logo_uri }}" alt="GeoSatel"><span>{{ r.app }}</span></div>
-<h1>{{ r.app }}: raport o wodzie na działce</h1>
+<div class="brand"><img src="{{ logo_uri }}" alt="GeoSatel"></div>
+<h1>Raport o wodzie na działce</h1>
 <div class="meta">
   <span>Działka: <b>{{ r.parcel.id }}</b></span>
   {% if r.parcel.commune %}<span>{{ r.parcel.commune|with_prefix('gmina')|capitalize_first }}{% if r.parcel.county %}, {{ r.parcel.county|with_prefix('powiat') }}{% endif %}{% if r.parcel.voivodeship %}, {{ r.parcel.voivodeship|with_prefix('woj.') }}{% endif %}</span>{% endif %}
@@ -50,6 +50,11 @@
 <section class="section-{{ s.id }}{% if s.id == 'sources' %} sources{% elif s.id == 'limitations' %} limits{% endif %}">
   <h2>{{ s.number }}. {{ s.title_pl }}</h2>
   {% for p in s.paragraphs_pl %}<p{% if p in r.missing_data_pl %} class="missing-line"{% endif %}>{{ p }}</p>{% endfor %}
+
+  {% if s.id == 'current' and charts.season %}
+  {% set sc = charts.season_chart %}
+  <div class="chart"><div class="cap">Deszcz i potrzeby wodne uprawy od {{ sc.start|date_dmy }} do {{ sc.end|date_dmy }} (narastająco)</div>{{ charts.season|safe }}<div class="src">Granatowa linia: deszcz {{ 'w wybranym okresie' if r.water_daily else 'w tym sezonie' }} ({% set v = sc.points[-1].precip_mm %}{{ (v|num ~ ' mm') if v is not none else 'brak danych' }}); pomarańczowa: potrzeby wodne uprawy ({% set v = sc.points[-1].crop_need_mm %}{{ (v|num ~ ' mm') if v is not none else 'brak danych' }}){% if sc.years > 0 %}; przerywana: zwykle (środek z {{ sc.years }} lat, {% set v = sc.points[-1].precip_hist_median_mm %}{{ (v|num ~ ' mm') if v is not none else 'brak danych' }}); pas: od najsuchszego do najmokrzejszego roku{% endif %}.</div><div class="src">Źródło: {{ sc.source }}</div></div>
+  {% endif %}
 
   {% if s.id == 'current' and r.satellite and charts.satellite %}
   <div class="chart"><div class="cap">Kondycja roślin z satelity: na dzień {{ r.analysis_date|date_dmy }} i w tych samych tygodniach w poprzednich latach</div>{{ charts.satellite|safe }}<div class="src">Skala: 0 — brak zieleni, 1 — bujna zieleń; pas: zakres z poprzednich lat; pomarańczowe: zdjęcia z sezonu analizy (DD.MM).</div><p>{{ r.satellite.text_pl }}</p><div class="src">Źródło: {{ r.satellite.source }}</div></div>
@@ -160,7 +165,7 @@
   <p class="small">Źródło: {{ ie.source }}</p>
   {% endif %}
 
-  {% if s.id == 'irrigation' and r.simulation %}
+  {% if s.id == 'irrigation' and r.simulation and show_simulation %}
   {% set sim = r.simulation %}
   <h3>Co dalej? Porównanie strategii na 1–5 lat</h3>
   {% for p in sim.text_pl %}<p>{{ p }}</p>{% endfor %}
@@ -204,6 +209,6 @@
 </section>
 {% endfor %}
 
-<p class="small">Raport wygenerowała aplikacja {{ r.app }} {{ r.version }} (zespół GeoSatel, HackNation 2026) wyłącznie z publicznych danych, bez modeli AI. Wynik jest obliczany na żywo dla tej działki i daty. Link do raportu: /raport/{{ r.id }}</p>
+<p class="small">Raport wygenerowała aplikacja GeoSatel {{ r.version }} (HackNation 2026) wyłącznie z publicznych danych, bez modeli AI. Wynik jest obliczany na żywo dla tej działki i daty. Link do raportu: /raport/{{ r.id }}</p>
 </body>
 </html>

@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-APP_TITLE = "RolnikSzukaWody"
+APP_TITLE = "GeoSatel"
 APP_VERSION = "0.1.0"
 TEAM_NAME = "GeoSatel"
 

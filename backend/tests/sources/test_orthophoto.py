@@ -111,4 +111,4 @@ def test_pdf_embeds_background_without_external_requests(monkeypatch: pytest.Mon
 def test_pdf_without_background_is_not_cached() -> None:
     r = rich_report()
     asyncio.run(pdf_module.render_pdf(r))  # autouse fixture: no orthophoto
-    assert r.id not in pdf_module._pdf_cache
+    assert not any(k[0] == r.id for k in pdf_module._pdf_cache)

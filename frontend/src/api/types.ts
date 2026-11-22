@@ -487,6 +487,14 @@ export interface ChartPoint {
   precip_hist_max_mm: number | null
 }
 
+/** Daily rain and crop water need for the whole fetched period (source of the range-selectable chart). */
+export interface DailyWater {
+  start: string
+  precip_mm: (number | null)[]
+  crop_need_mm: (number | null)[]
+  source: string
+}
+
 export interface SeasonChart {
   start: string
   end: string
@@ -566,6 +574,7 @@ export interface Report {
   irrigation: ReportIrrigation
   months: MonthRisk[]
   chart: SeasonChart | null
+  water_daily?: DailyWater | null // absent in reports saved before 22.11.2026
   summary_tiles: SummaryTile[]
   stress_heatmap: StressHeatmap | null
   trends: ClimateTrends | null

@@ -8,7 +8,14 @@ import math
 from collections.abc import Callable
 from html import escape
 
-from app.report.models import ClimateTrends, SatelliteSeries, SlopeProfile, TrendMetric, WaterPlan
+from app.report.models import (
+    ClimateTrends,
+    SatelliteSeries,
+    SeasonChart,
+    SlopeProfile,
+    TrendMetric,
+    WaterPlan,
+)
 from app.report.texts import date_dmy, num
 
 FONT = 'font-family="DejaVu Sans, Arial, sans-serif"'
@@ -208,3 +215,67 @@ def satellite_svg(sat: SatelliteSeries) -> str:
         body += f'<circle cx="{cx:.1f}" cy="{y(min(1.0, max(0.0, p.ndvi))):.1f}" r="{5 if p.current else 3.5}" fill="{ORANGE if p.current else DARK_BLUE}"/>'
         body += f'<text x="{cx:.1f}" y="{h - 10}" text-anchor="middle" fill="{TEXT}" font-size="9">{p.year if not p.current else escape(date_dmy(p.day)[:5])}</text>'
     return _svg(w, h, body, sat.text_pl)
+
+
+MONTHS_SHORT_PL = ("sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru")
+
+
+def season_svg(chart: SeasonChart) -> str:
+    """Cumulative rain and crop need over the chosen range against the band of previous years
+    (mirror of SeasonChartView.tsx)."""
+    pts = chart.points
+    if len(pts) < 2:
+        return ""
+    w, h = 640.0, 200.0
+    left, right, top, bottom = 40.0, 10.0, 22.0, 24.0
+    values = [v for p in pts for v in (p.precip_mm, p.crop_need_mm, p.precip_hist_max_mm) if v is not None]
+    ticks = nice_ticks(0.0, max(10.0, *values))
+    y_max = ticks[-1]
+    d0 = pts[0].day
+    span = max(1, (pts[-1].day - d0).days)
+
+    def x(i: int) -> float:
+        return left + (w - left - right) * (pts[i].day - d0).days / span
+
+    def y(v: float) -> float:
+        return float(top + (h - top - bottom) * (1 - v / y_max))
+
+    def line(attr: str) -> str:
+        d, pen = "", False
+        for i, p in enumerate(pts):
+            v = getattr(p, attr)
+            if v is None:
+                pen = False
+                continue
+            d += f"{'L' if pen else 'M'}{x(i):.1f},{y(v):.1f}"
+            pen = True
+        return d
+
+    body = _y_axis(left, w - right, ticks, y, "mm")
+    band = [
+        i for i, p in enumerate(pts) if p.precip_hist_min_mm is not None and p.precip_hist_max_mm is not None
+    ]
+    if chart.years > 0 and len(band) >= 2:
+        top_pts = "L".join(f"{x(i):.1f},{y(pts[i].precip_hist_max_mm or 0):.1f}" for i in band)
+        bottom_pts = "L".join(f"{x(i):.1f},{y(pts[i].precip_hist_min_mm or 0):.1f}" for i in reversed(band))
+        body += f'<path d="M{top_pts}L{bottom_pts}Z" fill="{LIGHT_BLUE}" fill-opacity="0.6"/>'
+        body += f'<path d="{line("precip_hist_median_mm")}" fill="none" stroke="{BLUE}" stroke-width="1.5" stroke-dasharray="5 4"/>'
+    body += f'<path d="{line("crop_need_mm")}" fill="none" stroke="{ORANGE}" stroke-width="2.5"/>'
+    body += f'<path d="{line("precip_mm")}" fill="none" stroke="{DARK_BLUE}" stroke-width="2.5"/>'
+    # Date ticks: first and last day, and month starts for longer ranges (at least 60 px apart).
+    cut = 10 if span > 365 else 5  # dates with the year for ranges longer than a year
+    labels: list[tuple[float, str, str]] = [(x(0), date_dmy(chart.start)[:cut], "start")]
+    if span > 45:
+        for i, p in enumerate(pts[1:], start=1):
+            if p.day.month != pts[i - 1].day.month and x(i) - labels[-1][0] >= 60 and w - right - x(i) >= 60:
+                labels.append((x(i), MONTHS_SHORT_PL[p.day.month - 1], "middle"))
+    labels.append((x(len(pts) - 1), date_dmy(pts[-1].day)[:cut], "end"))
+    for lx, text, anchor in labels:
+        body += f'<text x="{lx:.1f}" y="{h - 8}" text-anchor="{anchor}" fill="{TEXT}">{escape(text)}</text>'
+    last = pts[-1]
+
+    def mm(v: float | None) -> str:
+        return "brak danych" if v is None else f"{num(v)} mm"
+
+    label = f"Do {date_dmy(last.day)} spadło {mm(last.precip_mm)} deszczu, uprawa potrzebowała {mm(last.crop_need_mm)}."
+    return _svg(w, h, body, label)

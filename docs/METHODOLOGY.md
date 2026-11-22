@@ -1,4 +1,4 @@
-# Metodyka analizy — RolnikSzukaWody
+# Metodyka analizy — GeoSatel
 
 Dokument opisuje, jak aplikacja liczy ocenę sytuacji wodnej (moduł M3, `backend/app/analysis/`). Każdy próg jest stałą
 w kodzie z nazwą podaną niżej, więc zmiana progu = zmiana w jednym miejscu i w tym dokumencie.
@@ -318,6 +318,8 @@ z 10 poprzednich lat, miesiące III–X. Pokazujemy medianę („rok typowy”) 
 na miesiąc (przybliżenie). Przelicznik objętości roku suchego na staw o głębokości 2 m.
 
 ## 12. Symulator strategii 1–5 lat (`simulate.py`)
+
+*Od 22.11.2026 symulator jest liczony, ale nie jest pokazywany w raporcie (decyzja zespołu); kod zostaje do dalszych prac.*
 
 Zespół 10 sezonów pogody działki (październik–październik, start od polowej pojemności po zimie) z ET0 przeskalowanym
 trendem ET0 działki (metoda delta-change); opadów nie zmieniamy. Strategie: bez działań · podlewanie ratunkowe (tylko

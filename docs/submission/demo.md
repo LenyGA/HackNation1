@@ -19,7 +19,7 @@ Pitch 2–3 min + do 2 min pytań, demo na żywo dla 1–3 działek i dat wskaza
 | 0:25 | Ekran postępu ze statusami źródeł | „9 publicznych źródeł, 8 z nich równolegle; gdy któreś nie odpowie, raport powie to wprost.” |
 | 0:45 | Raport Podstawowy: Podsumowanie | Werdykt, zapas wody w glebie (X z Y mm) i próg stresu, próg IUNG-PIB, podatność 10 lat. |
 | 1:05 | Przyczyny i retencja | Dowody liczbowe; metody POLECANE / NIEZALECANE z powodem; „ile wody da retencja”. |
-| 1:25 | Nawadnianie i symulator | Termin, dawka, technologia, opłacalność; suwak 1–5 lat. |
+| 1:25 | Wykres wody i nawadnianie | Przyciski „Dane z ostatnich” (7 dni → rok); termin, dawka, technologia, opłacalność. |
 | 1:45 | Przełącznik Pełny, Źródła i Ograniczenia, PDF | „Każda liczba ma źródło i datę; bez LLM, ten sam wynik za każdym razem.” |
 
 ## Gdy coś pójdzie nie tak
