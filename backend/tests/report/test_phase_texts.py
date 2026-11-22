@@ -1,4 +1,4 @@
-"""Q3: field phase from the crop calendar drives the "no crop" and satellite texts (not one generic sentence)."""
+"""Q3: the field phase from the crop calendar drives the "no crop" and satellite texts."""
 
 from datetime import date
 

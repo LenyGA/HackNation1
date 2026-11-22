@@ -14,7 +14,14 @@ from typing import Any
 
 from app.analysis.assessment import Assessment, CurrentState, StructuralVulnerability
 from app.analysis.causes import Cause
-from app.analysis.context import VEGETATION_END, VEGETATION_START, AnalysisInputs, computed_source
+from app.analysis.context import (
+    VEGETATION_END,
+    VEGETATION_START,
+    AnalysisInputs,
+    computed_source,
+    landcover_surroundings,
+    surroundings_nearest_m,
+)
 from app.analysis.history import RISK_FREQUENCY, HistoryMethod
 from app.analysis.series import Weather, same_day_in_year
 from app.core.config import APP_TITLE, APP_VERSION, HISTORY_YEARS
@@ -293,6 +300,7 @@ def _context(
             "flow_paths": len(terrain.flow_paths),
             "fine": terrain.dataset == "gugik_nmt",
         },
+        "surroundings": _surroundings_view(inputs),
         "hydro": None
         if hydro is None
         else {
@@ -449,6 +457,18 @@ def _sources(inputs: AnalysisInputs, parcel_source: ParcelSource) -> list[Source
     return entries
 
 
+def _surroundings_view(inputs: AnalysisInputs) -> dict[str, Any] | None:
+    """WorldCover ring used in place of the OSM map (only when OSM is missing, Q4)."""
+    s = landcover_surroundings(inputs)
+    if s is None:
+        return None
+    return {
+        "radius_m": s.radius_m,
+        "nearest": {k: surroundings_nearest_m(s, k) for k in ("water_body", "wetland", "trees")},
+        "trees_pct": s.shares_pct.get("trees", 0.0),
+    }
+
+
 def _missing_data(inputs: AnalysisInputs) -> list[str]:
     out: list[str] = []
     for r in _source_results(inputs):
@@ -459,6 +479,7 @@ def _missing_data(inputs: AnalysisInputs) -> list[str]:
             status=r.status.value,
             message=r.message_pl or "",
             label=L.SOURCE_LABELS.get(r.name, r.name),
+            landcover_fallback=r.name == "hydro" and landcover_surroundings(inputs) is not None,
         )
         if line:
             out.append(line)

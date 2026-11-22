@@ -16,6 +16,10 @@ REASONS: dict[str, str] = {
     "terrain_cop": "Model wysokości 30 m; drobne zagłębienia i rowy mogą nie być widoczne.",
     "terrain_nmt": "Numeryczny model terenu z pomiaru lotniczego.",
     "osm": "Mapa OpenStreetMap bywa niepełna, zwłaszcza dla rowów i małych oczek.",
+    "worldcover": (
+        "Z mapy pokrycia terenu ESA WorldCover 10 m (zastępczo, bo mapa OpenStreetMap nie odpowiedziała); "
+        "małe oczka, wąskie rowy i pojedyncze drzewa mogą być niewidoczne."
+    ),
     "satellite": (
         "Zdjęcia satelitarne porównane z historią tej działki; uprawa w poprzednich latach jest nieznana."
     ),

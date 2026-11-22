@@ -15,7 +15,7 @@ from app.sources.dem import ElevationGrid
 from app.sources.flood import FloodData
 from app.sources.groundwater import GroundwaterData
 from app.sources.hydro import HydroData
-from app.sources.landcover import LandCoverData
+from app.sources.landcover import LandCoverData, Surroundings
 from app.sources.open_meteo import WeatherData
 from app.sources.sentinel2 import Sentinel2Data
 from app.sources.soilgrids import SoilData
@@ -49,6 +49,21 @@ class AnalysisInputs:
 
 def in_vegetation_period(day: date) -> bool:
     return month_day(VEGETATION_START, day.year) <= day <= month_day(VEGETATION_END, day.year)
+
+
+# WorldCover classes standing in for OSM kinds when Overpass does not answer (Q4).
+LANDCOVER_FOR_HYDRO = {"trees": "trees", "water_body": "water", "wetland": "wetland"}
+
+
+def landcover_surroundings(inputs: AnalysisInputs) -> Surroundings | None:
+    """Ring of land cover around the parcel, used only when the OSM map is missing (never mixed with OSM)."""
+    if inputs.hydro.data is not None or inputs.landcover.data is None:
+        return None
+    return inputs.landcover.data.surroundings
+
+
+def surroundings_nearest_m(s: Surroundings, hydro_kind: str) -> float | None:
+    return s.nearest_m.get(LANDCOVER_FOR_HYDRO[hydro_kind])
 
 
 def computed_source(*sources: str) -> str:

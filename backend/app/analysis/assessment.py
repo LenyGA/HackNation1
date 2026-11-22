@@ -28,7 +28,14 @@ from app.analysis.common import (
     level_from_ks,
     level_from_percentile,
 )
-from app.analysis.context import AnalysisInputs, Context, build_context, computed_source
+from app.analysis.context import (
+    AnalysisInputs,
+    Context,
+    build_context,
+    computed_source,
+    landcover_surroundings,
+    surroundings_nearest_m,
+)
 from app.analysis.history import (
     MIN_YEARS_FOR_PERCENTILE,
     HistoryResult,
@@ -527,6 +534,26 @@ def _vulnerability(ctx: Context) -> StructuralVulnerability:
                         computed_source(ctx.inputs.hydro.source),
                         level=Confidence.LOW,
                         reason="osm",
+                        step=10,
+                    )
+                ],
+            )
+        )
+    elif (lc := landcover_surroundings(ctx.inputs)) is not None:
+        present = [d for k in RETENTION_KINDS if (d := surroundings_nearest_m(lc, k)) is not None]
+        nearest_lc = min(present) if present else None
+        components.append(
+            VulnerabilityComponent(
+                "retention_elements",
+                1 if nearest_lc is None or nearest_lc > RETENTION_RADIUS_M else 0,
+                [
+                    indicator(
+                        "nearest_retention_element_m",
+                        nearest_lc,
+                        "m",
+                        computed_source(ctx.inputs.landcover.source),
+                        level=Confidence.LOW,
+                        reason="worldcover",
                         step=10,
                     )
                 ],

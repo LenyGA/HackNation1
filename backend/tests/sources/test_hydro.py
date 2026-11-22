@@ -15,7 +15,7 @@ from app.sources import hydro
 from tests.helpers import FIXTURES, parcel_from_polygon
 
 DATE = date(2025, 6, 15)
-PRIMARY, SECONDARY = hydro.SERVERS
+PRIMARY, SECONDARY, THIRD = hydro.SERVERS
 
 
 def _payload() -> dict[str, Any]:
@@ -32,6 +32,7 @@ async def test_features_distances_and_boundary_ditch(tmp_cache: DiskCache, parce
     with respx.mock(assert_all_called=False) as mock:
         first = mock.post(PRIMARY).mock(return_value=httpx.Response(200, json=_payload()))
         mock.post(SECONDARY).mock(return_value=httpx.Response(200, json=_payload()))
+        mock.post(THIRD).mock(return_value=httpx.Response(503))
         res = await hydro.fetch(parcel, DATE)
 
     query = first.calls.last.request.content.decode()
@@ -63,6 +64,7 @@ async def test_empty_result_is_ok_with_osm_note(tmp_cache: DiskCache, parcel: Pa
     with respx.mock(assert_all_called=False) as mock:
         mock.post(PRIMARY).mock(return_value=httpx.Response(200, json={"elements": []}))
         mock.post(SECONDARY).mock(return_value=httpx.Response(200, json={"elements": []}))
+        mock.post(THIRD).mock(return_value=httpx.Response(503))
         res = await hydro.fetch(parcel, DATE)
 
     assert res.status is SourceStatus.OK
@@ -82,10 +84,10 @@ async def test_empty_result_is_ok_with_osm_note(tmp_cache: DiskCache, parcel: Pa
     ],
     ids=["http-504", "timeout", "remark-error"],
 )
-async def test_both_servers_down_is_missing(tmp_cache: DiskCache, parcel: Parcel, failure: Any) -> None:
+async def test_all_servers_down_is_missing(tmp_cache: DiskCache, parcel: Parcel, failure: Any) -> None:
     with respx.mock() as mock:
         for url in hydro.SERVERS:
-            mock.post(url).mock(side_effect=[failure])
+            mock.post(url).mock(side_effect=[failure] * hydro.ATTEMPTS)
         res = await hydro.fetch(parcel, DATE)
 
     assert res.status is SourceStatus.MISSING
@@ -97,6 +99,7 @@ async def test_first_server_failing_second_ok(tmp_cache: DiskCache, parcel: Parc
     with respx.mock() as mock:
         mock.post(PRIMARY).mock(return_value=httpx.Response(429))
         mock.post(SECONDARY).mock(return_value=httpx.Response(200, json=_payload()))
+        mock.post(THIRD).mock(return_value=httpx.Response(503))
         res = await hydro.fetch(parcel, DATE)
 
     assert res.status is SourceStatus.OK
@@ -122,3 +125,20 @@ def test_classify() -> None:
     assert hydro.classify({"natural": "wetland"}) == "wetland"
     assert hydro.classify({"natural": "wood"}) == "trees"
     assert hydro.classify({"highway": "track"}) is None
+
+
+async def test_all_mirrors_fail_once_then_retry_succeeds(tmp_cache: DiskCache, parcel: Parcel) -> None:
+    """Q4: one retry round within the budget (a short Overpass hiccup no longer drops the source)."""
+    with respx.mock() as mock:
+        mock.post(PRIMARY).mock(side_effect=[httpx.Response(504), httpx.Response(200, json=_payload())])
+        mock.post(SECONDARY).mock(side_effect=[httpx.Response(429), httpx.Response(429)])
+        mock.post(THIRD).mock(side_effect=[httpx.ConnectTimeout("t"), httpx.ConnectTimeout("t")])
+        res = await hydro.fetch(parcel, DATE)
+    assert res.status is SourceStatus.OK
+    assert res.data is not None and res.data.counts["ditch"] == 1
+
+
+def test_mirrors_rotate_and_timeouts_fit_the_budget() -> None:
+    orders = {tuple(hydro._rotated(hydro.SERVERS)) for _ in range(len(hydro.SERVERS))}
+    assert len(hydro.SERVERS) >= 3 and len(orders) == len(hydro.SERVERS)
+    assert hydro.TIMEOUT_S * hydro.ATTEMPTS <= hydro.BUDGET_S

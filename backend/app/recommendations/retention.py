@@ -5,7 +5,7 @@ Thresholds are documented in docs/METHODOLOGY.md (section 8).
 
 from app.analysis.causes import RETENTION_RADIUS_M
 from app.analysis.common import indicator
-from app.analysis.context import computed_source
+from app.analysis.context import computed_source, landcover_surroundings, surroundings_nearest_m
 from app.analysis.terrain import RetentionSite
 from app.core.models import Confidence, Indicator
 from app.recommendations.common import found, light_soil, water_need
@@ -208,11 +208,19 @@ def _flow_locations(ctx: RuleContext) -> list[Location]:
 
 
 def _nearest_trees_m(ctx: RuleContext) -> float | None:
-    return ctx.hydro.nearest_m.get("trees") if ctx.hydro is not None else None
+    if ctx.hydro is not None:
+        return ctx.hydro.nearest_m.get("trees")
+    s = landcover_surroundings(ctx.inputs)
+    return surroundings_nearest_m(s, "trees") if s is not None else None
+
+
+def _trees_known(ctx: RuleContext) -> bool:
+    """Trees are known from OSM, or (OSM down) from the WorldCover ring around the parcel (Q4)."""
+    return ctx.hydro is not None or landcover_surroundings(ctx.inputs) is not None
 
 
 def _trees_condition(ctx: RuleContext) -> bool:
-    if ctx.hydro is None:
+    if not _trees_known(ctx):
         return False
     nearest = _nearest_trees_m(ctx)
     no_trees = nearest is None or nearest > RETENTION_RADIUS_M
@@ -220,8 +228,27 @@ def _trees_condition(ctx: RuleContext) -> bool:
 
 
 def _trees_evidence(ctx: RuleContext) -> list[Indicator]:
-    assert ctx.hydro is not None
     nearest = _nearest_trees_m(ctx)
+    if ctx.hydro is None:
+        s = landcover_surroundings(ctx.inputs)
+        assert s is not None
+        src = computed_source(ctx.inputs.landcover.source)
+        tree_ind = (
+            indicator(
+                "nearest_trees_m", nearest, "m", src, level=Confidence.LOW, reason="worldcover", step=10
+            )
+            if nearest is not None
+            else indicator(
+                "trees_share_surroundings_pct",
+                s.shares_pct.get("trees", 0.0),
+                "%",
+                src,
+                level=Confidence.LOW,
+                reason="worldcover",
+                step=0.1,
+            )
+        )
+        return [tree_ind, *light_soil(ctx), *water_need(ctx)]
     src = _hydro_source(ctx)
     tree_ind = (
         indicator("nearest_trees_m", nearest, "m", src, level=Confidence.LOW, reason="osm", step=10)
@@ -240,7 +267,11 @@ def _trees_evidence(ctx: RuleContext) -> list[Indicator]:
 
 def _trees_params(ctx: RuleContext) -> dict[str, ParamValue]:
     nearest = _nearest_trees_m(ctx)
-    radius = ctx.hydro.radius_m if ctx.hydro is not None else 0
+    if ctx.hydro is not None:
+        radius = ctx.hydro.radius_m
+    else:
+        s = landcover_surroundings(ctx.inputs)
+        radius = int(s.radius_m) if s is not None else 0
     return {"nearest_trees_m": round(nearest, -1) if nearest is not None else 0, "radius_m": radius}
 
 
@@ -253,14 +284,41 @@ def _protected(ctx: RuleContext) -> list[HydroFeature]:
     return [f for f in ctx.hydro.features if f.kind in PROTECT_KINDS and f.distance_m <= PROTECT_RADIUS_M]
 
 
+def _protected_landcover(ctx: RuleContext) -> tuple[str, float] | None:
+    """(kind, distance) of the nearest wetland or open water in the WorldCover ring when OSM is down (Q4)."""
+    s = landcover_surroundings(ctx.inputs)
+    if s is None:
+        return None
+    near = [
+        (kind, d)
+        for kind in PROTECT_KINDS
+        if (d := surroundings_nearest_m(s, kind)) is not None and d <= PROTECT_RADIUS_M
+    ]
+    return min(near, key=lambda kd: kd[1]) if near else None
+
+
 def _protect_condition(ctx: RuleContext) -> bool:
-    return bool(_protected(ctx))
+    return bool(_protected(ctx)) or _protected_landcover(ctx) is not None
 
 
 def _protect_evidence(ctx: RuleContext) -> list[Indicator]:
     feats = _protected(ctx)
     if not feats:
-        return []
+        lc = _protected_landcover(ctx)
+        if lc is None:
+            return []
+        src = computed_source(ctx.inputs.landcover.source)
+        return [
+            indicator(
+                "nearest_wetland_or_pond_m",
+                lc[1],
+                "m",
+                src,
+                level=Confidence.LOW,
+                reason="worldcover",
+                step=10,
+            )
+        ]
     src = _hydro_source(ctx)
     return [
         indicator(
@@ -278,6 +336,10 @@ def _protect_evidence(ctx: RuleContext) -> list[Indicator]:
 
 def _protect_params(ctx: RuleContext) -> dict[str, ParamValue]:
     feats = _protected(ctx)
+    if not feats:
+        lc = _protected_landcover(ctx)
+        assert lc is not None
+        return {"kind": lc[0], "distance_m": round(lc[1], -1), "count": 1, "radius_m": int(PROTECT_RADIUS_M)}
     nearest = min(feats, key=lambda f: f.distance_m)
     return {
         "kind": nearest.kind,

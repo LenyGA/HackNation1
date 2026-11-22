@@ -20,7 +20,7 @@ from statistics import mean
 from typing import Literal
 
 from app.analysis.common import DeficitLevel, indicator
-from app.analysis.context import Context, computed_source
+from app.analysis.context import Context, computed_source, landcover_surroundings, surroundings_nearest_m
 from app.analysis.series import same_day_in_year
 from app.analysis.soil import SoilCategory
 from app.core.config import HISTORY_YEARS
@@ -157,6 +157,25 @@ def _runoff(ctx: Context) -> Cause:
         indicator("main_outlet_area_m2", main_outlet, "m²", tsrc, level=tconf, reason=treason, step=100),
     ]
     no_retention: bool | None = None
+    lc = landcover_surroundings(ctx.inputs)
+    if hydro is None and lc is not None:
+        # OSM did not answer: trees, open water and wetlands from the WorldCover ring (Q4); ditches unknown.
+        present = [
+            d for k in ("water_body", "wetland", "trees") if (d := surroundings_nearest_m(lc, k)) is not None
+        ]
+        nearest_lc = min(present) if present else None
+        no_retention = nearest_lc is None or nearest_lc > RETENTION_RADIUS_M
+        evidence.append(
+            indicator(
+                "nearest_retention_element_m",
+                nearest_lc,
+                "m",
+                computed_source(ctx.inputs.landcover.source),
+                level=Confidence.LOW,
+                reason="worldcover",
+                step=10,
+            )
+        )
     if hydro is not None:
         hsrc = computed_source(ctx.inputs.hydro.source)
         distances = [hydro.nearest_m.get(k) for k in ("water_body", "wetland", "trees")]

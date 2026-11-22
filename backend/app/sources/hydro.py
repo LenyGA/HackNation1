@@ -37,14 +37,17 @@ from app.sources.base import (
 log = logging.getLogger(__name__)
 
 NAME = "hydro"
+# Public Overpass instances (https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances).
 SERVERS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
 ]
 SOURCE = "OpenStreetMap, współtwórcy OSM, usługa Overpass API, https://www.openstreetmap.org/"
 LICENSE = "ODbL 1.0 (© współtwórcy OpenStreetMap)"
-TIMEOUT_S = 12.0
+TIMEOUT_S = 7.0  # per request; one retry round fits in BUDGET_S
 BUDGET_S = 15.0
+ATTEMPTS = 2
 SEARCH_RADIUS_M = 1000
 BOUNDARY_BUFFER_M = 30.0
 MAX_FEATURES = 400
@@ -207,9 +210,19 @@ async def _query_server(url: str, query: str) -> list[dict[str, Any]]:
     return list(payload["elements"])
 
 
-async def query_first(query: str) -> list[dict[str, Any]]:
+def _rotated(servers: list[str]) -> list[str]:
+    """Servers in a rotating order, so one slow instance is not always asked first (Q4)."""
+    global _rotation
+    _rotation = (_rotation + 1) % len(servers)
+    return servers[_rotation:] + servers[:_rotation]
+
+
+_rotation = 0
+
+
+async def _race(query: str, servers: list[str]) -> list[dict[str, Any]]:
     """Ask all servers at once and return the first successful answer."""
-    tasks = [asyncio.create_task(_query_server(u, query)) for u in SERVERS]
+    tasks = [asyncio.create_task(_query_server(u, query)) for u in servers]
     try:
         for fut in asyncio.as_completed(tasks):
             try:
@@ -222,6 +235,18 @@ async def query_first(query: str) -> list[dict[str, Any]]:
             t.cancel()
 
 
+async def query_first(query: str, attempts: int = ATTEMPTS) -> list[dict[str, Any]]:
+    """Race all mirrors; if every one fails (fast errors or TIMEOUT_S), try once more within the budget."""
+    last: SourceError | None = None
+    for _ in range(attempts):
+        try:
+            return await _race(query, _rotated(SERVERS))
+        except SourceError as exc:
+            last = exc
+    assert last is not None
+    raise last
+
+
 async def fetch(parcel: Parcel, analysis_date: date) -> SourceResult[HydroData]:
     return await within_budget(
         NAME,
@@ -231,10 +256,7 @@ async def fetch(parcel: Parcel, analysis_date: date) -> SourceResult[HydroData]:
             NAME,
             source=SOURCE,
             license=LICENSE,
-            message_pl=(
-                "Serwis danych o ciekach i rowach (OpenStreetMap) nie odpowiedział na czas. "
-                "Nie oceniamy rowów, cieków, oczek wodnych ani zadrzewień w okolicy."
-            ),
+            message_pl=("Serwis danych o ciekach i rowach (OpenStreetMap) nie odpowiedział na czas."),
         ),
     )
 
@@ -260,9 +282,7 @@ async def _fetch(parcel: Parcel) -> SourceResult[HydroData]:
                 NAME,
                 source=SOURCE,
                 license=LICENSE,
-                message_pl=(
-                    f"{exc.message_pl} Nie oceniamy rowów, cieków, oczek wodnych ani zadrzewień w okolicy."
-                ),
+                message_pl=exc.message_pl,
             )
         cache.set(NAME, params, elements, timedelta(days=CACHE_TTL_DAYS))
 

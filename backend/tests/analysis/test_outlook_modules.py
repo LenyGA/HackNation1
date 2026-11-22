@@ -190,7 +190,7 @@ def test_strategies_order_is_physical() -> None:
 @pytest.mark.parametrize("texture", [(80, 10, 10, 6), (40, 40, 20, 12), (20, 40, 40, 20)])
 @pytest.mark.parametrize("dose_cap", [None, 25.0])
 def test_adding_an_action_never_makes_the_result_worse(crop_id, texture, dose_cap) -> None:
-    """Q1 invariant: retention and irrigation only add water, so no combined strategy is worse than its parts."""
+    """Q1 invariant: retention and irrigation only add water; no combined strategy is worse than its parts."""
     c = crop(crop_id)
     soil = soil_properties(soil_data(soil_layers(*texture)), c.root_depth_m)
     for seed in (1, 3, 5):
@@ -198,7 +198,8 @@ def test_adding_an_action_never_makes_the_result_worse(crop_id, texture, dose_ca
         assert sim is not None
         by = {(r.strategy, r.year_ahead): r for r in sim.results}
         for k in range(1, 6):
-            none, rescue, ret, both = (by[(s, k)] for s in ("none", "rescue", "retention", "retention_rescue"))
+            ids = ("none", "rescue", "retention", "retention_rescue")
+            none, rescue, ret, both = (by[(s, k)] for s in ids)
             for q in ("stress_days_median", "stress_days_p80"):
                 assert getattr(both, q) <= getattr(rescue, q) <= getattr(none, q), (seed, k, q)
                 assert getattr(ret, q) <= getattr(none, q), (seed, k, q)

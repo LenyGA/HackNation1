@@ -10,7 +10,10 @@ Dane dla tej działki nie wskazują konkretnego miejsca ani potrzeby budowy elem
 
 Nie mamy danych o ukształtowaniu terenu, więc nie szukaliśmy zagłębień ani miejsc spływu wody na działce.
 {% endif %}
-{% if complete and hydro is none %}
+{% if complete and hydro is none and surroundings %}
+
+Nie mamy danych o rowach i ciekach w okolicy, więc zaleceń o zastawkach na rowach nie sprawdzaliśmy. Zadrzewienia, oczka i mokradła w promieniu {{ surroundings.radius_m|num }} m oceniamy zastępczo z mapy pokrycia terenu.
+{% elif complete and hydro is none %}
 
 Nie mamy danych o rowach, oczkach i zadrzewieniach w okolicy, więc zalecenia, które ich dotyczą, nie były sprawdzane.
 {% endif %}

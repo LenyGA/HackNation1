@@ -40,6 +40,7 @@ INDICATOR_LABELS: dict[str, str] = {
     "nearest_wetland_or_pond_m": "Odległość do najbliższego oczka lub mokradła",
     "nearest_trees_m": "Odległość do najbliższego zadrzewienia",
     "trees_within_radius_count": "Zadrzewienia w pobliżu działki",
+    "trees_share_surroundings_pct": "Udział drzew w promieniu 500 m od działki",
     "wetlands_and_ponds_count": "Oczka i mokradła w pobliżu działki",
     "ditch_length_along_boundary_m": "Długość rowów wzdłuż granicy działki",
     "depression_count": "Zagłębienia terenu na działce",
