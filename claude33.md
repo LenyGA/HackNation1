@@ -104,6 +104,11 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | G6 | Wariant ostrożnościowy P80/P90 w planie wody i symulatorze | ✅ | `analysis/simulate.py`, `analysis/water_plan.py` (sprawdzić, czy P80 widać w raporcie Podstawowym) |
 | G7 | Raport Podstawowy / Pełny | ❌ | Są tylko rozwijane „Szczegóły” per sekcja (`ReportPage.tsx`) |
 | G8 | SOC i 4 per mille (Minasny 2017) w agrotechnice i symulatorze | ⚠️ | Jest reguła niskiego SOC (`recommendations/agrotech.py`), brakuje ujęcia 4 per mille |
+| G9 | **Synteza metod retencji (3.2 pkt 2: miejsca i sposoby)**: oczko lub staw w zagłębieniu, zastawka lub drenaż kontrolowany, deszczówka z dachów, studnia, pasy zadrzewień. Każda ma status POLECANE / WARUNKOWO / NIEZALECANE z uzasadnieniem z danych działki. Karta „% pokrycia potrzeb”: objętość zagłębienia vs potrzeby nawadniania (rok suchy, pełne i ratunkowe) | ❌ | Jest tylko objętość zagłębienia; brak porównania z potrzebami i tabeli metod. Progi Prawa wodnego (staw ≤ 5000 m², pobór ≤ 5 m³/dobę) **sprawdzić w ISAP przed wpisaniem do reguł** |
+| G10 | **Dobór technologii nawadniania + opłacalność (3.2 pkt 3: zasadność i zakres)**: areał i kształt z ULDK (minimum rotated rectangle) → pivot / szpulowa / kroplowe / brak inwestycji; werdykt „opłacalne / na granicy / nieopłacalne” | ❌ | Ceny i koszty jako **widełki z jawnymi, edytowalnymi założeniami i źródłem** (GUS, CDR), bez kwot co do złotówki (zasada 6) |
+| G11 | **Gospodarstwo / sąsiednie działki (3.1, 3.2 „w obrębie działki lub gospodarstwa”)**: „+ Dodaj działkę” (ID lub klik), suma areału, wspólna retencja i opłacalność; pogodę i wody gruntowe pobieramy raz | ❌ | Domyślnie zostaje 1 działka i < 30 s. Robić po P0 i G9–G10 |
+| G12 | **Wyszukiwanie działki po gminie, obrębie i numerze** (jury podaje „numer działki”, nie zawsze pełny TERYT): ULDK `GetParcelByIdOrNr` + podpowiedzi przy niejednoznacznym wyniku | ❌ | `sources/uldk.py` obsługuje tylko `GetParcelById` i `GetParcelByXY` |
+| G13 | **Kontrola krzyżowa z oficjalnymi ocenami suszy** (6: jury porównuje z danymi referencyjnymi): IUNG Monitoring Suszy / mapa podatności gleb, EDO CDI (WMS) pokazane obok naszego werdyktu, z opisem zgodności | ❌ | EDO i IUNG są tylko wspomniane, nie są pobierane. Wzmacnia też R9 |
 
 ### Zgłoszenie (4.1) i README (4.2, 5.3–5.6)
 | ID | Wymaganie | Status | Luka |
@@ -132,9 +137,28 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | T1 | `test_builder.py::test_sources_section_lists_every_source_with_date` ma na sztywno „21 listopada 2026” (5 przypadków pada) | ❌ **blokuje push przez hook** |
 | T2 | `npx tsc --noEmit` w `frontend/` nic nie sprawdza (`files: []`); używaj `-p tsconfig.app.json` lub `npm run build` | ⚠️ |
 | T3 | Rozjazd zaokrągleń dawki (plan wody 5/10 mm vs dawka 1 mm) | ⚠️ |
+| T4 | Test na Windows w Chrome, Firefox, Edge i Operze oraz na macOS/iOS w Safari, łącznie z PDF i drukiem (wymóg 3.2) | ❌ niezweryfikowane |
+| T5 | Działka nierolnicza, bardzo mała, bardzo duża lub wieloczęściowa: jawne ostrzeżenie i czas < 30 s | ⚠️ ostrzeżenie `landcover_not_agricultural` jest; skrajne rozmiary nie były testowane |
 
-**Priorytet (od największego wpływu na punkty):** T1 → G3 → G1 → G7 → Z6 → R1–R12 → G8 → G5 → Z2/Z4/Z5 (materiały zgłoszeniowe
-na końcu, ale z zapasem czasu przed zamknięciem Platformy).
+### Błędy w raporcie online (`Uwagi/uwagi krytyczne.docx`, 22.11) — P0, przed nowymi funkcjami
+| ID | Błąd | Status | Naprawa |
+|---|---|---|---|
+| Q1 | Symulator 1–5 lat: „Retencja + podlewanie” wychodzi **gorzej** niż samo „Podlewanie”, a „Budowanie retencji” daje dokładnie tyle samo co „Bez działań” | ❌ | Sprawdzić `analysis/simulate.py` (próg wyzwalania podlewania, wpływ ściółki na parowanie z gleby, Ke vs Kc). **Test niezmiennika:** dołożenie działania nigdy nie zwiększa dni stresu |
+| Q2 | Dawka ratunkowa w jednym raporcie raz ~50 mm, raz ~75 mm | ❌ | Jedna definicja i jedna zmienna dla „podlewania ratunkowego”; łączy się z T3 |
+| Q3 | Żyto 22.07 opisane jako „nie zakryło jeszcze pola”; podpis wykresu Sentinel-2 nie zgadza się z punktami na wykresie | ❌ | Rozdzielić komunikaty „przed siewem / wschody” i „dojrzewanie / po żniwach”; tekst opisuje faktyczne punkty (data ostatniej czystej sceny) |
+| Q4 | OSM Overpass padł → „brak danych o rowach, oczkach, zadrzewieniach” | ❌ | Fallback na już pobrany WorldCover 10 m (klasy 10 drzewa, 80 woda, 90 mokradła) w buforze 500 m; brak dotyczy wtedy tylko rowów. Rotacja mirrorów, krótszy timeout, retry. Docelowo G3 |
+| Q5 | Kafelek „Sytuacja się pogarsza” obok „temperatura −0,5 °C/dekadę” (sprzeczność) | ❌ | Kafelek pokazuje miarę, która faktycznie się pogarsza (dni stresu, dni upalne); werdykt trendu liczony z tej samej miary, którą pokazuje |
+| Q6 | Zalecenie „zostaw zagłębienie jako rozlewisko” mimo gliny i zagrożenia podtopieniami (PIG-PIB) | ❌ | Reguła retencji uwzględnia glebę i ryzyko podtopień → „kontrolowany staw lub zastawka z odpływem; ryzyko wymakania ozimin” |
+| Q7 | PDF: mapa działki bez podkładu; tekst mówi o 1 zagłębieniu, przekrój o 2, mapa pokazuje 3; „pow. powiat”; ucięte „… i 1 inna wartość” | ❌ | Podkład z ortofotomapy Geoportalu (WMS GetMap po stronie serwera); jawny filtr „główne zagłębienie w granicach działki”; w PDF nie ucinamy dowodów |
+
+### Inne formalne
+| ID | Wymaganie | Status | Luka |
+|---|---|---|---|
+| Z8 | `LICENSE`: „Copyright … Łukasz Dębski”. Regulamin § 6 ust. 2 każe identyfikować rozwiązanie nazwą zespołu, a § 5 przewiduje przeniesienie praw na KOWR | ⚠️ | Zmienić właściciela na „GeoSatel”; decyzja zespołu |
+| Z9 | Finał: demo na żywo dla 1–3 działek i dat jury w 2–3 min | ❌ | Scenariusz demo, rozgrzany cache, zapasowe PDF-y z Z6 na wypadek awarii sieci |
+
+**Priorytet (od największego wpływu na punkty):** T1 → **Q1–Q7** → G3 → G1 → G7 → **G12** → Z6 → **G9 → G10** → R1–R12 →
+T4/T5 → G13 → G8 → G5 → **G11** → Z2/Z4/Z5/Z9 (materiały zgłoszeniowe zawsze z zapasem czasu przed zamknięciem Platformy).
 
 ## Stack
 
