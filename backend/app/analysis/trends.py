@@ -11,10 +11,16 @@ with a robust trend per decade. Pure, no I/O.
   and in the months that are critical for the crop.
 - Trend: Theil–Sen slope (median of pairwise slopes; Sen 1968, J. Am. Stat. Assoc. 63:1379–1389), robust to a
   single extreme year, expressed per decade. With ≤ 10 points it is indicative only and the report says so.
+- Significance: two-sided Mann–Kendall test (Mann 1945, Econometrica 13:245–259; Kendall 1975, Rank
+  Correlation Methods), normal approximation with the ties correction. A direction ("worse"/"better", and any
+  "per decade" wording) is reported only when p < MK_ALPHA; otherwise the metric is "stable" and the report
+  compares the last 2 seasons with the 10-year mean without extrapolating (Q5, uwaga K5).
 - "Recent" change: mean of the last 2 seasons against the mean of the whole window, in units of the
   between-year standard deviation (how unusual the last two seasons are for this parcel).
 """
 
+import math
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from enum import StrEnum
@@ -73,6 +79,8 @@ MIN_RECENT_DIFF: dict[str, float] = {
 # Recent seasons this many between-year SDs worse than the 10-year mean: "much worse" / "critical".
 RECENT_WORSE_SD = 0.5
 RECENT_CRITICAL_SD = 1.0
+# 10 % two-sided: with ≤ 10 seasons the test has little power, and the wording stays "indicative".
+MK_ALPHA = 0.10
 
 
 class Direction(StrEnum):
@@ -101,6 +109,8 @@ class MetricTrend:
     direction: Direction | None
     recent: RecentChange | None
     recent_sd: float | None  # (mean_recent − mean_all) / SD, signed so that > 0 is worse
+    mk_p: float | None = None  # Mann–Kendall two-sided p-value of the trend
+    significant: bool = False  # mk_p < MK_ALPHA
 
 
 @dataclass(frozen=True)
@@ -124,6 +134,20 @@ def theil_sen_slope(xs: list[float], ys: list[float]) -> float | None:
     slopes.sort()
     n = len(slopes)
     return slopes[n // 2] if n % 2 else (slopes[n // 2 - 1] + slopes[n // 2]) / 2
+
+
+def mann_kendall_p(values: list[float]) -> float | None:
+    """Two-sided p-value of the Mann–Kendall trend test (normal approximation, ties corrected)."""
+    n = len(values)
+    if n < 3:
+        return None
+    s = sum((values[j] > values[i]) - (values[j] < values[i]) for i in range(n - 1) for j in range(i + 1, n))
+    ties = sum(t * (t - 1) * (2 * t + 5) for t in Counter(values).values() if t > 1)
+    var = (n * (n - 1) * (2 * n + 5) - ties) / 18
+    if var <= 0:
+        return 1.0
+    z = (s - 1) / math.sqrt(var) if s > 0 else (s + 1) / math.sqrt(var) if s < 0 else 0.0
+    return math.erfc(abs(z) / math.sqrt(2))
 
 
 def _days(start: date, end: date) -> list[date]:
@@ -176,9 +200,11 @@ def _metric(key: str, years: list[int], values: list[float | None]) -> MetricTre
     slope = theil_sen_slope([float(y) for y, _ in pairs], vals)
     slope_dec = None if slope is None else slope * 10
     up_worse = WORSE_IF_UP[key]
+    mk_p = mann_kendall_p(vals)
+    significant = mk_p is not None and mk_p < MK_ALPHA
     direction: Direction | None = None
     if slope_dec is not None:
-        if abs(slope_dec) < STABLE_PER_DECADE[key]:
+        if abs(slope_dec) < STABLE_PER_DECADE[key] or not significant:
             direction = Direction.STABLE
         else:
             direction = Direction.WORSE if (slope_dec > 0) == up_worse else Direction.BETTER
@@ -198,7 +224,19 @@ def _metric(key: str, years: list[int], values: list[float | None]) -> MetricTre
     else:
         recent, recent_sd = RecentChange.TYPICAL, 0.0
     return MetricTrend(
-        key, unit, years, values, mean_all, mean_mid, mean_recent, slope_dec, direction, recent, recent_sd
+        key,
+        unit,
+        years,
+        values,
+        mean_all,
+        mean_mid,
+        mean_recent,
+        slope_dec,
+        direction,
+        recent,
+        recent_sd,
+        mk_p=mk_p,
+        significant=significant,
     )
 
 

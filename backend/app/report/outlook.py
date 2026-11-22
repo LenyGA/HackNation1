@@ -560,6 +560,54 @@ def _flood_tile(flood: FloodInfo | None) -> SummaryTile:
     )
 
 
+# The tile shows the number of the same metric the verdict is computed from (Q5): crop stress days (with soil
+# data) or the season water balance, never the season temperature (it stays in the trends block details).
+TILE_TREND_KEYS = PRIMARY_TREND_KEYS
+TILE_TREND_NAMES = {
+    "critical_stress_days": "Dni stresu wodnego w ważnych miesiącach",
+    "stress_days": "Dni stresu wodnego w sezonie",
+    "kbw_mm": "Bilans deszczu i parowania w sezonie",
+}
+
+
+def _tile_metric(t: ClimateTrends) -> TrendMetric | None:
+    """The verdict's own metric: the first of PRIMARY_TREND_KEYS with data, as in _trend_level."""
+    by = {m.key: m for m in t.metrics}
+    for key in TILE_TREND_KEYS:
+        m = by.get(key)
+        if m is not None and m.mean_all is not None:
+            return m
+    return None
+
+
+def _climate_tile_detail(t: ClimateTrends) -> str:
+    m = _tile_metric(t)
+    if m is None:
+        return "Za mało danych, by pokazać liczbę."
+    unit = m.unit
+    recent, mean_all = m.mean_recent, m.mean_all
+    assert mean_all is not None
+    parts: list[str] = []
+    against = recent is None
+    if recent is not None:
+        recent_worse = (recent - mean_all) * (1 if m.key != "kbw_mm" else -1) > 0
+        # The recent comparison is shown unless it points against the verdict.
+        against = (t.level in ("worse", "critical") and not recent_worse and recent != mean_all) or (
+            t.level == "better" and recent_worse
+        )
+    if not against and recent is not None:
+        parts.append(
+            f"ostatnie 2 lata {num(recent)} {unit} wobec {num(mean_all)} {unit} "
+            f"średnio z {len(t.seasons)} lat"
+        )
+    if m.direction in ("worse", "better") and m.slope_per_decade is not None:
+        sign = "+" if m.slope_per_decade > 0 else "−"
+        parts.append(f"trend {sign}{num(abs(m.slope_per_decade))} {unit} na dekadę")
+    if not parts:
+        return f"{TILE_TREND_NAMES[m.key]}: średnio {num(mean_all)} {unit} w {len(t.seasons)} latach."
+    return f"{TILE_TREND_NAMES[m.key]}: " + "; ".join(parts) + "."
+
+
 def _climate_tile(t: ClimateTrends | None) -> SummaryTile:
     if t is None:
         return SummaryTile(
@@ -577,12 +625,7 @@ def _climate_tile(t: ClimateTrends | None) -> SummaryTile:
         "better": "good",
         "unknown": "unknown",
     }[t.level]  # type: ignore[assignment]
-    temp = next((m for m in t.metrics if m.key == "tmean_c"), None)
-    detail = t.verdict_pl[0].removeprefix("Wniosek: ") if t.verdict_pl else ""
-    detail = detail[:1].upper() + detail[1:]
-    if temp is not None and temp.slope_per_decade is not None:
-        sign = "+" if temp.slope_per_decade > 0 else "−" if temp.slope_per_decade < 0 else ""
-        detail = f"Temperatura sezonu: {sign}{num(abs(temp.slope_per_decade), 0.1)} °C na dekadę. " + detail
+    detail = _climate_tile_detail(t)
     return SummaryTile(
         id="climate",
         label_pl=f"Zmiana klimatu na działce ({len(t.seasons)} lat → 2 lata)",

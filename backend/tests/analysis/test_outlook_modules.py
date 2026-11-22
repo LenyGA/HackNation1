@@ -273,3 +273,65 @@ def test_flat_profile_uses_long_axis_and_marks_hollow() -> None:
     prof = slope_profile(grid_around(parcel_shape(parcel), bowl), parcel_shape(parcel))
     assert prof is not None and prof.along_long_axis
     assert any(p.hollow for p in prof.points)
+
+
+# --- Q5: trend significance and the climate tile -----------------------------------------------------
+
+
+def test_mann_kendall_flags_monotone_series_only() -> None:
+    from app.analysis.trends import MK_ALPHA, mann_kendall_p
+
+    assert mann_kendall_p([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) < 0.01
+    assert mann_kendall_p([5, 3, 6, 2, 7, 4, 5, 3, 6, 4]) > MK_ALPHA
+    assert mann_kendall_p([4.0] * 10) == 1.0
+    assert mann_kendall_p([1, 2]) is None
+
+
+def test_insignificant_slope_is_reported_as_stable() -> None:
+    from app.analysis.trends import Direction, _metric
+
+    years = list(range(2015, 2025))
+    noisy = [20.0, 45.0, 10.0, 50.0, 15.0, 40.0, 12.0, 55.0, 18.0, 44.0]  # big slope by chance, no trend
+    m = _metric("stress_days", years, noisy)
+    assert not m.significant and m.direction is Direction.STABLE
+    rising = [10.0 + 4 * i for i in range(10)]
+    m2 = _metric("stress_days", years, rising)
+    assert m2.significant and m2.direction is Direction.WORSE
+
+
+@pytest.mark.parametrize("seed", range(1, 9))
+def test_climate_tile_verdict_and_number_agree(seed: int) -> None:
+    """Q5: 'getting worse' never stands next to a measure moving the other way; no temperature on the tile."""
+    import re
+
+    from tests.report.builders import report_for
+
+    def precip(d: date) -> float:
+        return random_precip(seed)(d) * (1 - 0.06 * (d.year - 2015))  # drier towards the end
+
+    r = report_for(precip=precip)
+    tile = next(t for t in r.summary_tiles if t.id == "climate")
+    assert "Temperatura" not in tile.detail_pl
+    m = re.search(r"ostatnie 2 lata ([\d ,−-]+) (?:dni|mm) wobec ([\d ,−-]+)", tile.detail_pl)
+    slope = re.search(r"trend ([+−])", tile.detail_pl)
+    kbw = "Bilans" in tile.detail_pl
+
+    def val(txt: str) -> float:
+        return float(txt.replace(" ", "").replace(",", ".").replace("−", "-"))
+
+    if tile.status in ("warn", "bad"):  # "worse" / "critical"
+        if m:
+            recent, mean_all = val(m.group(1)), val(m.group(2))
+            assert (recent <= mean_all) if kbw else (recent >= mean_all), tile.detail_pl
+        if slope:
+            assert slope.group(1) == ("−" if kbw else "+"), tile.detail_pl
+    if "na dekadę" in tile.detail_pl:
+        trends = r.trends
+        assert trends is not None
+        key = next(
+            k
+            for k in ("critical_stress_days", "stress_days", "kbw_mm")
+            if any(x.key == k for x in trends.metrics)
+        )
+        metric = next(x for x in trends.metrics if x.key == key)
+        assert metric.direction in ("worse", "better")
