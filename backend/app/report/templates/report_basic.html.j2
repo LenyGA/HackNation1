@@ -11,6 +11,7 @@
     the recommendations split into "now" and "before the next season", explicit missing data, limitations
     and sources (requirement 3.3 pt 5). Nothing here is computed: all values come from the saved Report. -#}
 <span class="report-id">{{ r.id }}</span>
+<div class="brand"><img src="{{ logo_uri }}" alt="GeoSatel"><span>{{ r.app }}</span></div>
 <h1>{{ r.app }}: raport o wodzie na działce <span class="variant">wariant podstawowy</span></h1>
 <div class="meta">
   <span>Działka: <b>{{ r.parcel.id }}</b></span>

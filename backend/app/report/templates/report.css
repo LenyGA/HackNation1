@@ -8,7 +8,10 @@
 * { box-sizing: border-box; }
 html { font-family: "DejaVu Sans", "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 8.8pt; color: #1a1a1a; line-height: 1.38; }
 body { margin: 0; }
-h1 { font-size: 15pt; margin: 0 0 1mm; }
+h1 { font-size: 15pt; margin: 0 0 1mm; color: #14284b; }
+.brand { display: flex; align-items: center; gap: 3mm; border-bottom: 0.8pt solid #2e6b2a; padding-bottom: 1.5mm; margin-bottom: 2.5mm; }
+.brand img { height: 9mm; width: auto; }
+.brand span { font-size: 10pt; font-weight: bold; color: #14284b; border-left: 0.5pt solid #bbb; padding-left: 3mm; }
 h2 { font-size: 11pt; margin: 4.5mm 0 1.5mm; padding-bottom: 0.8mm; border-bottom: 0.6pt solid #b9b9b9; break-after: avoid; }
 h3 { font-size: 9.6pt; margin: 2.5mm 0 0.8mm; break-after: avoid; }
 p { margin: 0 0 1.6mm; }

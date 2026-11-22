@@ -105,7 +105,7 @@ function Actions({ report, variant }: { report: Report; variant: ReportVariant }
   return (
     <div className="space-y-2">
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-      <Button asChild size="lg" className="h-12">
+      <Button asChild variant="navy" size="lg" className="h-12">
         <a href={api.reportPdfUrl(report.id, variant)} download>
           <Download /> Pobierz PDF {variant === 'basic' ? '(podstawowy)' : '(pełny)'}
         </a>
@@ -390,16 +390,20 @@ export function ReportPage() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold leading-tight">Raport wodny działki nr {p.number ?? p.id}</h1>
-        <p className="text-muted-foreground">
+      <header className="overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-navy to-primary px-4 py-5 text-navy-foreground shadow-md sm:px-6">
+        <p className="text-xs font-semibold tracking-[0.18em] text-white/75 uppercase">Raport wodny</p>
+        <h1 className="mt-1 text-2xl leading-tight font-bold sm:text-3xl">Działka {p.number ?? p.id}</h1>
+        <p className="mt-1 text-white/90">
           {place && <>{place} · </>}
-          {formatAreaHa(p.area_ha)} · {report.crop.name_pl} · stan na {formatDatePl(report.analysis_date)}
+          {formatAreaHa(p.area_ha)} · {report.crop.name_pl}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
+          Stan na {formatDatePl(report.analysis_date)}
+        </p>
+        <p className="mt-2 text-xs text-white/70">
           Numer działki: {p.id} · raport przygotowano {formatDateTimePl(report.created_at)}
         </p>
-      </div>
+      </header>
       {report.farm && <FarmNote farm={report.farm} />}
 
       <HeadlineBanner headline={report.headline} />

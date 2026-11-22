@@ -1,5 +1,20 @@
-import { Loader2, MapPin, MousePointerClick, Plus, Search, X } from 'lucide-react'
-import { type FormEvent, lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import {
+  Carrot,
+  ClipboardList,
+  Droplets,
+  Flower2,
+  Leaf,
+  Loader2,
+  MapPin,
+  MousePointerClick,
+  Plus,
+  Satellite,
+  Search,
+  Sprout,
+  Wheat,
+  X,
+} from 'lucide-react'
+import { type FormEvent, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiRequestError } from '@/api/client'
 import { tooFar } from '@/lib/farm'
@@ -7,7 +22,6 @@ import { type Crop, type CropKind, MAX_EXTRA_PARCELS, type Parcel, type Place } 
 import { AddressSearch } from '@/components/AddressSearch'
 import type { MapFocus } from '@/components/map/ParcelPickerMap'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -29,9 +43,20 @@ import {
   parcelIdError,
   todayIso,
 } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 // The map library is large; the form renders first and the map follows.
 const ParcelPickerMap = lazy(() => import('@/components/map/ParcelPickerMap'))
+
+// The most common crops as one-tap chips (mock-up); every crop, orchards included, is in the list below them.
+const POPULAR_CROPS = ['grassland', 'winter_wheat', 'maize', 'winter_rapeseed', 'potato']
+const CROP_ICON: Record<string, typeof Sprout> = {
+  grassland: Leaf,
+  winter_wheat: Wheat,
+  maize: Sprout,
+  winter_rapeseed: Flower2,
+  potato: Carrot,
+}
 
 // Crop list grouped by kind; the backend catalogue decides which crop belongs where.
 const CROP_GROUPS: { label: string; kinds: CropKind[] }[] = [
@@ -41,7 +66,7 @@ const CROP_GROUPS: { label: string; kinds: CropKind[] }[] = [
 
 function MapPlaceholder() {
   return (
-    <div className="flex h-[320px] items-center justify-center rounded-lg border bg-muted text-sm text-muted-foreground sm:h-[420px]">
+    <div className="flex h-[60svh] max-h-[720px] min-h-[320px] items-center justify-center rounded-lg border bg-muted text-sm text-muted-foreground">
       <Loader2 className="mr-2 size-4 animate-spin" /> Wczytuję mapę…
     </div>
   )
@@ -49,17 +74,6 @@ function MapPlaceholder() {
 
 function errorText(err: unknown, fallback: string): string {
   return err instanceof ApiRequestError ? err.message : fallback
-}
-
-function StepTitle({ n, children }: { n: number; children: ReactNode }) {
-  return (
-    <h2 className="flex items-center gap-2 text-base font-semibold">
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm text-primary-foreground">
-        {n}
-      </span>
-      {children}
-    </h2>
-  )
 }
 
 function ParcelSummary({ parcel }: { parcel: Parcel }) {
@@ -378,175 +392,257 @@ export function StartPage() {
 
   const minDate = minAnalysisDateIso()
   const maxDate = todayIso()
+  const popular = POPULAR_CROPS.map((id) => crops.find((c) => c.id === id)).filter((c): c is Crop => c !== undefined)
+  const otherChosen = cropId !== '' && !popular.some((c) => c.id === cropId)
+  const chooseCrop = (id: string) => {
+    setCropId(id)
+    setCropError(null)
+  }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Sprawdź swoją działkę</CardTitle>
-          <CardDescription>
-            Podaj numer działki lub wskaż ją na mapie, wybierz uprawę i datę. Policzymy, jak wygląda sytuacja wodna na
-            polu i co możesz zrobić, żeby zatrzymać wodę. Bez logowania, za darmo.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-3">
-          <StepTitle n={1}>Działka</StepTitle>
-          <div className="space-y-1.5">
-            <Label htmlFor="parcel-id">Numer działki ewidencyjnej</Label>
-            <div className="flex gap-2">
-              <Input
-                id="parcel-id"
-                value={parcelInput}
-                onChange={(e) => {
-                  setParcelInput(e.target.value)
-                  setParcelError(null)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    void lookUp()
-                  }
-                }}
-                placeholder={PARCEL_ID_EXAMPLE}
-                autoComplete="off"
-                spellCheck={false}
-                inputMode="text"
-                aria-invalid={parcelError ? true : undefined}
-                aria-describedby="parcel-help parcel-error"
-                className="h-11 text-base"
-              />
-              <Button type="button" variant="secondary" className="h-11" onClick={() => void lookUp()} disabled={lookingUp}>
-                {lookingUp ? <Loader2 className="animate-spin" /> : <Search />}
-                <span className="hidden sm:inline">Znajdź</span>
-              </Button>
-            </div>
-            <p id="parcel-help" className="text-xs text-muted-foreground">
-              Przykład: <code>{PARCEL_ID_EXAMPLE}</code>. Pełny numer znajdziesz w wypisie z rejestru gruntów, we wniosku
-              o dopłaty albo na mapie poniżej.
-            </p>
-            {parcelError && (
-              <p id="parcel-error" role="alert" className="text-sm text-destructive">
-                {parcelError}
+    <form id="start" onSubmit={onSubmit} noValidate className="scroll-mt-16">
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-[url('/hero-fields.svg')] bg-cover bg-center"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-navy/90 via-navy/70 to-navy/30 lg:bg-gradient-to-r lg:from-navy/95 lg:via-navy/70 lg:to-navy/10"
+          aria-hidden
+        />
+        <div className="relative mx-auto grid max-w-6xl gap-5 px-3 py-6 sm:px-5 sm:py-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start lg:gap-8 lg:py-12">
+          <div className="space-y-5">
+            <div className="space-y-2 text-white">
+              <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-balance drop-shadow-sm sm:text-5xl">
+                Sprawdź wodę na swojej działce
+              </h1>
+              <p className="max-w-xl text-base text-white/90 sm:text-lg">
+                Bezpłatny raport z danych satelitarnych, pogodowych, glebowych i terenu w około 30 sekund. Bez logowania.
               </p>
-            )}
+            </div>
+
+            <div className="space-y-4 rounded-2xl bg-card p-4 text-card-foreground shadow-xl sm:p-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="parcel-id" className="text-sm font-semibold">
+                  Numer działki ewidencyjnej
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="parcel-id"
+                    value={parcelInput}
+                    onChange={(e) => {
+                      setParcelInput(e.target.value)
+                      setParcelError(null)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        void lookUp()
+                      }
+                    }}
+                    placeholder={`np. ${PARCEL_ID_EXAMPLE}`}
+                    autoComplete="off"
+                    spellCheck={false}
+                    inputMode="text"
+                    aria-invalid={parcelError ? true : undefined}
+                    aria-describedby="parcel-help parcel-error"
+                    className="h-12 rounded-lg pr-12 text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void lookUp()}
+                    disabled={lookingUp}
+                    className="absolute top-1/2 right-1 flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-navy hover:bg-muted disabled:opacity-50"
+                    aria-label="Znajdź działkę"
+                  >
+                    {lookingUp ? <Loader2 className="size-5 animate-spin" /> : <Search className="size-5" />}
+                  </button>
+                </div>
+                <p id="parcel-help" className="text-xs text-muted-foreground">
+                  Numer znajdziesz w wypisie z rejestru gruntów albo we wniosku o dopłaty. Nie znasz go? Wyszukaj adres
+                  lub dotknij pola na mapie.
+                </p>
+                {parcelError && (
+                  <p id="parcel-error" role="alert" className="text-sm text-destructive">
+                    {parcelError}
+                  </p>
+                )}
+              </div>
+              {parcelMatchesInput && parcel && <ParcelSummary parcel={parcel} />}
+
+              <fieldset className="space-y-2">
+                <legend className="mb-2 text-sm font-semibold">Co teraz rośnie na działce?</legend>
+                <div role="radiogroup" aria-label="Popularne uprawy" className="flex flex-wrap gap-2">
+                  {popular.map((c) => {
+                    const Icon = CROP_ICON[c.id] ?? Sprout
+                    const on = c.id === cropId
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => chooseCrop(c.id)}
+                        className={cn(
+                          'flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
+                          on
+                            ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                            : 'border-border bg-background hover:border-primary/50 hover:bg-secondary',
+                        )}
+                      >
+                        <Icon className="size-4" aria-hidden />
+                        {c.name_pl}
+                      </button>
+                    )
+                  })}
+                </div>
+                <Select value={otherChosen ? cropId : ''} onValueChange={chooseCrop}>
+                  <SelectTrigger
+                    id="crop"
+                    className={cn('h-11 w-full text-base', otherChosen && 'border-primary ring-1 ring-primary')}
+                    aria-label="Inna uprawa"
+                    aria-invalid={cropError ? true : undefined}
+                    disabled={crops.length === 0}
+                  >
+                    <SelectValue
+                      placeholder={cropsError ? 'Lista upraw niedostępna' : crops.length === 0 ? 'Wczytuję uprawy…' : 'Inna uprawa, sad lub krzewy owocowe…'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CROP_GROUPS.map((g) => {
+                      const items = crops.filter((c) => g.kinds.includes(c.kind))
+                      if (items.length === 0) return null
+                      return (
+                        <SelectGroup key={g.label}>
+                          <SelectLabel>{g.label}</SelectLabel>
+                          {items.map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="py-2.5 text-base">
+                              {c.name_pl}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+                {(cropError || cropsError) && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {cropError ?? cropsError}
+                  </p>
+                )}
+              </fieldset>
+
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:items-end">
+                <div className="space-y-1.5">
+                  <Label htmlFor="date" className="text-sm font-semibold">
+                    Data analizy
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    min={minDate}
+                    max={maxDate}
+                    onChange={(e) => {
+                      setDate(e.target.value)
+                      setDateError(null)
+                    }}
+                    aria-invalid={dateError ? true : undefined}
+                    aria-describedby="date-help"
+                    className="h-12 w-full rounded-lg text-base"
+                  />
+                </div>
+                <Button type="submit" size="lg" className="h-12 w-full rounded-lg text-base font-semibold" disabled={submitting || lookingUp}>
+                  {submitting ? <Loader2 className="animate-spin" /> : <Droplets />}
+                  Analizuj działkę
+                </Button>
+              </div>
+              <p id="date-help" className="-mt-2 text-xs text-muted-foreground">
+                Domyślnie dziś. Możesz wybrać dowolny dzień od {formatDatePl(minDate)}.
+              </p>
+              {dateError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {dateError}
+                </p>
+              )}
+              {submitError && (
+                <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {submitError}
+                </p>
+              )}
+            </div>
           </div>
-          {parcelMatchesInput && parcel && <ParcelSummary parcel={parcel} />}
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">…albo znajdź ją po adresie</p>
-            <AddressSearch onChoose={(p) => void onAddress(p)} />
-            {addressNote && <p className="text-sm text-muted-foreground">{addressNote}</p>}
-          </div>
-          <p className="text-sm font-medium">…albo wskaż działkę na mapie</p>
-          <Suspense fallback={<MapPlaceholder />}>
-            <ParcelPickerMap
-              selected={parcelMatchesInput ? parcel : null}
+
+          <div className="space-y-3 rounded-2xl bg-card p-3 text-card-foreground shadow-xl sm:p-4">
+            <div className="space-y-1.5">
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <MapPin className="size-4 text-primary" aria-hidden /> Nie znasz numeru? Znajdź działkę po adresie
+              </p>
+              <AddressSearch onChoose={(p) => void onAddress(p)} />
+              {addressNote && <p className="text-sm text-muted-foreground">{addressNote}</p>}
+            </div>
+            <p className="text-sm font-semibold">…albo dotknij swojego pola na mapie</p>
+            <Suspense fallback={<MapPlaceholder />}>
+              <ParcelPickerMap
+                selected={parcelMatchesInput ? parcel : null}
+                extras={extras}
+                adding={addingActive}
+                onPick={onMapPick}
+                onError={onMapError}
+                focus={focus}
+              />
+            </Suspense>
+            <FarmParcels
+              main={parcelMatchesInput ? parcel : null}
               extras={extras}
               adding={addingActive}
-              onPick={onMapPick}
-              onError={onMapError}
-              focus={focus}
+              onAdd={addExtra}
+              onRemove={removeExtra}
+              onToggleAdding={() => setAdding((a) => !a)}
+              notice={farmNotice}
             />
-          </Suspense>
-          <FarmParcels
-            main={parcelMatchesInput ? parcel : null}
-            extras={extras}
-            adding={addingActive}
-            onAdd={addExtra}
-            onRemove={removeExtra}
-            onToggleAdding={() => setAdding((a) => !a)}
-            notice={farmNotice}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-3">
-          <StepTitle n={2}>Uprawa</StepTitle>
-          <div className="space-y-1.5">
-            <Label htmlFor="crop">Co teraz rośnie na działce?</Label>
-            <Select
-              value={cropId}
-              onValueChange={(v) => {
-                setCropId(v)
-                setCropError(null)
-              }}
-            >
-              <SelectTrigger
-                id="crop"
-                className="h-11 w-full text-base"
-                aria-invalid={cropError ? true : undefined}
-                disabled={crops.length === 0}
-              >
-                <SelectValue placeholder={cropsError ? 'Lista upraw niedostępna' : 'Wybierz uprawę'} />
-              </SelectTrigger>
-              <SelectContent>
-                {CROP_GROUPS.map((g) => {
-                  const items = crops.filter((c) => g.kinds.includes(c.kind))
-                  if (items.length === 0) return null
-                  return (
-                    <SelectGroup key={g.label}>
-                      <SelectLabel>{g.label}</SelectLabel>
-                      {items.map((c) => (
-                        <SelectItem key={c.id} value={c.id} className="py-2.5 text-base">
-                          {c.name_pl}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-            {(cropError || cropsError) && (
-              <p role="alert" className="text-sm text-destructive">
-                {cropError ?? cropsError}
-              </p>
-            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardContent className="space-y-3">
-          <StepTitle n={3}>Data analizy</StepTitle>
-          <div className="space-y-1.5">
-            <Label htmlFor="date">Na jaki dzień sprawdzić sytuację?</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              min={minDate}
-              max={maxDate}
-              onChange={(e) => {
-                setDate(e.target.value)
-                setDateError(null)
-              }}
-              aria-invalid={dateError ? true : undefined}
-              className="h-11 w-full text-base sm:w-60"
-            />
-            <p className="text-xs text-muted-foreground">
-              Domyślnie dziś. Możesz wybrać dowolny dzień od {formatDatePl(minDate)}.
-            </p>
-            {dateError && (
-              <p role="alert" className="text-sm text-destructive">
-                {dateError}
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {submitError && (
-        <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {submitError}
-        </p>
-      )}
-      <Button type="submit" size="lg" className="h-14 w-full text-lg" disabled={submitting || lookingUp}>
-        {submitting && <Loader2 className="animate-spin" />}
-        Sprawdź działkę
-      </Button>
+      <HowItWorks />
     </form>
+  )
+}
+
+const HOW_STEPS: { icon: typeof MapPin; title: string; text: string }[] = [
+  {
+    icon: MapPin,
+    title: '1. Wskaż działkę i uprawę',
+    text: 'Numer z ewidencji, adres albo dotknięcie pola na mapie. Do tego uprawa i dzień — dziś albo dowolny z ostatnich 10 lat.',
+  },
+  {
+    icon: Satellite,
+    title: '2. Liczymy z danych publicznych',
+    text: 'Pogoda i bilans wodny (FAO-56), zdjęcia Sentinel-2, gleba, ukształtowanie terenu, cieki i mapy powodziowe — na żywo, dla tej działki.',
+  },
+  {
+    icon: ClipboardList,
+    title: '3. Dostajesz konkretne działania',
+    text: 'Najpierw zatrzymanie wody, potem zabiegi na polu i nawadnianie z terminem i dawką. Każda liczba ma źródło i datę. Raport w PDF.',
+  },
+]
+
+function HowItWorks() {
+  return (
+    <section id="jak-to-dziala" className="mx-auto max-w-6xl scroll-mt-16 px-3 py-8 sm:px-5 sm:py-10">
+      <h2 className="mb-4 text-2xl font-bold tracking-tight text-navy">Jak to działa</h2>
+      <ol className="grid gap-3 md:grid-cols-3">
+        {HOW_STEPS.map(({ icon: Icon, title, text }) => (
+          <li key={title} className="rounded-2xl border bg-card p-4 shadow-sm">
+            <span className="mb-2 flex size-10 items-center justify-center rounded-full bg-secondary text-primary">
+              <Icon className="size-5" aria-hidden />
+            </span>
+            <p className="font-semibold text-navy">{title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }

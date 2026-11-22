@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, CircleCheck, CircleHelp, OctagonAlert, TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type {
   Confidence,
@@ -18,11 +18,11 @@ import { formatDatePl, formatDateTimePl, formatNumberPl, m3WherePl } from '@/lib
 // UI labels only; every sentence about the parcel comes ready from the backend (plan, decision 2).
 
 const HEADLINE_STYLE: Record<HeadlineLevel, string> = {
-  none: 'border-green-600 bg-green-50 text-green-950',
-  light: 'border-yellow-500 bg-yellow-50 text-yellow-950',
-  moderate: 'border-orange-500 bg-orange-50 text-orange-950',
-  severe: 'border-red-600 bg-red-50 text-red-950',
-  unknown: 'border-slate-400 bg-slate-50 text-slate-900',
+  none: 'border-green-300 bg-green-50 text-green-950',
+  light: 'border-amber-300 bg-amber-50 text-amber-950',
+  moderate: 'border-orange-300 bg-orange-50 text-orange-950',
+  severe: 'border-red-300 bg-red-50 text-red-950',
+  unknown: 'border-slate-300 bg-slate-50 text-slate-900',
 }
 const HEADLINE_DOT: Record<HeadlineLevel, string> = {
   none: 'bg-green-600',
@@ -34,15 +34,24 @@ const HEADLINE_DOT: Record<HeadlineLevel, string> = {
 
 const CONFIDENCE_PL: Record<Confidence, string> = { high: 'wysoka', medium: 'średnia', low: 'niska' }
 
+function HeadlineIcon({ level }: { level: HeadlineLevel }) {
+  const Icon = level === 'none' ? CircleCheck : level === 'unknown' ? CircleHelp : level === 'severe' ? OctagonAlert : TriangleAlert
+  return (
+    <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-full text-white', HEADLINE_DOT[level])} aria-hidden>
+      <Icon className="size-5" />
+    </span>
+  )
+}
+
 export function HeadlineBanner({ headline }: { headline: Headline }) {
   return (
-    <div className={cn('rounded-xl border-l-8 p-4 shadow-sm', HEADLINE_STYLE[headline.level])} role="status">
-      <p className="flex items-center gap-2 text-lg font-bold">
-        <span className={cn('inline-block size-3.5 rounded-full', HEADLINE_DOT[headline.level])} aria-hidden />
-        {headline.label_pl}
-      </p>
-      <p className="mt-1.5 text-base">{headline.sentence_pl}</p>
-      <p className="mt-2 text-sm opacity-80">{headline.confidence_pl}</p>
+    <div className={cn('flex gap-3 rounded-2xl border p-4 shadow-sm', HEADLINE_STYLE[headline.level])} role="status">
+      <HeadlineIcon level={headline.level} />
+      <div className="min-w-0">
+        <p className="text-lg leading-snug font-bold">{headline.label_pl}</p>
+        <p className="mt-1 text-base">{headline.sentence_pl}</p>
+        <p className="mt-2 text-sm opacity-80">{headline.confidence_pl}</p>
+      </div>
     </div>
   )
 }

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9f1d8"/>
+      <stop offset="1" stop-color="#cfe0a8"/>
+    </linearGradient>
+    <linearGradient id="light" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6c8" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#fff6c8" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="rowsA" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-28)">
+      <rect width="14" height="14" fill="#5f9a2e"/>
+      <rect width="14" height="5" fill="#6fae36"/>
+    </pattern>
+    <pattern id="rowsB" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)">
+      <rect width="12" height="12" fill="#86b843"/>
+      <rect width="12" height="4" fill="#97c751"/>
+    </pattern>
+    <pattern id="rowsC" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-8)">
+      <rect width="10" height="10" fill="#3f7d27"/>
+      <rect width="10" height="3" fill="#4b8c2e"/>
+    </pattern>
+    <pattern id="rowsD" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+      <rect width="16" height="16" fill="#a9c45a"/>
+      <rect width="16" height="6" fill="#b9d26a"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="800" fill="url(#sky)"/>
+  <!-- distant fields and tree line -->
+  <path d="M0 170 L1600 120 L1600 260 L0 300 Z" fill="#9cc35a"/>
+  <path d="M0 190 C 200 170, 420 175, 640 160 S 1100 140, 1600 130 L1600 150 C 1200 160, 900 175, 640 185 S 200 205, 0 215 Z" fill="#3c6e2a" opacity="0.8"/>
+  <path d="M0 300 L1600 260 L1600 360 L0 420 Z" fill="url(#rowsB)"/>
+  <path d="M700 290 L1600 262 L1600 330 L760 370 Z" fill="url(#rowsD)"/>
+  <!-- middle fields -->
+  <path d="M0 420 L1600 360 L1600 520 L0 600 Z" fill="url(#rowsA)"/>
+  <path d="M520 400 L1180 378 L1260 500 L560 548 Z" fill="url(#rowsC)"/>
+  <path d="M1180 378 L1600 362 L1600 470 L1260 500 Z" fill="url(#rowsB)"/>
+  <!-- foreground fields -->
+  <path d="M0 600 L1600 520 L1600 800 L0 800 Z" fill="url(#rowsC)"/>
+  <path d="M0 640 L700 590 L820 800 L0 800 Z" fill="url(#rowsA)"/>
+  <path d="M1120 560 L1600 540 L1600 800 L1280 800 Z" fill="url(#rowsD)"/>
+  <!-- hedgerows -->
+  <g fill="#2f5e22" opacity="0.85">
+    <path d="M0 418 C 300 400, 700 392, 1600 358 L1600 368 C 700 402, 300 412, 0 430 Z"/>
+    <path d="M0 598 C 400 575, 900 548, 1600 518 L1600 530 C 900 560, 400 588, 0 612 Z"/>
+    <path d="M700 590 C 740 650, 780 720, 820 800 L800 800 C 760 720, 722 652, 684 592 Z"/>
+    <circle cx="560" cy="398" r="16"/><circle cx="590" cy="394" r="12"/><circle cx="1180" cy="376" r="18"/>
+    <circle cx="1210" cy="372" r="13"/><circle cx="300" cy="588" r="20"/><circle cx="335" cy="584" r="15"/>
+  </g>
+  <rect width="1600" height="800" fill="url(#light)"/>
+</svg>

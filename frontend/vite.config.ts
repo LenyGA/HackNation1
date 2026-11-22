@@ -12,6 +12,7 @@ export default defineConfig({
   // MapLibre alone is ~1 MB minified; it is loaded only with the pages that show a map.
   build: { chunkSizeWarningLimit: 1200 },
   server: {
-    proxy: { '/api': 'http://localhost:8000' },
+    // API_PROXY lets a second dev pair run next to the usual one (e.g. backend on another port).
+    proxy: { '/api': process.env.API_PROXY ?? 'http://localhost:8000' },
   },
 })

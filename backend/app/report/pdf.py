@@ -4,6 +4,7 @@ background is fetched by the server and embedded as a data URI.
 """
 
 import asyncio
+import base64
 from collections import OrderedDict
 from functools import lru_cache
 from typing import Any, Literal
@@ -19,6 +20,13 @@ from app.sources import orthophoto
 @lru_cache
 def _css() -> str:
     return (TEMPLATES_DIR / "report.css").read_text(encoding="utf-8")
+
+
+@lru_cache
+def _logo_uri() -> str:
+    """Team logo for the report header (M8.5), embedded so the PDF loads nothing from outside."""
+    data = (TEMPLATES_DIR / "logo.png").read_bytes()
+    return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
 
 
 def _legend_colors() -> dict[str, str]:
@@ -61,6 +69,7 @@ def render_html(
         .render(
             r=report,
             css=_css(),
+            logo_uri=_logo_uri(),
             map_svg=parcel_map_svg(report, basemap_uri),
             basemap="ok" if basemap_uri is not None else ("failed" if basemap_requested else "none"),
             charts=_charts(report),
