@@ -92,6 +92,12 @@
 <p>Żaden sposób gromadzenia wody nie jest dla tej działki wyraźnie polecany; ocenę wszystkich pięciu sposobów pokazuje wariant pełny.</p>
 {% endif %}
 {% endif %}
+{% if r.irrigation_economics %}
+{% set ie = r.irrigation_economics %}
+{% set verdict_pill = {'profitable': 'good', 'borderline': 'warn', 'unprofitable': 'bad', 'unknown': 'unknown'} %}
+<h2>Nawadnianie: jaka instalacja i czy się opłaca</h2>
+<div class="cov {{ verdict_pill[ie.verdict] }}"><b>{{ ie.technology_pl }}</b> <span class="pill {{ verdict_pill[ie.verdict] }}">{{ ie.verdict_pl }}</span> {{ ie.text_pl[0] if ie.text_pl else '' }}</div>
+{% endif %}
 {% endif %}
 
 <div class="limits-box">

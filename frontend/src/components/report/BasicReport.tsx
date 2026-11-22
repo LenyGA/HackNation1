@@ -1,5 +1,6 @@
 import type { Report, ReportRecommendation } from '@/api/types'
 import { Disclosure, EvidenceList, IrrigationBlock } from '@/components/report/ReportParts'
+import { IrrigationEconomicsBlock } from '@/components/report/IrrigationEconomics'
 import { RetentionMethods } from '@/components/report/RetentionMethods'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDatePl } from '@/lib/format'
@@ -123,6 +124,10 @@ export function BasicReport({ report }: { report: Report }) {
             <RetentionMethods plan={report.retention_plan} onlyRecommended />
           </CardContent>
         </Card>
+      )}
+
+      {report.complete && report.irrigation_economics && (
+        <IrrigationEconomicsBlock e={report.irrigation_economics} short />
       )}
 
       <Card className="gap-3">

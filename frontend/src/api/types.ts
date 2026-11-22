@@ -290,6 +290,60 @@ export interface RetentionPlan {
   legal_basis_pl: string
 }
 
+export type IrrigationTechnology = 'reel' | 'pivot' | 'drip' | 'none'
+export type EconomicsStatus = 'ok' | 'no_balance' | 'no_crop_data' | 'no_price' | 'not_needed'
+export type EconomicsVerdict = 'profitable' | 'borderline' | 'unprofitable' | 'unknown'
+
+/** G10: defaults the farmer can change in the browser; ranges low–high. */
+export interface EconomicsAssumptions {
+  yield_t_ha: number | null
+  price_zl_t_low: number | null
+  price_zl_t_high: number | null
+  ky: number | null
+  capex_zl_ha_low: number | null
+  capex_zl_ha_high: number | null
+  lifetime_years: number | null
+  water_source_zl_low: number
+  water_source_zl_high: number
+  water_source_lifetime_years: number
+  operating_zl_m3_low: number
+  operating_zl_m3_high: number
+}
+
+export interface EconomicsSeason {
+  year: number
+  loss_pct: number
+}
+
+/** G10: irrigation technology for the parcel's area and shape, and whether it pays off. */
+export interface IrrigationEconomics {
+  technology: IrrigationTechnology
+  technology_pl: string
+  technology_text_pl: string[]
+  efficiency_pct: number
+  length_m: number | null
+  width_m: number | null
+  status: EconomicsStatus
+  verdict: EconomicsVerdict
+  verdict_pl: string
+  text_pl: string[]
+  area_ha: number
+  mean_loss_share: number | null
+  seasons: EconomicsSeason[]
+  critical_deficit_years: number | null
+  years_counted: number | null
+  water_m3_ha: number | null
+  benefit_zl_ha_low: number | null
+  benefit_zl_ha_high: number | null
+  cost_zl_ha_low: number | null
+  cost_zl_ha_high: number | null
+  break_even_area_ha: number | null
+  break_even_never: boolean
+  assumptions: EconomicsAssumptions
+  assumptions_pl: string[]
+  source: string
+}
+
 export interface ProfilePoint {
   distance_m: number
   elevation_m: number
@@ -481,6 +535,7 @@ export interface Report {
   trends: ClimateTrends | null
   water_plan: WaterPlan | null
   retention_plan?: RetentionPlan | null // absent in reports saved before G9
+  irrigation_economics?: IrrigationEconomics | null // absent in reports saved before G10
   profile: SlopeProfile | null
   simulation: Simulation | null
   satellite: SatelliteSeries | null

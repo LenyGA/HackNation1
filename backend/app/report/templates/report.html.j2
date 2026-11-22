@@ -132,6 +132,25 @@
   <p class="small">Rok typowy, suchy i bardzo suchy wyznaczone z {{ wp.years }} poprzednich lat (metoda FAO-56). Źródło: {{ wp.source }}</p>
   {% endif %}
 
+  {% if s.id == 'irrigation' and r.irrigation_economics %}
+  {% set ie = r.irrigation_economics %}
+  {% set verdict_pill = {'profitable': 'good', 'borderline': 'warn', 'unprofitable': 'bad', 'unknown': 'unknown'} %}
+  <h3>Jaka instalacja i czy nawadnianie się opłaca</h3>
+  <p><b>{{ ie.technology_pl }}.</b> {% for t in ie.technology_text_pl %}{{ t }} {% endfor %}</p>
+  <div class="cov {{ verdict_pill[ie.verdict] }}"><span class="pill {{ verdict_pill[ie.verdict] }}">{{ ie.verdict_pl }}</span> {% for t in ie.text_pl %}{{ t }} {% endfor %}</div>
+  {% if ie.status == 'ok' or ie.status == 'no_price' %}
+  <table class="compact">
+    <thead><tr><th>Na 1 ha rocznie</th><th>Od</th><th>Do</th></tr></thead>
+    <tbody>
+    {% if ie.benefit_zl_ha_low is not none %}<tr><td>Wartość plonu, który zabierała susza</td><td class="num">{{ ie.benefit_zl_ha_low|num(50) }} zł</td><td class="num">{{ ie.benefit_zl_ha_high|num(50) }} zł</td></tr>{% endif %}
+    <tr><td>Koszt nawadniania (instalacja, ujęcie wody, pompowanie)</td><td class="num">{{ ie.cost_zl_ha_low|num(50) }} zł</td><td class="num">{{ ie.cost_zl_ha_high|num(50) }} zł</td></tr>
+    </tbody>
+  </table>
+  {% endif %}
+  <div class="details"><span class="t">Założenia (w wersji na stronie można je zmienić).</span> {% for a in ie.assumptions_pl %}{{ a }} {% endfor %}{% set as = ie.assumptions %}{% if as.yield_t_ha %}Plon odniesienia: {{ as.yield_t_ha|num(0.1) }} t/ha{% if as.price_zl_t_low is not none %}, cena {{ as.price_zl_t_low|num(10) }}–{{ as.price_zl_t_high|num(10) }} zł/t{% endif %}{% if as.ky %}, Ky {{ as.ky|num(0.01) }}{% endif %}. {% endif %}{% if as.capex_zl_ha_low is not none %}Instalacja {{ as.capex_zl_ha_low|num(100) }}–{{ as.capex_zl_ha_high|num(100) }} zł/ha na {{ as.lifetime_years }} lat; {% endif %}ujęcie wody {{ as.water_source_zl_low|num(1000) }}–{{ as.water_source_zl_high|num(1000) }} zł na {{ as.water_source_lifetime_years }} lat; pompowanie {{ as.operating_zl_m3_low|num(0.1) }}–{{ as.operating_zl_m3_high|num(0.1) }} zł/m³; sprawność {{ ie.efficiency_pct }} %.</div>
+  <p class="small">Źródło: {{ ie.source }}</p>
+  {% endif %}
+
   {% if s.id == 'irrigation' and r.simulation %}
   {% set sim = r.simulation %}
   <h3>Co dalej? Porównanie strategii na 1–5 lat</h3>

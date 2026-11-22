@@ -14,7 +14,7 @@ Podlewanie tylko w okresach, gdy uprawa najbardziej potrzebuje wody (ratowanie p
 
 {% endif %}
 {% if p.season_p80_m3_parcel_gross %}
-Deszczownia traci część wody (wiatr, parowanie, nierówne polewanie; sprawność ok. {{ p.efficiency_pct }} %), więc w roku suchym trzeba przygotować ok. {{ p.season_p80_m3_parcel_gross|num(10) }} m³ wody{% if p.pond_side_m %} — to mniej więcej staw o wymiarach ok. {{ p.pond_side_m|num(1) }} × {{ p.pond_side_m|num(1) }} m i głębokości {{ p.pond_depth_m|num }} m. Staw sam też traci wodę (parowanie z lustra wody, wsiąkanie), więc w praktyce musi być większy{% if p.pond_side_m * p.pond_side_m > pond_max_area_m2 %}; przy lustrze ponad {{ pond_max_area_m2|num }} m² potrzebne jest pozwolenie wodnoprawne, a nie samo zgłoszenie (Prawo wodne, art. 394 ust. 1 pkt 9){% endif %}{% endif %}.
+{% if drip %}Instalacja kroplowa traci niewiele wody (sprawność ok. {{ p.efficiency_pct }} %){% else %}Deszczownia traci część wody (wiatr, parowanie, nierówne polewanie; sprawność ok. {{ p.efficiency_pct }} %){% endif %}, więc w roku suchym trzeba przygotować ok. {{ p.season_p80_m3_parcel_gross|num(10) }} m³ wody{% if p.pond_side_m %} — to mniej więcej staw o wymiarach ok. {{ p.pond_side_m|num(1) }} × {{ p.pond_side_m|num(1) }} m i głębokości {{ p.pond_depth_m|num }} m. Staw sam też traci wodę (parowanie z lustra wody, wsiąkanie), więc w praktyce musi być większy{% if p.pond_side_m * p.pond_side_m > pond_max_area_m2 %}; przy lustrze ponad {{ pond_max_area_m2|num }} m² potrzebne jest pozwolenie wodnoprawne, a nie samo zgłoszenie (Prawo wodne, art. 394 ust. 1 pkt 9){% endif %}{% endif %}.
 
 {% endif %}
 {% endif %}

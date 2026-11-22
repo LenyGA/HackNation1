@@ -14,6 +14,7 @@ import {
   RecommendationCard,
   SourcesList,
 } from '@/components/report/ReportParts'
+import { IrrigationEconomicsBlock } from '@/components/report/IrrigationEconomics'
 import { RetentionMethods } from '@/components/report/RetentionMethods'
 import { ProfileChart, SatelliteChart, StressHeatmapView, TrendsView, WaterPlanChart } from '@/components/report/Charts'
 import { FloodBlock, GroundwaterBlock } from '@/components/report/HydroBlocks'
@@ -209,6 +210,7 @@ function SectionExtras({ section, report }: { section: ReportSection; report: Re
           {/* The irrigation text is already in the section paragraphs: the card shows only its evidence. */}
           {cards(true)}
           {report.water_plan && <WaterPlanChart data={report.water_plan} />}
+          {report.irrigation_economics && <IrrigationEconomicsBlock e={report.irrigation_economics} />}
           {report.simulation && <Simulator sim={report.simulation} />}
         </>
       )

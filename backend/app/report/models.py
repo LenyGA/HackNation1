@@ -253,6 +253,63 @@ class RetentionPlan(BaseModel):
     legal_basis_pl: str
 
 
+TechnologyId = Literal["reel", "pivot", "drip", "none"]
+EconomicsStatusId = Literal["ok", "no_balance", "no_crop_data", "no_price", "not_needed"]
+VerdictId = Literal["profitable", "borderline", "unprofitable", "unknown"]
+
+
+class EconomicsAssumptions(BaseModel):
+    """Defaults the farmer can change in the browser (G10). Ranges low–high; the UI starts in the middle."""
+
+    yield_t_ha: float | None = Field(description="Reference yield without water shortage (GUS 2024).")
+    price_zl_t_low: float | None
+    price_zl_t_high: float | None
+    ky: float | None = Field(description="FAO-33 yield response factor.")
+    capex_zl_ha_low: float | None
+    capex_zl_ha_high: float | None
+    lifetime_years: int | None
+    water_source_zl_low: float
+    water_source_zl_high: float
+    water_source_lifetime_years: int
+    operating_zl_m3_low: float
+    operating_zl_m3_high: float
+
+
+class EconomicsSeason(BaseModel):
+    year: int
+    loss_pct: float = Field(description="Yield lost to water shortage in this season, % (FAO-33).")
+
+
+class IrrigationEconomicsView(BaseModel):
+    """G10: irrigation technology for the parcel's area and shape, and whether it pays off."""
+
+    technology: TechnologyId
+    technology_pl: str
+    technology_text_pl: list[str]
+    efficiency_pct: int
+    length_m: float | None
+    width_m: float | None
+    status: EconomicsStatusId
+    verdict: VerdictId
+    verdict_pl: str
+    text_pl: list[str]
+    area_ha: float
+    mean_loss_share: float | None = Field(description="Mean yield loss share 0–1, unrounded (UI recomputes).")
+    seasons: list[EconomicsSeason]
+    critical_deficit_years: int | None
+    years_counted: int | None
+    water_m3_ha: float | None = Field(description="Gross water in a typical year, m³/ha.")
+    benefit_zl_ha_low: float | None
+    benefit_zl_ha_high: float | None
+    cost_zl_ha_low: float | None
+    cost_zl_ha_high: float | None
+    break_even_area_ha: float | None
+    break_even_never: bool
+    assumptions: EconomicsAssumptions
+    assumptions_pl: list[str]
+    source: str
+
+
 class ProfilePoint(BaseModel):
     distance_m: float
     elevation_m: float
@@ -457,6 +514,7 @@ class Report(BaseModel):
     trends: ClimateTrends | None = None
     water_plan: WaterPlan | None = None
     retention_plan: RetentionPlan | None = None
+    irrigation_economics: IrrigationEconomicsView | None = None
     profile: SlopeProfile | None = None
     simulation: Simulation | None = None
     satellite: SatelliteSeries | None = None

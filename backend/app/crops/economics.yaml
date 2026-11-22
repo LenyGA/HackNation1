@@ -1,0 +1,78 @@
+# Economics of irrigation (G10, plan33 M5.3). Every number has its source below; nothing is from memory.
+#
+# [GUS-Y] GUS, „Produkcja upraw rolnych i ogrodniczych w 2024 r.” (2025), tablice XLSX: tabl. 5, 7, 10, 18, 22,
+#         23, 26 — plony z 1 ha, Polska. https://stat.gov.pl/obszary-tematyczne/rolnictwo-lesnictwo/
+#         uprawy-rolne-i-ogrodnicze/produkcja-upraw-rolnych-i-ogrodniczych-w-2024-r-,9,23.html (dostęp 22.11.2026)
+# [GUS-P] GUS, „Ceny produktów rolnych w grudniu 2024 r.” (2025), tablice XLSX: tabl. 2 (przeciętne ceny skupu,
+#         bez VAT) i tabl. 3 (przeciętne ceny targowiskowe, bez VAT), Polska, zł/dt.
+#         https://stat.gov.pl/obszary-tematyczne/ceny-handel/ceny/ceny-produktow-rolnych-w-grudniu-2024-r-,4,152.html
+#         (dostęp 22.11.2026). The range is purchase price (low) → market-place price (high).
+# [FAO-33] Doorenbos J., Kassam A.H. (1979) Yield response to water. FAO Irrigation and Drainage Paper 33,
+#         seasonal yield response factor Ky, as reproduced in Steduto P. et al. (2012) Crop yield response to
+#         water, FAO Irrigation and Drainage Paper 66, ch. 2. https://www.fao.org/4/i2800e/i2800e02.pdf
+#         (dostęp 22.11.2026). Ky is not given for rye, barley or rapeseed: rye and barley take the value of
+#         winter / spring wheat (said in the report); rapeseed gets none.
+# [BROUWER] Brouwer C., Prins K., Heibloem M. (1989) Irrigation Water Management: Irrigation Scheduling,
+#         FAO Training Manual 4: field application efficiency — sprinkler 75 %, drip 90 %.
+#
+# Investment and running costs: we found no open, dated price list (GUS, CDR, ODR) within the plan's 20-minute
+# source limit. They are therefore ASSUMPTIONS, shown in the report as such and editable in the browser,
+# deliberately as wide ranges; the verdict is "profitable" / "unprofitable" only when the whole range agrees.
+
+sources:
+  yields: "GUS, Produkcja upraw rolnych i ogrodniczych w 2024 r. (plony z 1 ha, Polska)"
+  prices: "GUS, Ceny produktów rolnych w grudniu 2024 r. (ceny skupu i targowiskowe, Polska, bez VAT)"
+  ky: "FAO Irrigation and Drainage Paper 33 (Doorenbos i Kassam 1979), za FAO Paper 66 (Steduto i in. 2012)"
+  efficiency: "FAO Training Manual 4 (Brouwer i in. 1989)"
+  costs: "założenia zespołu (brak otwartego, aktualnego cennika) — zmień na ofertę z okolicy"
+
+crops:
+  winter_wheat:
+    yield_t_ha: 5.29          # [GUS-Y] tabl. 5, pszenica ozima, 52,9 dt/ha
+    price_zl_t: [912.6, 1108.9]  # [GUS-P] pszenica 91,26 / 110,89 zł/dt
+    ky: 1.05                  # [FAO-33] winter wheat
+  rye:
+    yield_t_ha: 3.57          # [GUS-Y] tabl. 7, 35,7 dt/ha
+    price_zl_t: [683.3, 855.5]   # [GUS-P] żyto 68,33 / 85,55 zł/dt
+    ky: 1.05                  # [FAO-33] no rye: value of winter wheat
+    ky_from: winter_wheat
+  spring_barley:
+    yield_t_ha: 3.84          # [GUS-Y] tabl. 10, jęczmień jary, 38,4 dt/ha
+    price_zl_t: [813.3, 1053.9]  # [GUS-P] jęczmień 81,33 / 105,39 zł/dt
+    ky: 1.15                  # [FAO-33] no barley: value of spring wheat
+    ky_from: spring_wheat
+  maize:
+    yield_t_ha: 7.36          # [GUS-Y] tabl. 18, kukurydza na ziarno, 73,6 dt/ha
+    price_zl_t: [828.5, 1190.7]  # [GUS-P] kukurydza 82,85 / 119,07 zł/dt
+    ky: 1.25                  # [FAO-33] maize
+  potato:
+    yield_t_ha: 30.2          # [GUS-Y] tabl. 22, 302 dt/ha
+    price_zl_t: [1082.5, 2095.2] # [GUS-P] ziemniaki 108,25 zł/dt (skup) / 209,52 zł/dt (targowiska, jadalne)
+    ky: 1.1                   # [FAO-33] potato
+  sugar_beet:
+    yield_t_ha: 66.3          # [GUS-Y] tabl. 23, 663 dt/ha
+    price_zl_t: null          # not in [GUS-P] (contract price): the farmer enters it
+    ky: 1.0                   # [FAO-33] sugarbeet
+  winter_rapeseed:
+    yield_t_ha: 3.25          # [GUS-Y] tabl. 26, rzepak i rzepik ozimy, 32,5 dt/ha
+    price_zl_t: null          # not in [GUS-P]
+    ky: null                  # not in [FAO-33]
+
+technologies:
+  reel:
+    efficiency: 0.75          # [BROUWER] sprinkler
+    capex_zl_ha: [3000, 8000] # ASSUMPTION
+    lifetime_years: 12        # ASSUMPTION
+  pivot:
+    efficiency: 0.75          # [BROUWER] sprinkler
+    capex_zl_ha: [4000, 9000] # ASSUMPTION
+    lifetime_years: 20        # ASSUMPTION
+  drip:
+    efficiency: 0.90          # [BROUWER] drip
+    capex_zl_ha: [8000, 16000]  # ASSUMPTION (lines, filtration)
+    lifetime_years: 8         # ASSUMPTION
+
+water_source:                 # well or intake with pump and main pipe, once per farm
+  capex_zl: [40000, 120000]   # ASSUMPTION
+  lifetime_years: 25          # ASSUMPTION
+operating_zl_m3: [0.5, 1.5]   # ASSUMPTION: energy, labour, service per m³ pumped

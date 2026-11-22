@@ -252,6 +252,38 @@ analizy z jawną informacją o braku prognozy. Prognoza wydana innego dnia niż 
 `water_availability_and_permits`.
 
 
+### 9a. Dobór technologii nawadniania i opłacalność (G10, `parcel_shape.py`, `irrigation_tech.py`, `economics.py`)
+
+**Kształt działki.** Długość i szerokość to boki najmniejszego obróconego prostokąta wokół geometrii ULDK
+(EPSG:2180), zwartość = powierzchnia działki / powierzchnia prostokąta.
+
+**Dobór (pierwszy pasujący wiersz).** Progi areału i szerokości to **założenia zespołu** (nie znaleźliśmy otwartego
+źródła w limicie czasu planu) — raport mówi to wprost.
+
+| Warunek | Technologia |
+|---|---|
+| potrzeba w roku suchym (P80 planu wody) < 25 mm | bez stałej instalacji |
+| warzywa polowe | kroplowe / mikrozraszacze, sprawność 90 % |
+| ≥ 20 ha i szerokość ≥ 300 m | deszczownia obrotowa (wydłużenie ≥ 3: liniowa), sprawność 75 % |
+| pozostałe | deszczownia szpulowa, sprawność 75 %; uwagi: szerokość < 30 m, długość > 800 m, zwartość < 0,7, pole < 1 ha |
+
+Sprawność (Brouwer i in. 1989, FAO Training Manual 4) zastępuje stałe 75 % w wodzie brutto planu sezonowego i karty
+pokrycia retencji (G9).
+
+**Opłacalność.** Strata plonu w każdym z 10 sezonów z FAO-33 (Doorenbos i Kassam 1979): 1 − Ya/Ym = Ky · (1 − ETa/ETc),
+ETa i ETc sumowane po dniach z uprawą na polu w marcu–październiku z dobowego bilansu bez nawadniania. Ky: pszenica
+ozima 1,05 (też żyto), pszenica jara 1,15 (też jęczmień jary), kukurydza 1,25, ziemniak 1,1, burak cukrowy 1,0;
+rzepak, użytki zielone i warzywa — brak Ky, opłacalności nie liczymy. Plon odniesienia: średni plon w Polsce (GUS 2024),
+ceny: skup → targowisko (GUS, grudzień 2024). Koszt na ha i rok = instalacja / lata pracy + ujęcie wody / lata pracy /
+powierzchnia + koszt pompowania × woda brutto w typowym roku (mediana planu). Koszty instalacji, ujęcia i pompowania to
+**założenia** w szerokich widełkach (`crops/economics.yaml`), edytowalne w przeglądarce.
+
+Werdykt: „opłacalne”, gdy najniższa korzyść ≥ najwyższy koszt; „nieopłacalne”, gdy najwyższa korzyść < najniższy koszt;
+inaczej „na granicy”. Próg areału z wartości środkowych: roczny koszt ujęcia / (korzyść − instalacja − woda na ha).
+W przeglądarce (wartości pojedyncze) „na granicy” oznacza różnicę korzyści i kosztu poniżej 20 %. Ograniczenia: plon
+krajowy zamiast plonu gospodarstwa, nawadnianie usuwa całą stratę (górna granica korzyści), zależność FAO-33 jest
+liniowa i najlepiej opisuje umiarkowane niedobory, bez dotacji i podatków.
+
 ## 10. Zmiany klimatu na działce (`trends.py`)
 
 Sezon wegetacyjny 1 IV – 30 IX, tylko sezony zakończone przed datą analizy (ostatnie 10). Dla każdego sezonu: średnia

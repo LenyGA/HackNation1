@@ -23,15 +23,18 @@ from app.analysis.trends import Direction, RecentChange, TrendResult, analyse_tr
 from app.analysis.water_plan import WaterPlanResult, water_plan
 from app.core.models import Period, SourceResult
 from app.recommendations.irrigation import IrrigationAdvice, single_dose_max_mm
+from app.recommendations.irrigation_tech import TechChoice
 from app.recommendations.models import Category, Horizon, Recommendation
 from app.recommendations.retention_methods import POND_NOTIFICATION_MAX_AREA_M2
 from app.report import labels_pl as L
+from app.report.irrigation_economics import economics_view, technology_for
 from app.report.models import (
     ClimateTrends,
     FloodInfo,
     FloodZone,
     Gauge,
     GroundwaterInfo,
+    IrrigationEconomicsView,
     ProfilePoint,
     SatellitePoint,
     SatelliteSeries,
@@ -57,6 +60,7 @@ from app.sources.groundwater import GroundwaterData
 POND_DEPTH_M = 2.0
 # Field application efficiency of sprinkler irrigation ≈ 75 % (Brouwer et al. 1989, FAO Irrigation Water
 # Management Training Manual 4): gross water = net need / 0.75 (wind drift, evaporation, uneven spread).
+# Used when no technology was chosen; otherwise the chosen method's efficiency (G10, irrigation_tech.py).
 SPRINKLER_EFFICIENCY = 0.75
 TREND_LABELS: dict[str, str] = {
     "kbw_mm": "Opad minus parowanie w sezonie",
@@ -122,6 +126,7 @@ class Outlook:
     profile: SlopeProfile | None
     simulation: Simulation | None
     satellite: SatelliteSeries | None
+    irrigation_economics: IrrigationEconomicsView | None = None
 
 
 # Seasonal water amounts (plan, simulator, tiles) are rounded once, here, to this step (Q2/T3): the page, the
@@ -295,17 +300,20 @@ def _trends(t: TrendResult | None, inputs: AnalysisInputs) -> ClimateTrends | No
 # --- water plan -------------------------------------------------------------------------------------
 
 
-def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan | None:
+def _water_plan(
+    p: WaterPlanResult | None, inputs: AnalysisInputs, tech: TechChoice | None = None
+) -> WaterPlan | None:
     if p is None or p.season_median_mm is None:
         return None
+    efficiency = tech.efficiency if tech is not None else SPRINKLER_EFFICIENCY
     area = inputs.parcel.area_ha
     season_p80 = _r(p.season_p80_mm, SEASON_WATER_STEP_MM)
     p80_m3 = _r(season_p80 * area * 10, 10) if season_p80 is not None and area else None
-    gross_m3 = _r(p80_m3 / SPRINKLER_EFFICIENCY, 10) if p80_m3 is not None else None
+    gross_m3 = _r(p80_m3 / efficiency, 10) if p80_m3 is not None else None
     # Rescue irrigation (critical periods only), rounded the same way as the full need (Q2, G9).
     critical = _r(p.critical_p80_mm, SEASON_WATER_STEP_MM)
     critical_m3 = _r(critical * area * 10, 10) if critical is not None and area else None
-    critical_gross = _r(critical_m3 / SPRINKLER_EFFICIENCY, 10) if critical_m3 is not None else None
+    critical_gross = _r(critical_m3 / efficiency, 10) if critical_m3 is not None else None
     pond = None
     if gross_m3 is not None and gross_m3 >= 50:
         pond = _r(math.sqrt(gross_m3 / POND_DEPTH_M), 1)
@@ -337,7 +345,7 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
         season_p90_mm=_r(p.season_p90_mm, SEASON_WATER_STEP_MM),
         season_p80_m3_parcel=p80_m3,
         season_p80_m3_parcel_gross=gross_m3,
-        efficiency_pct=round(100 * SPRINKLER_EFFICIENCY),
+        efficiency_pct=round(100 * efficiency),
         critical_p80_mm=critical,
         critical_p80_m3_parcel_gross=critical_gross,
         pond_side_m=pond,
@@ -354,6 +362,7 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
         area_ha=area,
         top_months=top,
         pond_max_area_m2=POND_NOTIFICATION_MAX_AREA_M2,
+        drip=tech is not None and tech.tech == "drip",
     )
     return view.model_copy(update={"text_pl": main})
 
@@ -790,7 +799,8 @@ def build_outlook(
 
     stress_source = computed_source(inputs.weather.source, inputs.soil.source)
     trends = _trends(trends_r, inputs)
-    plan = _water_plan(plan_r, inputs)
+    tech = technology_for(inputs, plan_r)
+    plan = _water_plan(plan_r, inputs, tech)
     tiles = [
         _water_tile(a),
         _action_tile(a, recs, irrigation, inputs.analysis_date),
@@ -806,6 +816,7 @@ def build_outlook(
         profile=_profile(profile_r, inputs, a.terrain),
         simulation=_simulation(sim_r, inputs, plan),
         satellite=_satellite(inputs, a),
+        irrigation_economics=economics_view(tech, inputs, a, plan, plan_r),
     )
 
 

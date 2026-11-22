@@ -814,6 +814,7 @@ def build_report(
         trends=outlook.trends,
         water_plan=outlook.water_plan if assessment.complete else None,
         retention_plan=_retention_plan(inputs, assessment, outlook.water_plan),
+        irrigation_economics=outlook.irrigation_economics if assessment.complete else None,
         profile=outlook.profile,
         simulation=outlook.simulation if assessment.complete else None,
         satellite=outlook.satellite,

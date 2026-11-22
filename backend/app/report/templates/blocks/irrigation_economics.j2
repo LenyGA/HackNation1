@@ -1,0 +1,27 @@
+{#- G10 / M5.3: does irrigation pay (analysis/economics.py). e: result; v: rounded view values. -#}
+{% if e.status == 'not_needed' %}
+{% if e.tech is none %}Opłacalności nie liczymy: bez stałej instalacji nie ma kosztu inwestycji do porównania.{% else %}W ostatnich {{ e.seasons|length }} sezonach susza nie obniżała tu plonu uprawy ({{ crop }}) w zauważalnym stopniu — nawadnianie nie miałoby czego ratować.{% endif %}
+
+{% elif e.status == 'no_crop_data' %}
+Dla tej uprawy ({{ crop }}) nie mamy opublikowanego współczynnika reakcji plonu na brak wody (FAO-33) ani plonu odniesienia — opłacalności nawadniania nie oceniamy.
+
+{% elif e.status == 'no_balance' %}
+Bez danych o glebie (albo przy zbyt krótkiej serii pogody) nie policzymy, ile plonu zabierała susza na tej działce — opłacalności nawadniania nie oceniamy.
+
+{% elif e.status == 'no_price' %}
+W ostatnich {{ e.seasons|length }} sezonach susza zabierała tu średnio ok. {{ v.mean_loss_pct|num }} % plonu (uprawa: {{ crop }}), ale GUS nie publikuje ceny tej uprawy. Wpisz cenę z umowy w założeniach poniżej, a wyliczymy opłacalność. Samo nawadnianie ({{ v.technology_pl|lower }}) kosztowałoby ok. {{ v.cost_zl_ha_low|num(50) }}–{{ v.cost_zl_ha_high|num(50) }} zł/ha rocznie.
+
+{% else %}
+{% if e.verdict == 'profitable' %}Nawadnianie się opłaca{% elif e.verdict == 'unprofitable' %}Nawadnianie się nie opłaca{% else %}Nawadnianie jest na granicy opłacalności{% endif %} (uprawa: {{ crop }}, {{ e.area_ha|num(0.1) }} ha): w ostatnich {{ e.seasons|length }} sezonach susza zabierała tu średnio ok. {{ v.mean_loss_pct|num }} % plonu, czyli ok. {{ v.benefit_zl_ha_low|num(50) }}–{{ v.benefit_zl_ha_high|num(50) }} zł/ha rocznie przy cenach GUS, a nawadnianie ({{ v.technology_pl|lower }}, ok. {{ v.water_m3_ha|num(10) }} m³ wody na ha w typowym roku) kosztuje ok. {{ v.cost_zl_ha_low|num(50) }}–{{ v.cost_zl_ha_high|num(50) }} zł/ha rocznie.
+{% if e.verdict == 'unprofitable' %} Taniej jest zatrzymać wodę w glebie i na polu — patrz zalecenia retencyjne i agrotechniczne.{% elif e.verdict == 'borderline' %} Wynik zależy od ceny i kosztu instalacji — sprawdź go z własną ofertą w założeniach.{% endif %}
+
+{% if e.break_even_never %}
+Nawet przy dużym areale koszt instalacji i wody przewyższa wartość uratowanego plonu.
+{% elif v.break_even_area_ha is not none %}
+{% if v.break_even_area_ha < v.area_step %}Własne ujęcie wody (studnia, pompa) zwraca się już przy niewielkim polu.{% elif v.break_even_area_ha <= e.area_ha %}Własne ujęcie wody (studnia, pompa) zwraca się od ok. {{ v.break_even_area_ha|num(v.area_step) }} ha nawadnianych upraw — ta działka spełnia ten próg.{% else %}Własne ujęcie wody (studnia, pompa) zwróciłoby się dopiero od ok. {{ v.break_even_area_ha|num(v.area_step) }} ha nawadnianych upraw — więcej niż ta działka; razem z sąsiednimi polami albo przy wspólnym ujęciu rachunek wygląda lepiej.{% endif %}
+{% endif %}
+
+{% endif %}
+{% if e.critical_deficit_years is not none and e.years_counted %}
+Niedobór wody w miesiącach ważnych dla uprawy wystąpił w {{ e.critical_deficit_years }} z {{ e.years_counted }} ostatnich lat.
+{% endif %}
