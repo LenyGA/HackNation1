@@ -1,4 +1,4 @@
-import type { AnalysisCreate, AnalysisCreated, AnalysisStatus, Crop, Parcel, Report, ReportVariant } from './types'
+import type { AnalysisCreate, AnalysisCreated, AnalysisStatus, Crop, Parcel, Place, Report, ReportVariant } from './types'
 
 export class ApiRequestError extends Error {
   readonly status: number
@@ -34,6 +34,7 @@ export const api = {
   crops: () => request<Crop[]>('/crops'),
   parcelById: (id: string) => request<Parcel>(`/parcels?id=${encodeURIComponent(id)}`),
   parcelByPoint: (lat: number, lon: number) => request<Parcel>(`/parcels?lat=${lat}&lon=${lon}`),
+  places: (q: string) => request<Place[]>(`/places?q=${encodeURIComponent(q)}`),
   createAnalysis: (body: AnalysisCreate) =>
     request<AnalysisCreated>('/analyses', { method: 'POST', body: JSON.stringify(body) }),
   analysis: (id: string) => request<AnalysisStatus>(`/analyses/${encodeURIComponent(id)}`),

@@ -583,6 +583,15 @@ export interface Report {
   missing_data_pl: string[]
 }
 
+/** Address search result (GUGiK UUG): a point to fly the map to; an address with a number also picks a parcel. */
+export interface Place {
+  kind: 'address' | 'street' | 'city'
+  label_pl: string
+  detail_pl: string
+  lat: number
+  lon: number
+}
+
 export interface ApiError {
   detail: string
 }

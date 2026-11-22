@@ -27,6 +27,14 @@ interface Props {
   adding?: boolean
   onPick: (parcel: Parcel) => void
   onError: (message: string) => void
+  // Address search (M8.7): fly here; a new object flies again even to the same place.
+  focus?: MapFocus | null
+}
+
+export interface MapFocus {
+  lat: number
+  lon: number
+  zoom: number
 }
 
 const NO_EXTRAS: Parcel[] = []
@@ -53,11 +61,19 @@ function geolocationError(err: GeolocationPositionError): string {
 }
 
 /** Map for choosing a parcel: tap a field to look it up in the cadastre (ULDK) and highlight its outline. */
-export default function ParcelPickerMap({ selected, extras = NO_EXTRAS, adding = false, onPick, onError }: Props) {
+export default function ParcelPickerMap({
+  selected,
+  extras = NO_EXTRAS,
+  adding = false,
+  onPick,
+  onError,
+  focus = null,
+}: Props) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const selectedRef = useRef<Parcel | null>(selected)
   const extrasRef = useRef<Parcel[]>(extras)
+  const focusRef = useRef<MapFocus | null>(focus)
   // Latest callbacks, read by the map's click handler that is registered once.
   const handlers = useRef({ onPick, onError })
   const [busy, setBusy] = useState(false)
@@ -109,6 +125,7 @@ export default function ParcelPickerMap({ selected, extras = NO_EXTRAS, adding =
     // A parcel chosen by number before the map was created is framed at once.
     const initial = selectedRef.current && geometryBounds([selectedRef.current.geometry])
     if (initial) map.fitBounds(initial, { padding: 60, maxZoom: 18, duration: 0 })
+    else if (focusRef.current) map.jumpTo({ center: [focusRef.current.lon, focusRef.current.lat], zoom: focusRef.current.zoom })
 
     map.on('zoomend', () => setZoom(map.getZoom()))
 
@@ -163,6 +180,12 @@ export default function ParcelPickerMap({ selected, extras = NO_EXTRAS, adding =
     const b = selected && geometryBounds([selected.geometry])
     if (b) map.fitBounds(b, { padding: 60, maxZoom: 18, duration: 800 })
   }, [selected])
+
+  useEffect(() => {
+    if (focusRef.current === focus) return
+    focusRef.current = focus
+    if (focus) mapRef.current?.flyTo({ center: [focus.lon, focus.lat], zoom: focus.zoom, duration: 1200 })
+  }, [focus])
 
   useEffect(() => {
     if (extrasRef.current === extras) return

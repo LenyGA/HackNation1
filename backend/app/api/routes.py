@@ -23,7 +23,7 @@ from app.crops.catalog import get_crop, load_crops
 from app.report.models import Report
 from app.report.pdf import Variant, render_html, render_pdf
 from app.report.storage import load_report
-from app.sources import uldk
+from app.sources import geocode, uldk
 
 router = APIRouter(prefix="/api")
 
@@ -73,6 +73,20 @@ async def parcel(
     except uldk.ParcelServiceError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, exc.message_pl) from exc
     return ParcelOut.model_validate(found.model_dump())
+
+
+@router.get(
+    "/places",
+    response_model=list[geocode.Place],
+    responses={429: {"model": ErrorOut}, 503: {"model": ErrorOut}},
+    dependencies=[Depends(limit_parcels)],
+)
+async def places(q: str = Query(min_length=2, max_length=120)) -> list[geocode.Place]:
+    """Address search (M8.7): an address or village → points to fly the map to or pick a parcel at."""
+    try:
+        return await geocode.search(q)
+    except geocode.GeocodeServiceError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, exc.message_pl) from exc
 
 
 def _first_error_pl(exc: ValidationError) -> str:

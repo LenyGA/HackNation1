@@ -3,7 +3,9 @@ import { type FormEvent, lazy, type ReactNode, Suspense, useCallback, useEffect,
 import { useNavigate } from 'react-router-dom'
 import { api, ApiRequestError } from '@/api/client'
 import { tooFar } from '@/lib/farm'
-import { type Crop, type CropKind, MAX_EXTRA_PARCELS, type Parcel } from '@/api/types'
+import { type Crop, type CropKind, MAX_EXTRA_PARCELS, type Parcel, type Place } from '@/api/types'
+import { AddressSearch } from '@/components/AddressSearch'
+import type { MapFocus } from '@/components/map/ParcelPickerMap'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -319,6 +321,37 @@ export function StartPage() {
   )
   const onMapError = useCallback((message: string) => setParcelError(message), [])
 
+  // Address search (M8.7): fly the map there; an address with a house number also picks the parcel at it.
+  const [focus, setFocus] = useState<MapFocus | null>(null)
+  const [addressNote, setAddressNote] = useState<string | null>(null)
+  async function onAddress(place: Place) {
+    setFocus({ lat: place.lat, lon: place.lon, zoom: place.kind === 'address' ? 17 : place.kind === 'street' ? 16 : 14 })
+    setParcelError(null)
+    if (place.kind !== 'address') {
+      setAddressNote(`Mapa pokazuje: ${place.label_pl}. Przybliż ją i dotknij swojego pola, aby je wybrać.`)
+      return
+    }
+    const seq = ++pickSeq.current
+    setLookingUp(true)
+    setAddressNote(null)
+    try {
+      const found = await api.parcelByPoint(place.lat, place.lon)
+      if (seq !== pickSeq.current) return
+      setParcel(found)
+      setParcelInput(found.id)
+      keepExtrasFor(found)
+      setAddressNote(
+        `Wybrano działkę pod adresem ${place.label_pl} (zwykle ta z domem). Jeśli pole leży gdzie indziej, dotknij go na mapie.`,
+      )
+    } catch (err) {
+      if (seq !== pickSeq.current) return
+      setAddressNote(`Mapa pokazuje adres ${place.label_pl}. Dotknij swojego pola, aby je wybrać.`)
+      setParcelError(errorText(err, 'Nie udało się znaleźć działki pod tym adresem. Dotknij swojego pola na mapie.'))
+    } finally {
+      if (seq === pickSeq.current) setLookingUp(false)
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitError(null)
@@ -401,6 +434,11 @@ export function StartPage() {
             )}
           </div>
           {parcelMatchesInput && parcel && <ParcelSummary parcel={parcel} />}
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium">…albo znajdź ją po adresie</p>
+            <AddressSearch onChoose={(p) => void onAddress(p)} />
+            {addressNote && <p className="text-sm text-muted-foreground">{addressNote}</p>}
+          </div>
           <p className="text-sm font-medium">…albo wskaż działkę na mapie</p>
           <Suspense fallback={<MapPlaceholder />}>
             <ParcelPickerMap
@@ -409,6 +447,7 @@ export function StartPage() {
               adding={addingActive}
               onPick={onMapPick}
               onError={onMapError}
+              focus={focus}
             />
           </Suspense>
           <FarmParcels
