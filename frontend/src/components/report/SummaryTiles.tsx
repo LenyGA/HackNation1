@@ -8,6 +8,9 @@ const TILE_STYLE: Record<TileStatus, string> = {
   bad: 'border-red-600 bg-red-50 text-red-950',
   unknown: 'border-slate-300 bg-slate-50 text-slate-900',
 }
+// Screen readers do not see the colour: the status is read out as text.
+const STATUS_PL: Record<TileStatus, string> = { good: 'dobrze', warn: 'uwaga', bad: 'źle', unknown: 'brak danych' }
+
 const DOT: Record<TileStatus, string> = {
   good: 'bg-green-600',
   warn: 'bg-amber-500',
@@ -66,14 +69,14 @@ export function SummaryTiles({ tiles, sections }: { tiles: SummaryTile[]; sectio
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide opacity-80">
                 <span className={cn('inline-block size-2.5 rounded-full', DOT[t.status])} aria-hidden />
                 {t.label_pl}
+                <span className="sr-only">, stan: {STATUS_PL[t.status]}</span>
               </p>
               <p className="mt-1 text-xl font-bold leading-tight">{t.value_pl}</p>
               {t.gauge && <Battery gauge={t.gauge} status={t.status} />}
-              <p className="mt-1.5 text-sm leading-snug">{t.detail_pl}</p>
-              {n !== undefined && <p className="mt-1.5 text-xs font-medium underline-offset-2 group-hover:underline">Więcej w sekcji {n} →</p>}
+              {n !== undefined && <p className="mt-auto pt-1.5 text-xs font-medium underline-offset-2 group-hover:underline">Więcej <span aria-hidden>→</span></p>}
             </>
           )
-          const cls = cn('group block rounded-lg border-l-4 p-3.5 shadow-sm', TILE_STYLE[t.status])
+          const cls = cn('group flex flex-col rounded-lg border-l-4 p-3.5 shadow-sm', TILE_STYLE[t.status])
           return n !== undefined ? (
             <a key={t.id} href={`#sekcja-${n}`} className={cls}>
               {body}

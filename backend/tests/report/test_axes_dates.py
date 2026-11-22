@@ -107,7 +107,8 @@ def test_report_for_historic_date_says_na_dzien(historic_report: Report) -> None
     current = next(s for s in r.sections if s.id == "current")
     assert current.title_pl == "Sytuacja wodna na dzień 15.07.2019"
     action = next(t for t in r.summary_tiles if t.id == "action")
-    assert action.label_pl == "Najważniejszy ruch na dzień 15.07.2019"
+    # Short tile title (22.11): the date is in the header; the horizon is "pilne" / "przed sezonem".
+    assert action.label_pl.startswith("Najważniejsze działanie")
 
 
 def test_no_teraz_in_headers_or_legends(historic_report: Report) -> None:

@@ -39,8 +39,7 @@
   <div class="tile {{ t.status }}">
     <div class="tl">{{ t.label_pl }}</div>
     <div class="tv">{{ t.value_pl }}</div>
-    {% if t.gauge %}<div class="gauge"><div class="fill" style="width: {{ (100 * t.gauge.value / t.gauge.max)|round(1) if t.gauge.max else 0 }}%"></div>{% if t.gauge.threshold is not none and t.gauge.max %}<div class="thr" style="left: {{ (100 * t.gauge.threshold / t.gauge.max)|round(1) }}%"></div>{% endif %}</div>{% endif %}
-    <div class="td">{{ t.detail_pl }}</div>
+    {% if t.gauge %}<div class="gauge"><div class="fill" style="width: {{ (100 * t.gauge.value / t.gauge.max)|round(1) if t.gauge.max else 0 }}%"></div>{% if t.gauge.threshold is not none and t.gauge.max %}<div class="thr" style="left: {{ (100 * t.gauge.threshold / t.gauge.max)|round(1) }}%"></div>{% endif %}</div>{% if t.gauge.threshold is not none %}<div class="gthr">próg stresu: {{ t.gauge.threshold|num }} {{ t.gauge.unit }}</div>{% endif %}{% endif %}
   </div>
 {% endfor %}
 </div>

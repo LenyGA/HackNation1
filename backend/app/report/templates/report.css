@@ -52,7 +52,7 @@ tr.risk td { background: #fde9d9; }
 .tile { flex: 1 1 28%; border: 0.8pt solid #999; border-radius: 1.5mm; padding: 1.8mm 2.5mm; break-inside: avoid; }
 .tile .tl { font-size: 7.4pt; color: #444; }
 .tile .tv { font-size: 10.5pt; font-weight: bold; margin: 0.3mm 0; }
-.tile .td { font-size: 7.4pt; color: #333; }
+.tile .gthr { font-size: 6.8pt; color: #444; margin-top: 0.4mm; }
 .tile.good { background: #e3f2df; border-color: #5b9e4d; }
 .tile.warn { background: #fff1d6; border-color: #d8a13a; }
 .tile.bad { background: #fbd9d6; border-color: #c62f24; }

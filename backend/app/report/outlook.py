@@ -54,7 +54,7 @@ from app.report.models import (
     WaterPlan,
     WaterPlanMonth,
 )
-from app.report.texts import date_dmy, num, plural, render_line, render_text
+from app.report.texts import num, plural, render_line, render_text
 from app.sources.base import METRIC_CRS, parcel_shape, to_crs
 from app.sources.flood import MZP_LAYER, MZP_WMS, FloodData
 from app.sources.groundwater import GroundwaterData
@@ -588,7 +588,7 @@ def _water_tile(a: Assessment) -> SummaryTile:
     if rz is None or today is None or today.gap:
         return SummaryTile(
             id="water_now",
-            label_pl="Zapas wody w glebie",
+            label_pl="Zapas wody",
             value_pl="brak danych",
             detail_pl="Bez danych o glebie lub pogodzie nie liczymy zapasu wody.",
             status="unknown",
@@ -606,7 +606,7 @@ def _water_tile(a: Assessment) -> SummaryTile:
     )
     return SummaryTile(
         id="water_now",
-        label_pl="Zapas wody w glebie",
+        label_pl="Zapas wody",
         value_pl=f"{num(available)} z {num(rz.taw_mm)} mm",
         detail_pl=detail,
         status=status,
@@ -621,7 +621,7 @@ def _flood_tile(flood: FloodInfo | None) -> SummaryTile:
     if flood is None or flood.level == "unknown":
         return SummaryTile(
             id="flood",
-            label_pl="Zagrożenie powodzią",
+            label_pl="Powódź",
             value_pl="brak danych",
             detail_pl=flood.sentence_pl
             if flood is not None
@@ -632,7 +632,7 @@ def _flood_tile(flood: FloodInfo | None) -> SummaryTile:
     status: TileStatus = {"high": "bad", "medium": "warn", "low": "warn", "none": "good"}[flood.level]  # type: ignore[assignment]
     return SummaryTile(
         id="flood",
-        label_pl="Zagrożenie powodzią",
+        label_pl="Powódź",
         value_pl=flood.label_pl,
         detail_pl=flood.sentence_pl,
         status=status,
@@ -681,11 +681,22 @@ def _climate_tile_detail(t: ClimateTrends) -> str:
     )
 
 
+TILE_TREND_UNITS = {"critical_stress_days": "dni stresu", "stress_days": "dni stresu", "kbw_mm": "mm bilansu"}
+
+
+def _climate_tile_value(t: ClimateTrends) -> str:
+    """Verdict with the numbers of the metric it is computed from (Q5): '…: 54 vs 47 dni stresu'."""
+    m = _tile_metric(t)
+    if m is None or m.mean_recent is None or m.mean_all is None:
+        return t.label_pl
+    return f"{t.label_pl}: {num(m.mean_recent)} vs {num(m.mean_all)} {TILE_TREND_UNITS[m.key]}"
+
+
 def _climate_tile(t: ClimateTrends | None) -> SummaryTile:
     if t is None:
         return SummaryTile(
             id="climate",
-            label_pl="Zmiana klimatu na działce",
+            label_pl="Klimat",
             value_pl="brak danych",
             detail_pl="Za mało pełnych sezonów, by porównać ostatnie lata z dekadą.",
             status="unknown",
@@ -701,8 +712,8 @@ def _climate_tile(t: ClimateTrends | None) -> SummaryTile:
     detail = _climate_tile_detail(t)
     return SummaryTile(
         id="climate",
-        label_pl=f"Zmiana klimatu na działce ({len(t.seasons)} lat → 2 lata)",
-        value_pl=t.label_pl,
+        label_pl=f"Klimat: 2 lata vs {len(t.seasons)} lat",
+        value_pl=_climate_tile_value(t),
         detail_pl=detail[:1].upper() + detail[1:],
         status=status,
         link_section="vulnerability",
@@ -712,7 +723,9 @@ def _climate_tile(t: ClimateTrends | None) -> SummaryTile:
 def _action_tile(
     a: Assessment, recs: list[Recommendation], irrigation: IrrigationAdvice, day: date
 ) -> SummaryTile:
-    label = f"Najważniejszy ruch na dzień {date_dmy(day)}"
+    # Short title (team decision 22.11): the date is in the report header, the horizon stays in the title
+    # ("pilne", not "teraz": headers never say "now" for a historical date).
+    label = "Najważniejsze działanie"
     urgent_irrigation = (
         irrigation.applicable
         and irrigation.dose_mm is not None
@@ -727,7 +740,7 @@ def _action_tile(
         )
         return SummaryTile(
             id="action",
-            label_pl=label,
+            label_pl=f"{label} · pilne",
             value_pl=value,
             detail_pl=irrigation.title_pl,
             status="bad",
@@ -744,7 +757,7 @@ def _action_tile(
         }
         return SummaryTile(
             id="action",
-            label_pl=label,
+            label_pl=f"{label} · {'pilne' if first.horizon is Horizon.NOW else 'przed sezonem'}",
             value_pl=first.title_pl,
             detail_pl=f"Zalecenie nr {first.number} ({when})"
             + (
@@ -769,7 +782,7 @@ def _dry_year_tile(plan: WaterPlan | None, farm_n: int = 1) -> SummaryTile:
     if plan is None or plan.season_p80_mm is None:
         return SummaryTile(
             id="dry_year",
-            label_pl="Woda na rok suchy",
+            label_pl="Woda na rok suchy (1 na 5 lat)",
             value_pl="brak danych",
             detail_pl="Za mało danych, by policzyć zapotrzebowanie w roku suchym.",
             status="unknown",
@@ -778,7 +791,7 @@ def _dry_year_tile(plan: WaterPlan | None, farm_n: int = 1) -> SummaryTile:
     if plan.season_p80_mm < 1:
         return SummaryTile(
             id="dry_year",
-            label_pl="Woda na rok suchy",
+            label_pl="Woda na rok suchy (1 na 5 lat)",
             value_pl="nie trzeba",
             detail_pl="Nawet w roku suchym (raz na 5 lat) deszcz i gleba pokrywały potrzeby uprawy.",
             status="good",
@@ -789,7 +802,7 @@ def _dry_year_tile(plan: WaterPlan | None, farm_n: int = 1) -> SummaryTile:
     m3 = f" · ok. {num(p80_m3, 10)} m³{where}" if p80_m3 is not None else ""
     return SummaryTile(
         id="dry_year",
-        label_pl="Woda dla roślin na rok suchy (raz na 5 lat)",
+        label_pl="Woda na rok suchy (1 na 5 lat)",
         value_pl=f"ok. {num(plan.season_p80_mm, 5)} mm{m3}",
         detail_pl=f"W typowym roku ok. {num(plan.season_median_mm or 0, 5)} mm. "
         + (
