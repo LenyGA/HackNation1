@@ -117,7 +117,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | Z2 | Zwięzły opis: problem, funkcje, użycie danych, korzyści | ⚠️ 22.11 | Szkic w `docs/submission/opis.md`; zespół dopasowuje do limitu znaków Platformy |
 | Z3 | Link do prywatnego repo + dostęp jury wg Platformy | ⚠️ | Repo prywatne; dostęp jury do zrobienia ręcznie |
 | Z4 | Prezentacja PDF ≤ 10 slajdów | ❌ | `docs/submission/prezentacja.pdf` |
-| Z5 | Film ≤ 3 min | ❌ | Link w README |
+| Z5 | Film ≤ 3 min | ✅ 22.11 | `docs/submission/GeoSatel-film.mp4` (2:00, 1080p): przejście przez serwis + 3 zalety raportu podstawowego; link w README |
 | Z6 | Wygenerowane raporty | ✅ 22.11 | `docs/sample-reports/`: 24 PDF (6 działek × 2 daty × Podstawowy / Pełny) z VPS + spis z ID raportów |
 | Z7 | Działający link lub instrukcja uruchomienia (obowiązkowe) | ✅ | https://129.121.162.156.sslip.io + Docker |
 | R1 | README: uruchomienie (lokalnie, Docker, testy) | ✅ 22.11 | README §1 |

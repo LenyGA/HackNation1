@@ -12,6 +12,7 @@ potem uprawa i nawadnianie.
 
 | | |
 |---|---|
+| Film z działania (2 min) | [`docs/submission/GeoSatel-film.mp4`](docs/submission/GeoSatel-film.mp4) |
 | Przykładowe raporty PDF | [`docs/sample-reports/`](docs/sample-reports/) |
 | Metodyka, wzory, progi, odwołania do literatury | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) |
 | Źródła danych, licencje, daty pobrania | [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) |
@@ -198,6 +199,9 @@ wyliczonymi wartościami, więc ten sam zestaw danych zawsze daje ten sam raport
 **Narzędzia AI przy tworzeniu kodu:** zespół korzystał z **Claude Code** (Anthropic, model Claude Opus) jako asystenta
 programistycznego: pisanie i refaktoryzacja kodu, testy, przegląd kodu, dokumentacja. Każdą zmianę sprawdzały testy
 automatyczne i zespół. Metodykę, progi i źródła sprawdzaliśmy z publikacjami (bibliografia w `docs/METHODOLOGY.md`).
+
+**Film z działania** (`docs/submission/GeoSatel-film.mp4`): nagrany automatycznie z działającej wersji (Playwright + Chromium),
+zmontowany w ffmpeg. Skrypty montażu przygotował Claude Code. Muzyka jest syntetyzowana w skrypcie, bez utworów osób trzecich.
 
 ## 7. Licencje
 
