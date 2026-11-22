@@ -17,6 +17,7 @@ class ParcelShape:
     length_m: float
     width_m: float
     compactness: float
+    parts: int = 1  # separate polygons; length and width describe the largest one
 
     @property
     def elongation(self) -> float:
@@ -26,6 +27,10 @@ class ParcelShape:
 def parcel_shape_metrics(geom_metric: BaseGeometry) -> ParcelShape | None:
     if geom_metric.is_empty or geom_metric.area <= 0:
         return None
+    parts = [g for g in getattr(geom_metric, "geoms", [geom_metric]) if g.area > 0]
+    if len(parts) > 1:
+        # A parcel in separate pieces: the machine works each piece, so measure the largest one.
+        geom_metric = max(parts, key=lambda g: g.area)
     rect = geom_metric.minimum_rotated_rectangle
     if not isinstance(rect, Polygon) or rect.area <= 0:
         return None
@@ -33,5 +38,8 @@ def parcel_shape_metrics(geom_metric: BaseGeometry) -> ParcelShape | None:
     sides = [((xs[i + 1] - xs[i]) ** 2 + (ys[i + 1] - ys[i]) ** 2) ** 0.5 for i in range(2)]
     length, width = max(sides), min(sides)
     return ParcelShape(
-        length_m=float(length), width_m=float(width), compactness=float(geom_metric.area / rect.area)
+        length_m=float(length),
+        width_m=float(width),
+        compactness=float(geom_metric.area / rect.area),
+        parts=max(1, len(parts)),
     )

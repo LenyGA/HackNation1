@@ -252,6 +252,7 @@ export interface WaterPlan {
   season_p80_m3_parcel: number | null
   season_p80_m3_parcel_gross: number | null
   efficiency_pct: number
+  technology?: 'reel' | 'pivot' | 'drip' | 'none' // absent in reports saved before G10
   critical_p80_mm: number | null
   critical_p80_m3_parcel_gross: number | null
   pond_side_m: number | null

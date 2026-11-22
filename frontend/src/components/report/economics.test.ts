@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEconomics, defaultInputs, roundZl, type EconomicsInputs } from './economics'
+import { computeEconomics, defaultInputs, invalidFields, roundZl, type EconomicsInputs } from './economics'
 import type { EconomicsAssumptions } from '@/api/types'
 
 const ASSUMPTIONS: EconomicsAssumptions = {
@@ -48,5 +48,12 @@ describe('computeEconomics', () => {
   it('rounds money like the report', () => {
     expect(roundZl(1234)).toBe(1250)
     expect(roundZl(12_340)).toBe(12_300)
+  })
+})
+
+describe('invalidFields', () => {
+  it('names empty, negative and zero-lifetime fields, accepts zero costs', () => {
+    const inp = { ...(defaultInputs(ASSUMPTIONS) as EconomicsInputs), priceZlT: Number.NaN, lifetimeYears: 0, operatingZlM3: -1, capexZlHa: 0 }
+    expect(invalidFields(inp).sort()).toEqual(['lifetimeYears', 'operatingZlM3', 'priceZlT'])
   })
 })

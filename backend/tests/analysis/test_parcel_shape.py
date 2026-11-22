@@ -2,7 +2,7 @@
 
 import pytest
 from shapely import affinity
-from shapely.geometry import Polygon, box
+from shapely.geometry import MultiPolygon, Polygon, box
 
 from app.analysis.parcel_shape import parcel_shape_metrics
 
@@ -36,3 +36,9 @@ def test_l_shape_is_not_compact() -> None:
 
 def test_empty_geometry() -> None:
     assert parcel_shape_metrics(Polygon()) is None
+
+
+def test_parcel_in_two_parts_measures_the_largest() -> None:
+    s = parcel_shape_metrics(MultiPolygon([box(0, 0, 200, 150), box(900, 0, 1000, 100)]))
+    assert s is not None and s.parts == 2
+    assert s.length_m == pytest.approx(200) and s.width_m == pytest.approx(150)

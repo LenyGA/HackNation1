@@ -282,7 +282,8 @@ Werdykt: „opłacalne”, gdy najniższa korzyść ≥ najwyższy koszt; „nie
 inaczej „na granicy”. Próg areału z wartości środkowych: roczny koszt ujęcia / (korzyść − instalacja − woda na ha).
 W przeglądarce (wartości pojedyncze) „na granicy” oznacza różnicę korzyści i kosztu poniżej 20 %. Ograniczenia: plon
 krajowy zamiast plonu gospodarstwa, nawadnianie usuwa całą stratę (górna granica korzyści), zależność FAO-33 jest
-liniowa i najlepiej opisuje umiarkowane niedobory, bez dotacji i podatków.
+liniowa i najlepiej opisuje umiarkowane niedobory, bez dotacji i podatków. Dla upraw ozimych okno marzec–październik
+obejmuje też jesienne wschody następnej uprawy (zwykle dni bez stresu, więc strata jest raczej nieco zaniżona).
 
 ## 10. Zmiany klimatu na działce (`trends.py`)
 

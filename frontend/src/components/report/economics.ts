@@ -53,6 +53,15 @@ export function canRecompute(e: IrrigationEconomics): boolean {
   )
 }
 
+/** Which fields block the computation (empty, negative, or zero where zero makes no sense). */
+export function invalidFields(inp: Partial<Record<keyof EconomicsInputs, number>>): (keyof EconomicsInputs)[] {
+  const positive: (keyof EconomicsInputs)[] = ['priceZlT', 'yieldTHa', 'lifetimeYears', 'waterSourceLifetimeYears']
+  return (Object.keys(inp) as (keyof EconomicsInputs)[]).filter((k) => {
+    const v = inp[k]
+    return v === undefined || !Number.isFinite(v) || v < 0 || (positive.includes(k) && v === 0)
+  })
+}
+
 export function computeEconomics(
   inp: EconomicsInputs,
   meanLossShare: number,

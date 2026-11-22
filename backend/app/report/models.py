@@ -207,6 +207,9 @@ class WaterPlan(BaseModel):
         None, description="Water to pump with a sprinkler in a dry year (net / efficiency)."
     )
     efficiency_pct: int = 75
+    technology: Literal["reel", "pivot", "drip", "none"] = Field(
+        "reel", description="Irrigation method whose efficiency sets the gross water (G10)."
+    )
     critical_p80_mm: float | None
     critical_p80_m3_parcel_gross: float | None = Field(
         None, description="Water to pump in a dry year for rescue irrigation only (critical periods)."

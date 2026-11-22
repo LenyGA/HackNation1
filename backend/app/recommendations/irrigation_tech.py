@@ -23,7 +23,7 @@ from app.crops.economics import load_economics
 
 TechChoiceId = Literal["reel", "pivot", "drip", "none"]
 TechReason = Literal["low_need", "row_crop", "large_compact", "large_long", "reel"]
-TechNote = Literal["narrow", "long", "irregular", "small", "no_shape", "no_plan"]
+TechNote = Literal["narrow", "long", "irregular", "small", "multipart", "no_shape", "no_plan"]
 
 # ASSUMPTIONS (stated in the report): below one sprinkler dose on loam (25 mm, irrigation.MAX_SINGLE_DOSE_MM)
 # in a dry year a fixed installation has nothing to do.
@@ -62,6 +62,8 @@ def choose_technology(
     notes: list[TechNote] = []
     if shape is None:
         notes.append("no_shape")
+    elif shape.parts > 1:
+        notes.append("multipart")
     if dry_year_need_mm is None:
         notes.append("no_plan")
 

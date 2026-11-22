@@ -1,23 +1,24 @@
 {#- G10 / M5.2: technology for the parcel (recommendations/irrigation_tech.py). v: rounded view values. -#}
 {% if t.tech == 'none' %}
-Stała instalacja nie jest potrzebna: nawet w roku suchym (raz na 5 lat) uprawie brakuje tu tylko ok. {{ t.need_mm|num }} mm wody — to najwyżej jedna dawka z wypożyczonej deszczowni lub usługi.
+{% if t.need_mm < 1 %}Stała instalacja nie jest potrzebna: nawet w roku suchym (raz na 5 lat) deszcz i woda w glebie pokrywały tu potrzeby uprawy.{% else %}Stała instalacja nie jest potrzebna: nawet w roku suchym (raz na 5 lat) uprawie brakuje tu tylko ok. {{ t.need_mm|num }} mm wody — to najwyżej jedna dawka z wypożyczonej deszczowni lub usługi.{% endif %}
 
 {% elif t.tech == 'drip' %}
 Nawadnianie kroplowe lub mikrozraszacze: warzywa rosną w rzędach, a woda podana przy korzeniach ma najmniejsze straty (sprawność ok. {{ v.efficiency_pct }} % wobec ok. 75 % z deszczowni).
 
 {% elif t.tech == 'pivot' %}
-{% if t.reason == 'large_long' %}Deszczownia liniowa (przejezdna) lub obrotowa{% else %}Deszczownia obrotowa (pivot){% endif %}: działka jest duża ({{ t.area_ha|num(0.1) }} ha) i szeroka (ok. {{ v.width_m|num(10) }} m{% if v.length_m %} przy długości ok. {{ v.length_m|num(10) }} m{% endif %}), więc jedna maszyna obejmie większość pola bez przestawiania; {% if t.reason == 'large_long' %}na długim polu ramię liniowe przejeżdża wzdłuż działki i nie zostawia suchych narożników{% else %}ramię obraca się wokół środka pola{% endif %}.
+{% if t.reason == 'large_long' %}Deszczownia liniowa (przejezdna) lub obrotowa{% else %}Deszczownia obrotowa (pivot){% endif %}: działka jest duża ({{ t.area_ha|num(0.1) }} ha) i szeroka (ok. {{ v.width_m|num }} m{% if v.length_m %} przy długości ok. {{ v.length_m|num }} m{% endif %}), więc jedna maszyna obejmie większość pola bez przestawiania; {% if t.reason == 'large_long' %}na długim polu ramię liniowe przejeżdża wzdłuż działki i nie zostawia suchych narożników{% else %}ramię obraca się wokół środka pola{% endif %}.
 
 {% else %}
-Deszczownia szpulowa: pasuje do działki {% if v.length_m %}ok. {{ v.length_m|num(10) }} × {{ v.width_m|num(10) }} m {% endif %}({{ t.area_ha|num(0.1) }} ha){% if t.area_ha < 20 %} — za małej na deszczownię obrotową{% endif %}; wózek ze zraszaczem przeciąga się wzdłuż dłuższego boku, pas po pasie.
+Deszczownia szpulowa: pasuje do działki {% if v.length_m %}ok. {{ v.length_m|num }} × {{ v.width_m|num }} m {% endif %}({{ t.area_ha|num(0.1) }} ha){% if t.area_ha < 20 %} — za małej na deszczownię obrotową{% endif %}; wózek ze zraszaczem przeciąga się wzdłuż dłuższego boku, pas po pasie.
 
 {% endif %}
 {% for n in t.notes %}
 {% if n == 'narrow' %}Działka jest wąska (ok. {{ v.width_m|num }} m), a zraszacz polewa pas szerokości ok. {{ reel_width_m|num }} m — ustaw go sektorowo, żeby woda nie spadała za granicę działki.
-{% elif n == 'long' %}Działka jest długa (ok. {{ v.length_m|num(10) }} m): jedno ustawienie wózka obejmuje ok. {{ reel_hose_m|num }} m, więc potrzeba kilku ustawień albo dwóch wózków.
+{% elif n == 'long' %}Działka jest długa (ok. {{ v.length_m|num }} m): jedno ustawienie wózka obejmuje ok. {{ reel_hose_m|num }} m, więc potrzeba kilku ustawień albo dwóch wózków.
 {% elif n == 'irregular' %}Działka ma nieregularny kształt — narożniki będą podlane słabiej niż środek pola.
-{% elif n == 'small' %}Przy polu mniejszym niż {{ small_area_ha|num }} ha zamiast własnej maszyny rozważ usługę albo maszynę wspólną z sąsiadami.
+{% elif n == 'small' %}Przy tak małym polu zamiast własnej maszyny rozważ usługę albo maszynę wspólną z sąsiadami.
 {% elif n == 'no_plan' %}Nie policzyliśmy, ile wody brakuje w roku suchym, więc dobór opiera się tylko na uprawie i kształcie działki.
+{% elif n == 'multipart' %}Działka składa się z {{ t.shape.parts }} oddzielnych części — wymiary podajemy dla największej z nich; każdą część trzeba nawadniać osobno.
 {% elif n == 'no_shape' %}Nie odczytaliśmy kształtu działki, więc dobór opiera się tylko na uprawie i powierzchni.
 {% endif %}
 {% endfor %}

@@ -7,6 +7,8 @@ then the economics use the plan's typical-year need and the assessment's root-zo
 from dataclasses import dataclass
 from typing import Literal
 
+from shapely.errors import ShapelyError
+
 from app.analysis.assessment import Assessment
 from app.analysis.common import round_to
 from app.analysis.context import AnalysisInputs, computed_source
@@ -53,12 +55,16 @@ ASSUMPTIONS_PL: list[str] = [
 ]
 
 
+NEED_STEP_MM = 5.0  # = outlook.SEASON_WATER_STEP_MM (not imported: outlook imports this module)
+
+
 def technology_for(inputs: AnalysisInputs, plan: WaterPlanResult | None) -> TechChoice:
     try:
         shape = parcel_shape_metrics(to_crs(parcel_shape(inputs.parcel), METRIC_CRS))
-    except (ValueError, TypeError, AttributeError):
+    except (ValueError, TypeError, AttributeError, ShapelyError):
         shape = None  # malformed geometry: choose by crop and area only (said in the text)
-    need = plan.season_p80_mm if plan is not None else None
+    # The rounded value the water plan prints (5 mm), so the threshold and the sentence agree with it (Q2).
+    need = round_to(plan.season_p80_mm, NEED_STEP_MM) if plan is not None else None
     return choose_technology(inputs.crop, inputs.parcel.area_ha, shape, need)
 
 
@@ -67,8 +73,11 @@ def _zl(value: float | None) -> float | None:
 
 
 def _area(value: float | None) -> tuple[float | None, float]:
-    step = 1.0 if value is not None and value >= 10 else 0.5
-    return round_to(value, step), step
+    """Break-even area as stated: 1 ha steps from 10 ha, 0.5 ha below, 0.1 ha under 0.5 ha (never "0 ha")."""
+    if value is None:
+        return None, 0.5
+    step = 1.0 if value >= 10 else 0.5 if value >= 0.5 else 0.1
+    return max(step, round_to(value, step) or 0.0), step
 
 
 Status = Literal["ok", "no_balance", "no_crop_data", "no_price", "not_needed"]
@@ -182,7 +191,7 @@ def economics_view(
         seasons=[EconomicsSeason(year=s.year, loss_pct=round(100 * s.loss_share, 1)) for s in e.seasons],
         critical_deficit_years=e.critical_deficit_years,
         years_counted=e.years_counted,
-        water_m3_ha=round(e.water_m3_ha) if e.water_m3_ha is not None else None,
+        water_m3_ha=v.water_m3_ha,
         benefit_zl_ha_low=v.benefit_zl_ha_low,
         benefit_zl_ha_high=v.benefit_zl_ha_high,
         cost_zl_ha_low=v.cost_zl_ha_low,

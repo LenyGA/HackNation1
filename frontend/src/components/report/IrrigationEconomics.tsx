@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatNumberPl } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { canRecompute, computeEconomics, defaultInputs, roundZl, type EconomicsInputs } from './economics'
+import { canRecompute, computeEconomics, defaultInputs, invalidFields, roundZl, type EconomicsInputs } from './economics'
 
 // G10: irrigation technology for the parcel and whether it pays off. Sentences and the default verdict come
 // from the backend; the farmer can change the assumptions and the browser recomputes the result.
@@ -52,22 +52,26 @@ const FIELDS: FieldDef[] = [
   { key: 'operatingZlM3', label: 'Pompowanie, energia, praca', unit: 'zł/m³', step: 0.1 },
 ]
 
+const toText = (v: number) => (v ? String(Math.round(v * 100) / 100).replace('.', ',') : '')
+const parse = (v: string) => (v.trim() === '' ? Number.NaN : Number(v.trim().replace(/\s/g, '').replace(',', '.')))
+
 function Calculator({ e }: { e: Economics }) {
   const id = useId()
   const defaults = useMemo(() => defaultInputs(e.assumptions), [e.assumptions])
-  const [values, setValues] = useState<Record<keyof EconomicsInputs, string>>(() => {
-    const d = defaults as EconomicsInputs
-    return Object.fromEntries(FIELDS.map((f) => [f.key, d[f.key] ? String(Math.round(d[f.key] * 100) / 100) : ''])) as Record<
-      keyof EconomicsInputs,
-      string
-    >
-  })
-  const parsed = Object.fromEntries(
-    FIELDS.map((f) => [f.key, Number.parseFloat(values[f.key].replace(',', '.'))]),
-  ) as unknown as EconomicsInputs
-  const valid = FIELDS.every((f) => Number.isFinite(parsed[f.key]) && parsed[f.key] >= 0)
+  const initial = useMemo(
+    () =>
+      Object.fromEntries(FIELDS.map((f) => [f.key, toText((defaults as EconomicsInputs)[f.key])])) as Record<
+        keyof EconomicsInputs,
+        string
+      >,
+    [defaults],
+  )
+  const [values, setValues] = useState(initial)
+  const edited = FIELDS.some((f) => values[f.key] !== initial[f.key])
+  const parsed = Object.fromEntries(FIELDS.map((f) => [f.key, parse(values[f.key])])) as unknown as EconomicsInputs
+  const invalid = invalidFields(parsed)
   const result =
-    valid && e.mean_loss_share !== null && e.water_m3_ha !== null
+    invalid.length === 0 && e.mean_loss_share !== null && e.water_m3_ha !== null
       ? computeEconomics(parsed, e.mean_loss_share, e.water_m3_ha, e.area_ha)
       : null
 
@@ -75,8 +79,8 @@ function Calculator({ e }: { e: Economics }) {
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
         Startujemy od środka widełek. Zmień liczby na swoje — strata plonu z suszy (średnio{' '}
-        {formatNumberPl(100 * (e.mean_loss_share ?? 0))} %) i ilość wody (ok. {formatNumberPl(Math.round((e.water_m3_ha ?? 0) / 10) * 10)}{' '}
-        m³/ha w typowym roku) zostają z danych tej działki.
+        {formatNumberPl(100 * (e.mean_loss_share ?? 0))} %) i ilość wody (ok. {formatNumberPl(e.water_m3_ha ?? 0)} m³/ha w typowym
+        roku) zostają z danych tej działki.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {FIELDS.map((f) => (
@@ -84,21 +88,26 @@ function Calculator({ e }: { e: Economics }) {
             <Label htmlFor={`${id}-${f.key}`}>
               {f.label} <span className="font-normal text-muted-foreground">({f.unit})</span>
             </Label>
+            {/* type="text": a number input drops the Polish decimal comma in Firefox and iOS Safari. */}
             <Input
               id={`${id}-${f.key}`}
+              type="text"
               inputMode="decimal"
-              type="number"
-              min={0}
-              step={f.step}
+              autoComplete="off"
               value={values[f.key]}
-              aria-invalid={!Number.isFinite(parsed[f.key]) || parsed[f.key] < 0}
+              aria-invalid={invalid.includes(f.key)}
               onChange={(ev) => setValues((v) => ({ ...v, [f.key]: ev.target.value }))}
             />
           </div>
         ))}
       </div>
       <div className="rounded-md border bg-card p-3" aria-live="polite">
-        {result ? (
+        {!edited ? (
+          <p className="text-sm">
+            Przy wartościach domyślnych obowiązuje ocena z raportu ({e.verdict_pl.toLowerCase()}), liczona na całych widełkach cen
+            i kosztów. Zmień którąś liczbę, a przeliczymy wynik dla Twoich wartości.
+          </p>
+        ) : result ? (
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">Twój wynik:</span>
@@ -108,11 +117,15 @@ function Calculator({ e }: { e: Economics }) {
               Uratowany plon ok. {zl(result.benefitZlHa)}/ha rocznie, koszt nawadniania ok. {zl(result.costZlHa)}/ha rocznie.{' '}
               {result.breakEvenAreaHa === null
                 ? 'Przy tych liczbach nawadnianie nie zwraca się przy żadnym areale.'
-                : `Ujęcie wody zwraca się od ok. ${formatNumberPl(result.breakEvenAreaHa, result.breakEvenAreaHa < 10 ? 1 : 0)} ha nawadnianych upraw.`}
+                : `Ujęcie wody zwraca się od ok. ${formatNumberPl(result.breakEvenAreaHa, result.breakEvenAreaHa < 10 ? 1 : 0)} ha nawadnianych upraw.`}{' '}
+              Przy jednej wartości zamiast widełek „na granicy” oznacza różnicę mniejszą niż 20 %.
             </p>
           </div>
         ) : (
-          <p className="text-sm">Wpisz wszystkie wartości (cena większa od zera), a policzymy wynik.</p>
+          <p className="text-sm">
+            Popraw pola: {FIELDS.filter((f) => invalid.includes(f.key)).map((f) => f.label.toLowerCase()).join(', ')} (liczba
+            większa od zera; przecinek lub kropka).
+          </p>
         )}
       </div>
     </div>

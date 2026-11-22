@@ -693,7 +693,7 @@ def _map(inputs: AnalysisInputs, a: Assessment, recs: list[Recommendation]) -> R
 # --- retention methods (G9) -------------------------------------------------------------------------
 
 
-def _coverage_view(c: RetentionCoverage, inputs: AnalysisInputs) -> RetentionCoverageView:
+def _coverage_view(c: RetentionCoverage, inputs: AnalysisInputs, drip: bool = False) -> RetentionCoverageView:
     return RetentionCoverageView(
         status=c.status.value,
         volume_m3=c.volume_m3,
@@ -701,7 +701,7 @@ def _coverage_view(c: RetentionCoverage, inputs: AnalysisInputs) -> RetentionCov
         rescue_need_m3=c.rescue_need_m3,
         full_pct=c.full_pct,
         rescue_pct=c.rescue_pct,
-        text_pl=render_line("blocks/retention_coverage.j2", c=c),
+        text_pl=render_line("blocks/retention_coverage.j2", c=c, drip=drip),
         source=computed_source(inputs.dem.source, inputs.weather.source, inputs.soil.source),
     )
 
@@ -732,7 +732,9 @@ def _retention_plan(
         for m in sorted(methods, key=lambda m: order[m.id])
     ]
     return RetentionPlan(
-        coverage=_coverage_view(coverage, inputs), methods=views, legal_basis_pl=WATER_LAW_PL
+        coverage=_coverage_view(coverage, inputs, drip=plan is not None and plan.technology == "drip"),
+        methods=views,
+        legal_basis_pl=WATER_LAW_PL,
     )
 
 

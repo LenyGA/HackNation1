@@ -346,6 +346,7 @@ def _water_plan(
         season_p80_m3_parcel=p80_m3,
         season_p80_m3_parcel_gross=gross_m3,
         efficiency_pct=round(100 * efficiency),
+        technology=tech.tech if tech is not None else "reel",
         critical_p80_mm=critical,
         critical_p80_m3_parcel_gross=critical_gross,
         pond_side_m=pond,
