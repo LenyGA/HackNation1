@@ -114,22 +114,22 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | ID | Wymaganie | Status | Luka |
 |---|---|---|---|
 | Z1 | Nazwa zespołu i tytuł | ✅ | README |
-| Z2 | Zwięzły opis: problem, funkcje, użycie danych, korzyści | ❌ | — |
+| Z2 | Zwięzły opis: problem, funkcje, użycie danych, korzyści | ⚠️ 22.11 | Szkic w `docs/submission/opis.md`; zespół dopasowuje do limitu znaków Platformy |
 | Z3 | Link do prywatnego repo + dostęp jury wg Platformy | ⚠️ | Repo prywatne; dostęp jury do zrobienia ręcznie |
 | Z4 | Prezentacja PDF ≤ 10 slajdów | ❌ | `docs/submission/prezentacja.pdf` |
 | Z5 | Film ≤ 3 min | ❌ | Link w README |
-| Z6 | Wygenerowane raporty | ❌ | `docs/sample-reports/` (PDF dla działek z `parcels.yaml`, data bieżąca i historyczna) |
+| Z6 | Wygenerowane raporty | ✅ 22.11 | `docs/sample-reports/`: 24 PDF (6 działek × 2 daty × Podstawowy / Pełny) z VPS + spis z ID raportów |
 | Z7 | Działający link lub instrukcja uruchomienia (obowiązkowe) | ✅ | https://129.121.162.156.sslip.io + Docker |
-| R1 | README: uruchomienie (lokalnie, Docker, testy) | ⚠️ | Jest tylko Docker i VPS |
-| R2–R4 | README: funkcje, architektura, źródła i zakresy danych | ❌ | Treść jest w CLAUDE.md i docs/, ale nie w README |
-| R5 | README: dane na żywo vs pobrane wcześniej (z datami) | ⚠️ | Tylko w `DATA_SOURCES.md` |
-| R6 | README: biblioteki, komponenty, modele, usługi, **narzędzia AI** (w tym Claude Code) | ❌ | — |
-| R7 | README: licencje danych i komponentów | ⚠️ | Tabela ma 2 wiersze |
-| R8 | README: znane ograniczenia | ❌ | Są tylko w szablonie raportu |
-| R9 | README: weryfikacja wyników (testy, E2E, porównanie z IUNG/EDO) | ❌ | — |
-| R10 | Koszty, brak usług płatnych, alternatywy (5.4) | ⚠️ | Brak kwoty VPS i jasnego „0 zł dla rolnika” |
-| R11 | Skalowalność (5.5): limity źródeł, cache, aktualizacja danych, ruch, koszty | ❌ | W kodzie jest (cache, semafor, rate limit), w README brak opisu |
-| R12 | Bezpieczeństwo (5.6) | ✅ | `api/ratelimit.py`, `deploy/Caddyfile`, walidacja wejścia; trzeba to opisać w README |
+| R1 | README: uruchomienie (lokalnie, Docker, testy) | ✅ 22.11 | README §1 |
+| R2–R4 | README: funkcje, architektura, źródła i zakresy danych | ✅ 22.11 | README §2–4 |
+| R5 | README: dane na żywo vs pobrane wcześniej (z datami) | ✅ 22.11 | README §5 |
+| R6 | README: biblioteki, komponenty, modele, usługi, **narzędzia AI** (w tym Claude Code) | ✅ 22.11 | README §6 |
+| R7 | README: licencje danych i komponentów | ✅ 22.11 | README §7 (w tym MPL/LGPL zależności pośrednich, bez GPL/AGPL) |
+| R8 | README: znane ograniczenia | ✅ 22.11 | README §8 (z listą wyciętych funkcji z `plan33.md` rozdz. 7); T4 do uzupełnienia przez zespół |
+| R9 | README: weryfikacja wyników (testy, E2E, porównanie z IUNG/EDO) | ✅ 22.11 | README §9, METHODOLOGY §15; porównanie z IUNG/EDO opisane jako ręczne (G13 brak) |
+| R10 | Koszty, brak usług płatnych, alternatywy (5.4) | ⚠️ 22.11 | README §10; **kwotę VPS wpisuje zespół** (placeholder) |
+| R11 | Skalowalność (5.5): limity źródeł, cache, aktualizacja danych, ruch, koszty | ✅ 22.11 | README §11 |
+| R12 | Bezpieczeństwo (5.6) | ✅ | README §12; `api/ratelimit.py`, `deploy/Caddyfile`, walidacja wejścia |
 
 ### Jakość techniczna
 | ID | Problem | Status |
@@ -155,7 +155,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | ID | Wymaganie | Status | Luka |
 |---|---|---|---|
 | Z8 | `LICENSE`: „Copyright … Łukasz Dębski”. Regulamin § 6 ust. 2 każe identyfikować rozwiązanie nazwą zespołu, a § 5 przewiduje przeniesienie praw na KOWR | ✅ | 22.11 — właściciel „GeoSatel” |
-| Z9 | Finał: demo na żywo dla 1–3 działek i dat jury w 2–3 min | ❌ | Scenariusz demo, rozgrzany cache, zapasowe PDF-y z Z6 na wypadek awarii sieci |
+| Z9 | Finał: demo na żywo dla 1–3 działek i dat jury w 2–3 min | ⚠️ 22.11 | Scenariusz `docs/submission/demo.md`, zapasowe PDF-y z Z6; próba generalna — zespół |
 
 **Priorytet (od największego wpływu na punkty):** T1 → **Q1–Q7** → G3 → G1 → G7 → Z6 → **G9 → G10** → R1–R12 →
 T4/T5 → G13 → G8 → G5 → **G11** → G12 → Z2/Z4/Z5/Z9 (materiały zgłoszeniowe zawsze z zapasem czasu przed zamknięciem Platformy).

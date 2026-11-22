@@ -242,15 +242,15 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
 
 ### M9. Lista kontrolna zespołu (do 11:00)
 
-- [ ] **README (wymóg formalny 4.2)**: R1 uruchomienie (lokalnie, Docker, testy) · R2 funkcje · R3 architektura · R4 źródła i zakresy ·
+- [x] **README (wymóg formalny 4.2)** (22.11: README §1–12; zespół wpisuje koszt VPS i wynik T4): R1 uruchomienie (lokalnie, Docker, testy) · R2 funkcje · R3 architektura · R4 źródła i zakresy ·
   R5 dane na żywo / pobrane wcześniej z datami · R6 biblioteki, usługi i **narzędzia AI (Claude Code)** · R7 licencje danych i komponentów ·
   R8 znane ograniczenia · R9 weryfikacja wyników · R10 koszty (0 zł dla rolnika, koszt VPS) · R11 skalowalność · R12 bezpieczeństwo.
   Materiał źródłowy: `claude33.md`, `docs/DATA_SOURCES.md`, `docs/METHODOLOGY.md`, `backend/requirements.txt`, `frontend/package.json`.
-- [ ] **Z6** przykładowe raporty PDF w `docs/sample-reports/` (działki z `parcels.yaml`, data bieżąca i 2019-07-15, oba warianty) — po M8.2.
-- [ ] **Z2** opis: problem, funkcje, użycie danych, korzyści · **Z4** prezentacja PDF ≤ 10 slajdów · **Z5** film ≤ 3 min.
+- [x] **Z6** (22.11: 24 PDF + spis) przykładowe raporty PDF w `docs/sample-reports/` (działki z `parcels.yaml`, data bieżąca i 2019-07-15, oba warianty) — po M8.2.
+- [ ] **Z2** (szkic: `docs/submission/opis.md`) opis: problem, funkcje, użycie danych, korzyści · **Z4** prezentacja PDF ≤ 10 slajdów · **Z5** film ≤ 3 min.
 - [ ] **Z3** dostęp jury do prywatnego repo wg instrukcji Platformy · **Z7** link `https://129.121.162.156.sslip.io` w zgłoszeniu.
 - [ ] **T4** szybki test w Chrome, Firefox, Edge, Operze i Safari (strona, PDF, druk) — ręcznie, w trakcie M5–M8.
-- [ ] **Z9** scenariusz demo na finał: 1–3 działki, rozgrzany cache, zapasowe PDF-y z Z6.
+- [ ] **Z9** (szkic: `docs/submission/demo.md`) scenariusz demo na finał: 1–3 działki, rozgrzany cache, zapasowe PDF-y z Z6.
 - [ ] Zgłoszenie wysłane **najpóźniej 10:45**.
 
 ## 7. Wycięte — wpisać do „Znanych ograniczeń” w README i raporcie

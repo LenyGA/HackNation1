@@ -2,7 +2,7 @@
 
 Dokument opisuje, jak aplikacja liczy ocenę sytuacji wodnej (moduł M3, `backend/app/analysis/`). Każdy próg jest stałą
 w kodzie z nazwą podaną niżej, więc zmiana progu = zmiana w jednym miejscu i w tym dokumencie.
-Rozdział o weryfikacji wyników (M9.3) oraz bibliografię pełną (M10.2) uzupełnimy później.
+Sposób weryfikacji wyników opisuje rozdz. 15. Literatura jest cytowana w tekście; pełną bibliografię (M10.2) uzupełnimy później.
 
 ## 1. Dane wejściowe i zasada daty analizy
 
@@ -341,3 +341,18 @@ otoczenie) i przyjmujemy jej wynik dla pozostałych, z tą samą uprawą. Suma p
 wody w m³ (dawka nawadniania, plan wody na sezon, symulator, pokrycie potrzeb przez zagłębienie, próg poboru 5 m³/dobę)
 oraz do opłacalności nawadniania. Dobór maszyny zostaje dla kształtu i powierzchni działki głównej. Raport mówi wprost,
 które wyniki są sumą, a które dotyczą tylko działki głównej. Wspólny model terenu stykających się działek nie jest liczony.
+
+## 15. Weryfikacja wyników
+
+- **Testy jednostkowe** (`backend/tests/`, bez sieci): wzory z rozdz. 3–14 na danych z fixture'ów, w tym statusy
+  `missing` i `degraded` każdego źródła. Każda reguła z rozdz. 8 ma test „odpala się” i „nie odpala się”. Symulator (rozdz. 12)
+  ma test niezmiennika: dołożenie działania nigdy nie zwiększa liczby dni stresu.
+- **Testy E2E** (`pytest -m e2e`, `tests/e2e/parcels.yaml`): 6 działek z różnych regionów i warunków (gleba lekka, ciężka,
+  stok, dolina rzeczna, okolica kopalni, sad) × 2 daty. Wynik (poziom suszy, zalecenia, statusy źródeł, czas) porównujemy
+  z zapisanym wzorcem `tests/e2e/baseline.json`; wzorzec aktualizujemy świadomie (`deploy/e2e-vps.sh --update`).
+- **Progi z literatury:** wartości IUNG-PIB przepisane z tekstu Dz.U. 2019 poz. 739 i porównane wartość po wartości z tab. 3
+  ekspertyzy IUNG-PIB 2019 (rozdz. 7); Kc i długości faz z tab. 11–12 FAO-56 (odwołania `[FAO56-T12]` w `crops/catalog.yaml`).
+- **Porównanie z oficjalnymi ocenami** (nieautomatyczne): werdykt suszy dla daty historycznej można zestawić z mapą
+  Systemu Monitoringu Suszy Rolniczej IUNG-PIB (https://susza.iung.pulawy.pl/) dla tego samego okresu sześciodekadowego
+  oraz z CDI European Drought Observatory. Różnice wynikają głównie z ET0 FAO-56 zamiast wzoru IUNG na parowanie
+  i z siatki modelu pogody zamiast stacji (oba ograniczenia są w raporcie). Automatycznej kontroli krzyżowej nie zrobiliśmy.
