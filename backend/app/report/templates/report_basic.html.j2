@@ -39,12 +39,18 @@
 </div>
 {% endif %}
 
+{% set verdicts = r.sections|selectattr('verdict_pl')|list %}
+{% if verdicts %}
 <h2>Najważniejsze wnioski</h2>
 <ul class="verdicts">
-{% for s in r.sections if s.verdict_pl %}
-  <li><b>{{ s.title_pl }}:</b> {{ s.verdict_pl }}</li>
+{% for s in verdicts %}
+  <li><b>{% if s.id == 'causes' and r.headline.level == 'none' %}Co może sprzyjać niedoborom wody{% else %}{{ s.title_pl }}{% endif %}:</b> {{ s.verdict_pl }}</li>
 {% endfor %}
 </ul>
+{% endif %}
+{% if not r.complete %}
+{% for p in r.sections[0].paragraphs_pl %}<p>{{ p }}</p>{% endfor %}
+{% endif %}
 
 {% if r.complete %}
 {% set now = r.recommendations|selectattr('horizon', 'equalto', 'now')|list %}
@@ -55,18 +61,18 @@
 <div class="rec {{ rec.category.value }}">
   <h3>{{ rec.number }}. {{ rec.title_pl }}</h3>
   {% if rec.category.value == 'irrigation' %}<p>{{ r.irrigation.text_pl }}</p>{% else %}<p>{{ rec.text_pl }}</p>{% endif %}
-  <p class="why">Na podstawie: {% for e in rec.evidence[:3] %}{{ e.label_pl|lower }} {{ e.value_pl }}{% if not loop.last %}; {% endif %}{% endfor %}{% if rec.evidence|length > 3 %} i {{ rec.evidence|length - 3 }} {{ (rec.evidence|length - 3)|plural('inna wartość', 'inne wartości', 'innych wartości') }} w wariancie pełnym{% endif %}.</p>
+  <p class="why">Na podstawie: {% for e in rec.evidence[:3] %}{{ e.label_pl[:1]|lower }}{{ e.label_pl[1:] }} {{ e.value_pl }}{% if e.period %} ({% if e.period.end != e.period.start %}{{ e.period.start|date_dmy }}–{% endif %}{{ e.period.end|date_dmy }}){% endif %}, źródło: {{ e.source|source_short }}{% if not loop.last %}; {% endif %}{% endfor %}{% if rec.evidence|length > 3 %} i {{ rec.evidence|length - 3 }} {{ (rec.evidence|length - 3)|plural('inna wartość', 'inne wartości', 'innych wartości') }} w wariancie pełnym{% endif %}.</p>
 </div>
 {% endfor %}
 {% else %}
-<p>Na dzień analizy dane nie wskazują pilnych działań na polu — skorzystaj z zaleceń na następny sezon.</p>
+<p>Na dzień analizy dane nie wskazują pilnych działań na polu{% if season %} — skorzystaj z zaleceń na następny sezon{% else %} ani potrzeby dodatkowych działań na tej działce{% endif %}.</p>
 {% endif %}
 
 {% if season %}
 <h2>Przed następnym sezonem</h2>
 <ul class="season">
 {% for rec in season %}
-  <li><b>{{ rec.number }}. {{ rec.title_pl }}.</b> {{ rec.summary_pl }}</li>
+  <li><b>{{ rec.number }}. {{ rec.title_pl }}.</b> {{ rec.summary_pl }}{% set e = rec.evidence[0] %} <span class="small">({{ e.label_pl[:1]|lower }}{{ e.label_pl[1:] }} {{ e.value_pl }}{% if e.period %}, {{ e.period.end|date_dmy }}{% endif %}; {{ e.source|source_short }})</span></li>
 {% endfor %}
 </ul>
 {% endif %}

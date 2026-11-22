@@ -76,6 +76,7 @@ def test_no_flood_hazard_is_one_sentence() -> None:
     assert r.flood is not None and r.flood.level == "none"
     assert r.flood.sentence_pl.count(".") == 1
     assert "nie stwierdzono stref zagrożenia powodziowego" in r.flood.sentence_pl
+    assert "stan na dziś" in r.flood.sentence_pl  # maps describe today, not the analysis date
 
 
 def test_flood_with_groundwater_hazard_keeps_the_caveats() -> None:
@@ -87,3 +88,45 @@ def test_shallow_roots_explain_the_small_reserve() -> None:
     current = _main(report_for(crop_id="potato"), "current")
     assert "Sama gleba mieści ok." in current and "korzenie uprawy (ziemniaki) sięgają tylko ok." in current
     assert "Sama gleba mieści" not in _main(report_for(), "current")  # maize roots reach 1 m
+
+
+def test_rainfall_difference_hidden_when_the_percentile_says_usual() -> None:
+    current = _main(report_for(), "current")
+    assert "mniej więcej tyle, ile zwykle" in current
+    assert not re.search(r"\(o \d+ mm (więcej|mniej) niż zwykle\) — mniej więcej tyle, ile zwykle", current)
+
+
+def test_basic_verdicts_list_every_flagged_cause_and_no_intro() -> None:
+    from tests.report.builders import off_season_report, rich_report
+
+    r = rich_report()
+    verdicts = {s.id: s.verdict_pl for s in r.sections if s.verdict_pl}
+    assert set(verdicts) == {"vulnerability", "causes"}
+    flagged = [c for c in r.sections if c.id == "causes"]
+    assert verdicts["causes"].count(";") >= 1 and "Nie stwierdzono" not in verdicts["causes"]
+    assert flagged
+    off = {s.id: s.verdict_pl for s in off_season_report().sections if s.verdict_pl}
+    assert "Dzień analizy" not in " ".join(off.values())
+
+
+def test_off_season_headline_has_a_soil_verdict_and_good_grammar() -> None:
+    from tests.report.builders import off_season_report
+
+    r = off_season_report()
+    s = r.headline.sentence_pl
+    assert "zaczyna jej brakować wody" not in s and "brakuje jej wody" not in s
+    assert re.search(r"— (to mało|zapas jest prawie pełny|zapas jest w normie)", s)
+
+
+def test_irrigation_text_does_not_point_to_earlier_points() -> None:
+    r = report_for()
+    irr = next(rec for rec in r.recommendations if rec.category.value == "irrigation")
+    assert "wcześniejszych punktów" not in irr.text_pl
+
+
+def test_weather_grid_matches_the_source_used() -> None:
+    from app.sources import open_meteo
+
+    r = report_for()
+    assert any("10 km" in line for line in r.limitations_pl)
+    assert open_meteo.SOURCE_POWER not in next(s.source for s in r.sources if s.name == "open_meteo")

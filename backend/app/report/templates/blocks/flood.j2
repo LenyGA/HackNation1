@@ -11,7 +11,7 @@ W {{ d.points_checked }} z {{ d.points_total }} sprawdzanych punktów działki n
 Działka nie leży w strefach zagrożenia powodziowego od rzek (sprawdzono {{ d.points_checked }} {{ d.points_checked|plural('punkt', 'punkty', 'punktów') }}), ale w obszarze zagrożonym podtopieniami od wód gruntowych.
 {% else %}
 {% set calm = not d.historical and d.historical is not none and not d.groundwater_flooding %}
-W {{ d.points_checked }} sprawdzonych {{ d.points_checked|plural('punkcie', 'punktach', 'punktach') }} działki (środek i brzeg) nie stwierdzono stref zagrożenia powodziowego od rzek{% if calm %} ani powodzi w przeszłości (mapy Wód Polskich 2020–2022, bez małych cieków i podtopień po ulewach){% endif %}.
+W {{ d.points_checked }} sprawdzonych {{ d.points_checked|plural('punkcie', 'punktach', 'punktach') }} działki (środek i brzeg) nie stwierdzono stref zagrożenia powodziowego od rzek{% if calm %} ani powodzi w przeszłości (mapy Wód Polskich z lat 2020–2022, stan na dziś, bez małych cieków i podtopień po ulewach){% endif %}.
 {% endif %}
 {% if level in ('high', 'medium', 'low') and partial %}
 Część punktów działki nie została sprawdzona — strefa może obejmować większą część działki.

@@ -1,5 +1,5 @@
 import type { Report, ReportRecommendation } from '@/api/types'
-import { Disclosure, IrrigationBlock } from '@/components/report/ReportParts'
+import { Disclosure, EvidenceList, IrrigationBlock } from '@/components/report/ReportParts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDatePl } from '@/lib/format'
 
@@ -8,7 +8,17 @@ import { formatDatePl } from '@/lib/format'
 
 const SOURCE_STATUS_PL = { ok: 'pobrano', degraded: 'z ograniczeniami', missing: 'brak danych' } as const
 
-function ActionItem({ rec, report, short }: { rec: ReportRecommendation; report: Report; short: boolean }) {
+function ActionItem({
+  rec,
+  report,
+  short,
+  hideTitle = false,
+}: {
+  rec: ReportRecommendation
+  report: Report
+  short: boolean
+  hideTitle?: boolean
+}) {
   const text = short ? rec.summary_pl : rec.category === 'irrigation' ? report.irrigation.text_pl : rec.text_pl
   return (
     <li className="flex gap-3">
@@ -16,8 +26,11 @@ function ActionItem({ rec, report, short }: { rec: ReportRecommendation; report:
         {rec.number}
       </span>
       <div className="min-w-0 space-y-1">
-        <p className="font-semibold leading-snug">{rec.title_pl}</p>
+        {!hideTitle && <p className="font-semibold leading-snug">{rec.title_pl}</p>}
         <p className="text-sm">{text}</p>
+        <Disclosure summary="Dlaczego? Dane dla tej działki" className="mt-1">
+          <EvidenceList items={rec.evidence} />
+        </Disclosure>
       </div>
     </li>
   )
@@ -40,7 +53,10 @@ export function BasicReport({ report }: { report: Report }) {
             <ul className="space-y-2">
               {verdicts.map((s) => (
                 <li key={s.id}>
-                  <span className="font-semibold">{s.title_pl}:</span> {s.verdict_pl}
+                  <span className="font-semibold">
+                    {s.id === 'causes' && report.headline.level === 'none' ? 'Co może sprzyjać niedoborom wody' : s.title_pl}:
+                  </span>{' '}
+                  {s.verdict_pl}
                 </li>
               ))}
             </ul>
@@ -58,11 +74,22 @@ export function BasicReport({ report }: { report: Report }) {
             {now.length > 0 ? (
               <ol className="space-y-3">
                 {now.map((r) => (
-                  <ActionItem key={r.number} rec={r} report={report} short={false} />
+                  <ActionItem
+                    key={r.number}
+                    rec={r}
+                    report={report}
+                    short={false}
+                    hideTitle={irrigationNow && r.category === 'irrigation'}
+                  />
                 ))}
               </ol>
             ) : (
-              <p>Na dzień analizy dane nie wskazują pilnych działań na polu — skorzystaj z zaleceń na następny sezon.</p>
+              <p>
+                Na dzień analizy dane nie wskazują pilnych działań na polu
+                {season.length > 0
+                  ? ' — skorzystaj z zaleceń na następny sezon.'
+                  : ' ani potrzeby dodatkowych działań na tej działce.'}
+              </p>
             )}
           </CardContent>
         </Card>

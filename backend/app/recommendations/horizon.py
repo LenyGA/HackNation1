@@ -32,8 +32,15 @@ SEASON_RULES = frozenset(
 )
 
 
+# Ripening counts as "after harvest" only in its last days, when stubble works can be prepared.
+HARVEST_LEAD_DAYS = 10
+
+
 def _after_harvest(ctx: RuleContext, day: date) -> bool:
-    return ctx.crop.field_phase(day) in ("ripening", "after_harvest")
+    phase = ctx.crop.field_phase(day)
+    if phase == "after_harvest":
+        return True
+    return phase == "ripening" and (ctx.crop.season_end(day) - day).days <= HARVEST_LEAD_DAYS
 
 
 def horizon(rule_id: str, ctx: RuleContext) -> Horizon:

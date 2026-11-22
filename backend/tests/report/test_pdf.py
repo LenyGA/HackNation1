@@ -122,7 +122,13 @@ def test_basic_variant_splits_recommendations_by_horizon() -> None:
 
 
 def test_basic_pdf_is_cached_separately_from_full() -> None:
+    from app.report import pdf as pdf_module
+
     r = rich_report()
     basic = asyncio.run(render_pdf(r, "basic"))
     full = asyncio.run(render_pdf(r, "full"))
     assert basic.startswith(b"%PDF") and full.startswith(b"%PDF") and basic != full
+    assert (
+        pdf_module._pdf_cache.get((r.id, "basic")) is basic
+    )  # basic never needs the orthophoto: always cached
+    assert asyncio.run(render_pdf(r, "basic")) is basic  # second download: served from the cache

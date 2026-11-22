@@ -130,14 +130,22 @@ function VariantSwitch({ variant, onChange }: { variant: ReportVariant; onChange
     { value: 'full', label: 'Pełny', hint: 'wszystkie sekcje z wykresami, mapą i liczbami' },
   ]
   return (
-    <div role="radiogroup" aria-label="Wariant raportu" className="grid grid-cols-2 gap-1 rounded-lg border bg-muted/50 p-1">
+    <div
+      id="wariant"
+      role="group"
+      aria-label="Wariant raportu"
+      className="grid scroll-mt-4 grid-cols-2 gap-1 rounded-lg border bg-muted/50 p-1"
+    >
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
-          role="radio"
-          aria-checked={variant === o.value}
-          onClick={() => onChange(o.value)}
+          aria-pressed={variant === o.value}
+          onClick={() => {
+            onChange(o.value)
+            // The other view has a different length: show its top instead of a random place mid-page.
+            document.getElementById('wariant')?.scrollIntoView()
+          }}
           className={`min-h-11 rounded-md px-3 py-1.5 text-left transition-colors ${
             variant === o.value ? 'bg-background font-semibold shadow-sm' : 'text-muted-foreground hover:bg-background/60'
           }`}
@@ -254,8 +262,9 @@ export function ReportPage() {
     if (v === 'basic') next.delete('variant')
     else next.set('variant', v)
     const search = next.toString()
-    // Keep the #sekcja-N hash, so a deep link still scrolls after the switch.
-    navigate({ search: search ? `?${search}` : '', hash: window.location.hash }, { replace: true })
+    // Keep the #sekcja-N hash when opening the full view (a deep link still scrolls there); drop it for the basic
+    // view, which has no sections, otherwise the deep-link effect below would switch straight back to full.
+    navigate({ search: search ? `?${search}` : '', hash: v === 'full' ? window.location.hash : '' }, { replace: true })
   }
   // Result tagged with the id it belongs to, so a stale report is never shown after navigating to another one.
   const [loaded, setLoaded] = useState<{ id: string; report?: Report; error?: string } | null>(null)
@@ -364,8 +373,8 @@ export function ReportPage() {
       <SummaryTiles tiles={report.summary_tiles} sections={report.sections} />
       {!report.complete && (
         <p className="rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          Nie udało się w pełni ocenić sytuacji wodnej, dlatego raport nie podaje zaleceń. Sprawdź sekcję „Ograniczenia
-          analizy i braki danych”.
+          Nie udało się w pełni ocenić sytuacji wodnej, dlatego raport nie podaje zaleceń. Sprawdź część o brakach danych i
+          ograniczeniach analizy.
         </p>
       )}
       <VariantSwitch variant={variant} onChange={setVariant} />

@@ -312,8 +312,8 @@ NO_BALANCE_PL = {
 }
 
 IRRIGATION_ORDER_PL = (
-    "Nawadnianie to ostatni krok — najpierw wykonaj działania zatrzymujące wodę na polu "
-    "z wcześniejszych punktów."
+    "Nawadnianie to ostatni krok — ratuje bieżący sezon, ale na dłuższą metę ważniejsze jest zatrzymywanie "
+    "wody na polu i w glebie (pozostałe zalecenia w tym raporcie)."
 )
 
 FORECAST_NOTE_PL = {

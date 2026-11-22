@@ -1,10 +1,11 @@
 {#- Section 2: water situation on analysis_date. -#}
-{% macro diff_vs_typical(value, typical) -%}
-{% if typical is not none and ((value|round(0)) - (typical|round(0)))|abs >= 1 %}{% set d = (value|round(0)) - (typical|round(0)) %} ({% if d >= 1 %}o {{ d|num }} mm więcej niż zwykle{% else %}o {{ (-d)|num }} mm mniej niż zwykle{% endif %}){% endif %}
+{% macro diff_vs_typical(value, typical, pct) -%}
+{#- The mm difference only when the percentile also says wetter/drier than usual, so both agree. -#}
+{% if pct is not none and (pct < 30 or pct > 70) and typical is not none and ((value|round(0)) - (typical|round(0)))|abs >= 1 %}{% set d = (value|round(0)) - (typical|round(0)) %} ({% if d >= 1 %}o {{ d|num }} mm więcej niż zwykle{% else %}o {{ (-d)|num }} mm mniej niż zwykle{% endif %}){% endif %}
 {%- endmacro %}
 {% macro sat_condition(c, low_ndvi) -%}
 {% set now_v = c.sat.get('ndvi_current') %}{% set med = c.sat.get('ndvi_history_median') %}
-{% if now_v is not none and med %}{% set diff = ((now_v - med) / med * 100)|round(0) %}{% if low_ndvi %}słabsza niż zwykle o ok. {{ (-diff)|num }}%{% elif diff <= -5 %}nieco słabsza niż zwykle (o ok. {{ (-diff)|num }}%), ale w granicach spotykanych w poprzednich latach{% else %}dobra — {% if diff >= 5 %}lepsza niż zwykle o ok. {{ diff|num }}%{% else %}podobna jak zwykle{% endif %}{% endif %}{% elif low_ndvi %}słabsza niż zwykle{% else %}dobra — podobna jak zwykle{% endif %}
+{% if now_v is not none and med %}{% set diff = ((now_v - med) / med * 100)|round(0) %}{% if low_ndvi and diff <= -1 %}słabsza niż zwykle o ok. {{ (-diff)|num }}%{% elif low_ndvi %}słabsza niż zwykle{% elif diff <= -5 %}nieco słabsza niż zwykle (o ok. {{ (-diff)|num }}%){% else %}dobra — {% if diff >= 5 %}lepsza niż zwykle o ok. {{ diff|num }}%{% else %}podobna jak zwykle{% endif %}{% endif %}{% elif low_ndvi %}słabsza niż zwykle{% else %}dobra — podobna jak zwykle{% endif %}
 {%- endmacro %}
 {% if not complete or not current %}
 {{ incomplete_reason }}
@@ -43,10 +44,10 @@ Rośliny mają jeszcze wodę, którą pobierają bez wysiłku — brak wody zacz
 {% set p30 = v.get('precip_30d_mm') %}
 {% set p90 = v.get('precip_90d_mm') %}
 {% if p30 is not none %}
-W ostatnich 30 dniach spadło {{ p30|num }} mm deszczu{{ diff_vs_typical(p30, typical_p30) }} — {{ v.get('precip_30d_pct')|wetness_pl }}.
+W ostatnich 30 dniach spadło {{ p30|num }} mm deszczu{{ diff_vs_typical(p30, typical_p30, v.get('precip_30d_pct')) }} — {{ v.get('precip_30d_pct')|wetness_pl }}.
 {% endif %}
 {% if p90 is not none %}
-W ostatnich 90 dniach spadło {{ p90|num }} mm{{ diff_vs_typical(p90, typical_p90) }} — {{ v.get('precip_90d_pct')|wetness_pl }}.
+W ostatnich 90 dniach spadło {{ p90|num }} mm{{ diff_vs_typical(p90, typical_p90, v.get('precip_90d_pct')) }} — {{ v.get('precip_90d_pct')|wetness_pl }}.
 {% endif %}
 
 {% set k60 = v.get('kbw_60d_mm') %}

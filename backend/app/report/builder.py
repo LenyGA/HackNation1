@@ -348,7 +348,7 @@ def _context(
         "irrigation": irrigation,
         "statuses": {k: v.value for k, v in a.source_status.items()},
         "weather_from_power": inputs.weather.data is not None
-        and inputs.weather.source == open_meteo.SOURCE_POWER,
+        and open_meteo.SOURCE_POWER in inputs.weather.source,
         "landcover": None
         if landcover is None
         else {
@@ -397,8 +397,24 @@ def _section_indicators(a: Assessment, section: SectionId) -> list[EvidenceItem]
     return out
 
 
-# Sections whose first sentence is the verdict shown in the basic report (plan M3.2).
-VERDICT_SECTIONS = ("current", "vulnerability", "causes")
+# Sections with a one-sentence verdict in the basic report (plan M3.2). The water situation itself is the
+# headline above them, so "current" has none (its first paragraph is often an intro about the season).
+VERDICT_SECTIONS = ("vulnerability", "causes")
+LEAD_CLAUSE_MAX_CHARS = 70
+
+
+def _verdict(sid: str, main: list[str], complete: bool, flagged_causes: int) -> str | None:
+    if sid not in VERDICT_SECTIONS or not main or not complete:
+        return None
+    if sid == "causes" and flagged_causes:
+        # The first paragraphs are the flagged causes, each starting with its lead clause ("Mało deszczu: …").
+        leads = [
+            p.split(": ", 1)[0] for p in main[:flagged_causes] if 0 < p.find(": ") <= LEAD_CLAUSE_MAX_CHARS
+        ]
+        if leads:
+            joined = "; ".join([leads[0]] + [x[:1].lower() + x[1:] for x in leads[1:]])
+            return f"{joined}."
+    return first_sentence(main[0])
 
 
 def _sections(
@@ -430,9 +446,7 @@ def _sections(
                 number=n,
                 title_pl=L.SECTION_TITLES[sid].format(date=date_dmy(ctx["day"])),
                 paragraphs_pl=main,
-                verdict_pl=first_sentence(main[0])
-                if sid in VERDICT_SECTIONS and main and ctx["complete"]
-                else None,
+                verdict_pl=_verdict(sid, main, ctx["complete"], sum(1 for c in a.causes if c.flagged)),
                 details_pl=details,
                 indicators=_section_indicators(a, sid),
                 recommendation_numbers=numbers.get(sid, []),
