@@ -19,7 +19,7 @@ from app.analysis.history import RISK_FREQUENCY, HistoryMethod
 from app.analysis.series import Weather, same_day_in_year
 from app.core.config import APP_TITLE, APP_VERSION, HISTORY_YEARS
 from app.core.models import Confidence, Indicator, SourceResult, SourceStatus, Uncertainty
-from app.crops.catalog import month_day
+from app.crops.catalog import month_day, next_sowing
 from app.crops.iung import iung_threshold
 from app.recommendations.irrigation import IrrigationAdvice
 from app.recommendations.models import Category, Recommendation
@@ -261,6 +261,9 @@ def _context(
         "winter_crop": crop.winter,
         "root_depth_m": crop.root_depth_m,
         "day": day,
+        "phase": crop.field_phase(day),
+        "harvest_day": crop.season_end(day) - timedelta(days=1),
+        "sowing_day": next_sowing(crop, day),
         "parcel": inputs.parcel,
         "season_start": month_day(VEGETATION_START, day.year),
         "season_end": month_day(VEGETATION_END, day.year),

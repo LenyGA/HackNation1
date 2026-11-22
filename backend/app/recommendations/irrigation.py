@@ -271,7 +271,8 @@ def irrigation_advice(
     if not current.in_vegetation:
         return _advice(IrrigationStatus.OFF_SEASON, inputs, forecast_use)
     if not current.crop_on_field:
-        return _advice(IrrigationStatus.NO_CROP, inputs, forecast_use)
+        harvested = inputs.crop.field_phase(inputs.analysis_date) == "after_harvest"
+        return _advice(IrrigationStatus.NO_CROP, inputs, forecast_use, {"after_harvest": int(harvested)})
     if not _responsive(inputs):
         return _advice(IrrigationStatus.LATE_STAGE, inputs, forecast_use)
     balance = assessment.root_zone

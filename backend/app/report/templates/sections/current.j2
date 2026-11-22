@@ -5,8 +5,12 @@
 {% set c = current %}
 {% if not c.in_vegetation %}
 Dzień analizy ({{ day|date_pl }}) wypada poza okresem wegetacji ({{ season_start|day_month_pl }} – {{ season_end|day_month_pl }}). Oceniamy więc, jak gleba odbudowuje zapas wody od jesieni, oraz jak przebiegł ostatni sezon.
+{% elif not c.crop_on_field and phase == 'after_harvest' %}
+Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) jest zwykle już po zbiorze (wg typowego kalendarza upraw koniec sezonu ok. {{ harvest_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i wodę w glebie dla międzyplonu lub następnej uprawy.
 {% elif not c.crop_on_field %}
-W dniu analizy ({{ day|date_pl }}) na polu nie rośnie jeszcze uprawa ({{ crop }}) albo jest już po zbiorze, więc oceniamy przede wszystkim opady i parowanie wody.
+Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) nie jest jeszcze wysiana albo dopiero wschodzi (typowy siew ok. {{ sowing_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i zapas wody w glebie przed siewem.
+{% elif phase == 'ripening' and not grassland %}
+Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) dojrzewa — zbliżają się zbiory (typowo ok. {{ harvest_day|day_month_pl }}); woda nie zwiększa już plonu tak jak wcześniej w sezonie.
 {% endif %}
 
 {% set avail = v.get('root_zone_available_mm') %}
@@ -75,8 +79,12 @@ Bilans opadów i parowania w okresie do {{ iung.period_end|date_pl }} jest powy�
 Zdjęcia satelitarne potwierdzają tę ocenę: kondycja roślin na działce jest {% if low_ndvi %}słabsza niż zwykle{% else %}typowa{% endif %} w porównaniu z tym samym terminem w poprzednich latach.
 {% elif c.satellite == 'disagrees' %}
 Zdjęcia satelitarne nie potwierdzają tej oceny: kondycja roślin jest {% if low_ndvi %}słabsza niż zwykle{% else %}typowa{% endif %} w porównaniu z tym samym terminem w poprzednich latach. Dlatego pewność wyniku jest niższa — może to wynikać z innej uprawy w poprzednich latach.
+{% elif c.satellite == 'not_applicable' and phase in ('ripening', 'after_harvest') %}
+Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'ripening' %}uprawa dojrzewa i naturalnie traci zieleń{% else %}pole jest po zbiorze{% endif %}, więc spadek zieleni nie oznacza braku wody.
+{% elif c.satellite == 'not_applicable' and phase in ('before_sowing', 'establishment') %}
+Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'before_sowing' %}uprawy nie ma jeszcze na polu{% else %}rośliny są jeszcze małe i nie zakrywają pola{% endif %}, więc niska zieleń jest normalna.
 {% elif c.satellite == 'not_applicable' %}
-Zdjęć satelitarnych nie używamy w tym terminie do oceny — rośliny są jeszcze małe, pole jest puste albo brakuje zdjęć z poprzednich lat do porównania.
+Zdjęć satelitarnych nie używamy w tym terminie do oceny — brakuje bezchmurnych zdjęć z poprzednich lat do porównania.
 {% else %}
 Nie ma aktualnych bezchmurnych zdjęć satelitarnych działki, więc kondycji roślin nie sprawdzamy.
 {% endif %}

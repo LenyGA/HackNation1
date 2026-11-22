@@ -1,8 +1,19 @@
 {#- Plant condition from the satellite vs previous years; explains why it may not confirm the drought. -#}
 {% set cmp = 'unknown' if (now is none or hist_median is none) else ('lower' if now < hist_median - 0.05 else ('higher' if now > hist_median + 0.05 else 'similar')) %}
 {% set cmp_pl = {'lower': 'niższa', 'higher': 'wyższa', 'similar': 'podobna', 'unknown': 'nieznana'}[cmp] %}
+{% if last_day is not none %}
+{% set band_pl = {'above': 'powyżej zakresu', 'inside': 'w zakresie', 'below': 'poniżej zakresu'} %}
+Ostatnie bezchmurne zdjęcie satelitarne działki jest z {{ last_day|date_dmy }}{% if days_since_last and days_since_last > 0 %} ({{ days_since_last|days_pl }} przed dniem analizy){% endif %}: kondycja roślin {{ last_ndvi|num(0.01) }}{% if band %}, {{ band_pl[band] }} z poprzednich lat w tych samych tygodniach ({% if hist_min|num(0.01) == hist_max|num(0.01) %}{{ hist_min|num(0.01) }}{% else %}{{ hist_min|num(0.01) }}–{{ hist_max|num(0.01) }}{% endif %}){% endif %}.
+
+{% endif %}
 {% if check == 'not_applicable' and now is not none %}
-Kondycji roślin z satelity nie porównujemy z poprzednimi latami: w tym okresie uprawa ({{ crop }}) nie zakryła jeszcze pola albo nie było dość bezchmurnych zdjęć z poprzednich lat — niski wynik byłby normalny, a nie oznaką suszy.
+{% if phase in ('ripening', 'after_harvest') %}
+Tego zdjęcia nie używamy do oceny suszy: {% if phase == 'ripening' %}uprawa ({{ crop }}) dojrzewa i naturalnie traci zieleń{% else %}uprawa ({{ crop }}) jest w tym terminie zwykle już zebrana{% endif %}, więc spadek zieleni nie oznacza braku wody{% if band == 'above' %}, a wysoki wynik pokazuje raczej stan łanu sprzed dojrzewania{% endif %}.
+{% elif phase in ('before_sowing', 'establishment') %}
+Tego zdjęcia nie używamy do oceny suszy: {% if phase == 'before_sowing' %}uprawy ({{ crop }}) nie ma jeszcze na polu{% if band == 'above' %}, więc zieleń na zdjęciu to raczej międzyplon, chwasty lub samosiewy{% else %}, więc niska zieleń jest normalna{% endif %}{% else %}rośliny ({{ crop }}) są jeszcze małe i nie zakrywają pola, więc niska zieleń jest normalna{% endif %}.
+{% else %}
+Kondycji roślin nie porównujemy z poprzednimi latami: brakuje dość bezchmurnych zdjęć z tych samych tygodni w poprzednich latach.
+{% endif %}
 
 {% elif check == 'agrees' %}
 Zdjęcia satelitarne {% if level in ('light', 'moderate', 'severe') %}potwierdzają brak wody{% else %}są zgodne z oceną{% endif %}: kondycja roślin ({{ now|num(0.01) }}) jest {{ cmp_pl }}{% if cmp == 'similar' %} do zwykłej{% else %} niż zwykle{% endif %} w tych tygodniach (środek z {{ years }} lat: {{ hist_median|num(0.01) }}).

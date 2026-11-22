@@ -465,15 +465,28 @@ def _satellite(inputs: AnalysisInputs, a: Assessment) -> SatelliteSeries | None:
     hist = sorted(s.ndvi_mean for s in history)
     check = a.current.satellite.status if a.current is not None else "missing"
     applicable = check in ("agrees", "disagrees")
+    last = max(current, key=lambda s: s.date) if current else None
+    band = None
+    if last is not None and hist:
+        lo, hi = round(hist[0], 2), round(hist[-1], 2)
+        v = round(last.ndvi_mean, 2)
+        band = "above" if v > hi else "below" if v < lo else "inside"
     main, _ = render_text(
         "blocks/satellite.j2",
         check=check,
         day=day,
         now=median(s.ndvi_mean for s in current) if current else None,
         hist_median=median(hist) if hist else None,
+        hist_min=hist[0] if hist else None,
+        hist_max=hist[-1] if hist else None,
         years=len(hist),
         crop=inputs.crop.name_pl.lower(),
         level=a.current.level.value if a.current is not None else None,
+        phase=inputs.crop.field_phase(day),
+        last_day=last.date if last is not None else None,
+        last_ndvi=last.ndvi_mean if last is not None else None,
+        days_since_last=(day - last.date).days if last is not None else None,
+        band=band,
     )
     return SatelliteSeries(
         points=points,

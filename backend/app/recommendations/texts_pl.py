@@ -246,15 +246,24 @@ IRRIGATION_TITLES: dict[str, str] = {
     "irrigate_soon": "Nawadnianie: kiedy i ile wody",
 }
 
+NO_CROP_PL: dict[str, str] = {
+    "after_harvest": (
+        "W dniu analizy ({date}) uprawa ({crop}) jest zwykle już po zbiorze, "
+        "więc jej nawadnianie nie dotyczy. "
+        "Wodę w glebie warto teraz chronić dla międzyplonu lub następnej uprawy."
+    ),
+    "before_sowing": (
+        "W dniu analizy ({date}) uprawa ({crop}) nie jest jeszcze wysiana albo dopiero wschodzi, "
+        "więc nawadnianie nie dotyczy."
+    ),
+}
+
 IRRIGATION_PL: dict[str, str] = {
     "no_assessment": "Bez pełnej oceny sytuacji wodnej działki nie podajemy zaleceń nawadniania.",
     "off_season": (
         "Dzień analizy ({date}) wypada poza okresem wegetacji ({season_pl}), więc nawadnianie nie dotyczy."
     ),
-    "no_crop": (
-        "W dniu analizy ({date}) na polu nie ma jeszcze uprawy ({crop}) albo jest już po zbiorze, "
-        "więc nawadnianie nie dotyczy."
-    ),
+    "no_crop": "{no_crop_pl}",
     "late_stage": "{late_pl}",
     "no_balance": "{no_balance_pl}",
     "not_needed": (
@@ -461,6 +470,10 @@ def irrigation_text(params: dict[str, ParamValue]) -> str:
     out["phase_pl"] = f" To okres, w którym uprawa najbardziej potrzebuje wody ({phase})." if phase else ""
     if status == "late_stage":
         out["late_pl"] = LATE_PL["grassland" if params.get("grassland") else "crop"].format(**out)
+    if status == "no_crop":
+        out["no_crop_pl"] = NO_CROP_PL[
+            "after_harvest" if params.get("after_harvest") else "before_sowing"
+        ].format(**out)
     if status == "no_balance":
         out["no_balance_pl"] = NO_BALANCE_PL[str(params.get("reason", "soil"))]
     if status == "not_needed":

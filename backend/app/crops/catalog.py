@@ -12,6 +12,8 @@ CATALOG_PATH = Path(__file__).with_name("catalog.yaml")
 
 Stage = Literal["initial", "development", "mid", "late"]
 STAGES: tuple[Stage, ...] = ("initial", "development", "mid", "late")
+# Field state on a calendar day in farmer terms (satellite and "no crop" texts, Q3).
+FieldPhase = Literal["before_sowing", "establishment", "canopy", "ripening", "after_harvest"]
 
 
 def month_day(value: str, year: int) -> date:
@@ -119,6 +121,30 @@ class Crop(BaseModel):
                 return name
         return STAGES[-1]
 
+    def season_end(self, day: date) -> date:
+        """First day without the crop after the most recent season that started on or before `day`."""
+        return self.last_season_start(day) + timedelta(days=self.season_days)
+
+    def field_phase(self, day: date) -> FieldPhase:
+        """Typical field state from the crop calendar (not observed phenology).
+
+        Off season: after the harvest of this calendar year → "after_harvest", otherwise "before_sowing"
+        (a spring crop in March, a winter crop's field before its autumn sowing is "after_harvest" from the
+        harvest until sowing). In season: initial stage and the first half of development → "establishment"
+        (the crop does not cover the field yet), then "canopy"; the late stage → "ripening".
+        """
+        stage = self.stage(day)
+        if stage is None:
+            end = self.season_end(day)
+            return "after_harvest" if end <= day and end.year == day.year else "before_sowing"
+        if stage == "late":
+            return "ripening"
+        if stage == "initial":
+            return "establishment"
+        if stage == "development" and self.kc(day) < (self.kc_ini + self.kc_mid) / 2:
+            return "establishment"
+        return "canopy"
+
     def critical_period_at(self, day: date) -> CriticalPeriod | None:
         start = self.season_start(day)
         if start is None:
@@ -139,6 +165,12 @@ class Crop(BaseModel):
                 months.add(d.month)
                 d += timedelta(days=1)
         return months
+
+
+def next_sowing(crop: Crop, day: date) -> date:
+    """Typical sowing (or regrowth) date of the next season starting on or after `day`."""
+    start = month_day(crop.sowing, day.year)
+    return start if start >= day else month_day(crop.sowing, day.year + 1)
 
 
 @lru_cache
