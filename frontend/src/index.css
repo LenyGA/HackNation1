@@ -73,3 +73,66 @@
     break-inside: avoid;
   }
 }
+
+/* Years slider in the strategy simulator (M8.9): thick filled track, large thumb for a finger. */
+.sim-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2.75rem;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.sim-range:focus-visible {
+  outline: none;
+}
+.sim-range::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--primary) var(--fill, 0%), var(--muted) var(--fill, 0%));
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.sim-range::-moz-range-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.sim-range::-moz-range-progress {
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--primary);
+}
+.sim-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: -0.5rem;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 3px solid var(--primary);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  transition: transform 120ms ease;
+}
+.sim-range::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 3px solid var(--primary);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  transition: transform 120ms ease;
+}
+.sim-range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.sim-range:active::-moz-range-thumb {
+  transform: scale(1.15);
+}
+.sim-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring) 40%, transparent);
+}
+.sim-range:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring) 40%, transparent);
+}

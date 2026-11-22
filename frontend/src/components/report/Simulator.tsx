@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type CSSProperties, memo, useState } from 'react'
 import type { Simulation, StrategyId } from '@/api/types'
 import { formatNumberPl, m3WherePl } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -18,7 +18,22 @@ function val(v: number | null, unit: string, step = 0): string {
   return v === null ? 'brak danych' : `${formatNumberPl(v, step)} ${unit}`
 }
 
-function StressLines({ sim, chosen, year }: { sim: Simulation; chosen: StrategyId; year: number }) {
+function yearsPl(k: number): string {
+  return `za ${k} ${k === 1 ? 'rok' : k < 5 ? 'lata' : 'lat'}`
+}
+
+/** The lines change only with the strategy and the whole year; the cursor follows the slider continuously. */
+const StressLines = memo(function StressLines({
+  sim,
+  chosen,
+  year,
+  pos,
+}: {
+  sim: Simulation
+  chosen: StrategyId
+  year: number
+  pos: number
+}) {
   const { ref, width: W } = useMeasuredWidth()
   const H = W < 480 ? 190 : 220
   const PAD = { top: 22, right: 12, bottom: 28, left: 40 }
@@ -43,10 +58,10 @@ function StressLines({ sim, chosen, year }: { sim: Simulation; chosen: StrategyI
           .join('; ')}`}
       >
         <YAxis ticks={ticks} y={y} left={PAD.left} right={W - PAD.right} unit="dni" />
-        <line x1={x(year)} x2={x(year)} y1={PAD.top} y2={PAD.top + innerH} stroke="#cbd5e1" strokeDasharray="3 3" />
+        <line x1={x(pos)} x2={x(pos)} y1={PAD.top} y2={PAD.top + innerH} stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="3 3" />
         {[1, 2, 3, 4, 5].map((k) => (
           <text key={k} x={x(k)} y={H - 8} fontSize="11" fill={k === year ? '#0f172a' : AXIS.text} fontWeight={k === year ? 700 : 400} textAnchor="middle">
-            za {k} {k === 1 ? 'rok' : k < 5 ? 'lata' : 'lat'}
+            {yearsPl(k)}
           </text>
         ))}
         {ordered.map((s) => {
@@ -65,11 +80,69 @@ function StressLines({ sim, chosen, year }: { sim: Simulation; chosen: StrategyI
       </svg>
     </div>
   )
+})
+
+/** Years slider: the thumb glides with the finger, the values switch at the nearest whole year and the thumb
+ *  snaps there on release. Arrow keys move one whole year. */
+function YearSlider({ pos, onChange }: { pos: number; onChange: (pos: number) => void }) {
+  const year = Math.round(pos)
+  const snap = () => onChange(year)
+  const fill = ((pos - 1) / 4) * 100
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between">
+        <span id="sim-years" className="text-sm font-medium">
+          Za ile lat
+        </span>
+        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary tabular-nums">
+          {yearsPl(year)}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={1}
+        max={5}
+        step={0.01}
+        value={pos}
+        onChange={(e) => onChange(Number(e.target.value))}
+        onPointerUp={snap}
+        onTouchEnd={snap}
+        onBlur={snap}
+        onKeyDown={(e) => {
+          const step =
+            e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -1 : 0
+          const to = e.key === 'Home' ? 1 : e.key === 'End' ? 5 : step ? Math.min(5, Math.max(1, year + step)) : null
+          if (to === null) return
+          e.preventDefault()
+          onChange(to)
+        }}
+        className="sim-range w-full"
+        style={{ '--fill': `${fill}%` } as CSSProperties}
+        aria-labelledby="sim-years"
+        aria-valuetext={yearsPl(year)}
+      />
+      <div className="flex justify-between px-[11px] text-xs text-muted-foreground" aria-hidden>
+        {[1, 2, 3, 4, 5].map((k) => (
+          <button
+            key={k}
+            type="button"
+            tabIndex={-1}
+            onClick={() => onChange(k)}
+            className={cn('w-0 whitespace-nowrap text-center tabular-nums', k === year && 'font-semibold text-foreground')}
+          >
+            <span className="-ml-2 inline-block w-4">{k}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function Simulator({ sim, farmCount }: { sim: Simulation; farmCount?: number }) {
   const [chosen, setChosen] = useState<StrategyId>(sim.strategies[0]?.id ?? 'none')
-  const [year, setYear] = useState(1)
+  // Slider position (continuous while dragging); the data shown is for the nearest whole year.
+  const [pos, setPos] = useState(1)
+  const year = Math.round(pos)
   const strategy = sim.strategies.find((s) => s.id === chosen) ?? sim.strategies[0]
   if (!strategy) return null
   const row = strategy.years.find((y) => y.year_ahead === year) ?? null
@@ -117,21 +190,7 @@ export function Simulator({ sim, farmCount }: { sim: Simulation; farmCount?: num
         ))}
       </div>
       <p className="text-sm text-muted-foreground">{strategy.description_pl}</p>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">
-          Za ile lat: <b>{year}</b>
-        </span>
-        <input
-          type="range"
-          min={1}
-          max={5}
-          step={1}
-          value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
-          className="h-11 w-full accent-primary"
-          aria-valuetext={`za ${year} ${year === 1 ? 'rok' : year < 5 ? 'lata' : 'lat'}`}
-        />
-      </label>
+      <YearSlider pos={pos} onChange={setPos} />
       {row && (
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div className="rounded-md border bg-background px-3 py-2">
@@ -166,7 +225,7 @@ export function Simulator({ sim, farmCount }: { sim: Simulation; farmCount?: num
       )}
       <figure className="space-y-1.5">
         <figcaption className="text-sm font-medium">Dni stresu wodnego w sezonie (typowy rok) — wszystkie strategie</figcaption>
-        <StressLines sim={sim} chosen={chosen} year={year} />
+        <StressLines sim={sim} chosen={chosen} year={year} pos={pos} />
         <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
           {sim.strategies.map((s) => (
             <li key={s.id} className="flex items-center gap-1.5">
