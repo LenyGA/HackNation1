@@ -6,6 +6,7 @@ Thresholds are documented in docs/METHODOLOGY.md (section 8).
 from app.analysis.causes import RETENTION_RADIUS_M
 from app.analysis.common import indicator
 from app.analysis.context import computed_source, landcover_surroundings, surroundings_nearest_m
+from app.analysis.soil import SoilCategory
 from app.analysis.terrain import RetentionSite
 from app.core.models import Confidence, Indicator
 from app.recommendations.common import found, light_soil, water_need
@@ -14,6 +15,9 @@ from app.sources.hydro import BOUNDARY_BUFFER_M, HydroFeature
 
 DITCH_MIN_LENGTH_M = 20.0
 DEPRESSION_MIN_INSIDE_SHARE = 0.5
+# Q6: on a heavy (category IV) soil or with a flood / groundwater-flooding hazard an uncontrolled pool after a
+# wet winter waterlogs the crop; the advice becomes a controlled pond or a weir with an outlet.
+HEAVY_SOIL_CATEGORIES = (SoilCategory.IV,)
 DEPRESSION_MIN_CONTRIBUTING_M2 = 1_000.0
 FLOW_PATH_MIN_CONTRIBUTING_M2 = 5_000.0
 FLOW_PATH_MIN_SLOPE_PCT = 2.0
@@ -94,26 +98,58 @@ def _depression_condition(ctx: RuleContext) -> bool:
     return bool(_depressions(ctx)) and bool(water_need(ctx))
 
 
+def _heavy_soil(ctx: RuleContext) -> bool:
+    return ctx.soil is not None and ctx.soil.category in HEAVY_SOIL_CATEGORIES
+
+
+def _wet_hazards(ctx: RuleContext) -> tuple[bool, bool]:
+    """(groundwater flooding area PIG-PIB, flood zone ISOK) at the parcel; False when not checked."""
+    flood = ctx.inputs.flood.data if ctx.inputs.flood is not None else None
+    if flood is None:
+        return False, False
+    return bool(flood.groundwater_flooding), any(flood.zones.values())
+
+
+def _wet_risk_evidence(ctx: RuleContext) -> list[Indicator]:
+    out: list[Indicator] = []
+    if _heavy_soil(ctx):
+        out += found(ctx, "soil_category")
+    podt, zone = _wet_hazards(ctx)
+    if (podt or zone) and ctx.inputs.flood is not None:
+        src = computed_source(ctx.inputs.flood.source)
+        if podt:
+            out.append(indicator("groundwater_flooding_risk", 1, "", src, level=Confidence.MEDIUM))
+        if zone:
+            out.append(indicator("flood_zone_risk", 1, "", src, level=Confidence.MEDIUM))
+    return out
+
+
 def _depression_evidence(ctx: RuleContext) -> list[Indicator]:
     sites = _depressions(ctx)
     if not sites:
         return []
     src, conf, reason = _terrain_meta(ctx)
     top = sites[0]  # sorted by volume in terrain analysis
-    return [
-        indicator("depression_count", len(sites), "szt.", src, level=conf, reason=reason),
-        indicator("depression_volume_m3", top.volume_m3, "m³", src, level=conf, reason=reason, step=10),
-        indicator("depression_max_depth_m", top.max_depth_m, "m", src, level=conf, reason=reason, step=0.1),
-        indicator(
-            "depression_contributing_area_m2",
-            top.contributing_area_m2,
-            "m²",
-            src,
-            level=conf,
-            reason=reason,
-            step=100,
-        ),
-    ] + water_need(ctx)
+    return (
+        [
+            indicator("depression_count", len(sites), "szt.", src, level=conf, reason=reason),
+            indicator("depression_volume_m3", top.volume_m3, "m³", src, level=conf, reason=reason, step=10),
+            indicator(
+                "depression_max_depth_m", top.max_depth_m, "m", src, level=conf, reason=reason, step=0.1
+            ),
+            indicator(
+                "depression_contributing_area_m2",
+                top.contributing_area_m2,
+                "m²",
+                src,
+                level=conf,
+                reason=reason,
+                step=100,
+            ),
+        ]
+        + _wet_risk_evidence(ctx)
+        + water_need(ctx)
+    )
 
 
 def _depression_params(ctx: RuleContext) -> dict[str, ParamValue]:
@@ -123,6 +159,12 @@ def _depression_params(ctx: RuleContext) -> dict[str, ParamValue]:
         "count": len(sites),
         "contributing_ha": round(top.contributing_area_m2 / 10_000, 1),
     }
+    podt, zone = _wet_hazards(ctx)
+    heavy = _heavy_soil(ctx)
+    params["controlled"] = int(heavy or podt or zone)
+    params["heavy_soil"] = int(heavy)
+    params["groundwater_flooding"] = int(podt)
+    params["flood_zone"] = int(zone)
     if top.volume_m3 is not None and top.volume_m3 >= 1:
         # Never a fake "0 m³": small volumes are rounded to 1 m³, larger ones to 10 m³.
         params["volume_m3"] = round(top.volume_m3, -1 if top.volume_m3 >= 50 else 0)

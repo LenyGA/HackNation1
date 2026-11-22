@@ -179,3 +179,47 @@ def test_grassland_cutting_fires_for_dry_grassland() -> None:
 def test_grassland_cutting_not_for_other_crops_or_wet() -> None:
     assert "grassland_cutting" not in ids(scenario()[2])
     assert "grassland_cutting" not in ids(scenario(crop_id="grassland", precip=wet)[2])
+
+
+# --- Q6: depression on heavy soil or with a flood hazard -> controlled pond / weir ---------------------
+
+
+def _flood(podt: bool, zone: bool = False):
+    from app.sources.flood import FloodData
+    from tests.analysis.builders import ok
+
+    return ok(
+        "flood",
+        FloodData(
+            zones={"q10": zone, "q1": zone, "q02": zone},
+            points_checked=9,
+            points_total=9,
+            historical=False,
+            groundwater_flooding=podt,
+            groundwater_flooding_name="obszar zagrożenia" if podt else None,
+        ),
+    )
+
+
+def test_depression_on_heavy_soil_with_groundwater_flooding_is_controlled() -> None:
+    from tests.recommendations.builders import CLAY_LOAM_RICH
+
+    recs = scenario(surface=basin, texture=CLAY_LOAM_RICH, flood=_flood(True))[2]
+    rec = by_id(recs, "depression_retention")
+    assert "kontrolowany staw lub zastawka z odpływem" in rec.text_pl
+    assert "wymakaniem" in rec.text_pl and "PIG-PIB" in rec.text_pl and "ciężka" in rec.text_pl
+    assert "okresowe rozlewisko" not in rec.text_pl
+    keys = {e.key for e in rec.evidence}
+    assert {"soil_category", "groundwater_flooding_risk"} <= keys
+
+
+def test_depression_flood_zone_alone_is_controlled() -> None:
+    rec = by_id(scenario(surface=basin, flood=_flood(False, zone=True))[2], "depression_retention")
+    assert "ISOK" in rec.text_pl and "kontrolowany staw" in rec.text_pl
+
+
+def test_depression_on_light_soil_without_hazard_keeps_pool_advice() -> None:
+    for flood in (None, _flood(False)):
+        rec = by_id(scenario(surface=basin, flood=flood)[2], "depression_retention")
+        assert "okresowe rozlewisko lub oczko wodne" in rec.text_pl
+        assert "kontrolowany" not in rec.text_pl

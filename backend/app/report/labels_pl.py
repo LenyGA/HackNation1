@@ -30,6 +30,8 @@ INDICATOR_LABELS: dict[str, str] = {
     "last_season_deficit_months": "Miesiące z niedoborem wody w ostatnim sezonie",
     "deficit_year_share_pct": "Lata z niedoborem wody (z 10 poprzednich)",
     "soil_category": "Kategoria gleby (I = najlżejsza, IV = najcięższa)",
+    "groundwater_flooding_risk": "Obszar zagrożenia podtopieniami (PIG-PIB)",
+    "flood_zone_risk": "Strefa zagrożenia powodziowego (ISOK)",
     "sand_topsoil_pct": "Piasek w wierzchniej warstwie gleby",
     "clay_topsoil_pct": "Ił w wierzchniej warstwie gleby",
     "soc_topsoil_g_per_kg": "Węgiel organiczny w wierzchniej warstwie gleby",

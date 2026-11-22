@@ -32,7 +32,7 @@ TEXTS: dict[str, str] = {
     ),
     "depression_retention": (
         "Na działce {depressions_pl}. Do największego spływa woda z ok. {contributing_ha} ha{volume_pl}. "
-        "Zostaw je jako okresowe rozlewisko lub oczko wodne zamiast zasypywać lub drenować."
+        "{depression_action_pl}"
     ),
     "outlet_buffer_strip": (
         "Średni spadek pola to {slope_mean_pct} %, a woda po deszczu spływa z działki {direction_pl}. "
@@ -195,6 +195,7 @@ def derived(template: str, params: dict[str, ParamValue]) -> dict[str, str]:
     if template == "depression_retention":
         vol = params.get("volume_m3")
         out["volume_pl"] = f" i może ono zatrzymać ok. {fmt(vol)} m³ wody" if vol else ""
+        out["depression_action_pl"] = _depression_action(params)
     if template == "protect_wetlands":
         dist = float(params.get("distance_m", 0))
         out["distance_pl"] = (
@@ -450,6 +451,25 @@ def _dose(params: dict[str, ParamValue], out: dict[str, str]) -> str:
     if params.get("within_days") == 0:
         dose += " Jeśli nawodnisz później, dawka będzie nieco większa, bo rośliny dalej zużywają wodę."
     return dose
+
+
+def _depression_action(params: dict[str, ParamValue]) -> str:
+    """Q6: uncontrolled pool only where it cannot waterlog the field; otherwise a controlled pond / weir."""
+    if not params.get("controlled"):
+        return "Zostaw je jako okresowe rozlewisko lub oczko wodne zamiast zasypywać lub drenować."
+    why: list[str] = []
+    if params.get("heavy_soil"):
+        why.append("gleba jest ciężka i słabo przepuszcza wodę")
+    if params.get("groundwater_flooding"):
+        why.append("działka leży na obszarze zagrożenia podtopieniami (PIG-PIB)")
+    if params.get("flood_zone"):
+        why.append("działka leży w strefie zagrożenia powodziowego (ISOK)")
+    reason = " i ".join(why) if why else "teren jest narażony na nadmiar wody"
+    return (
+        f"Tu {reason}, więc niekontrolowane rozlewisko po mokrej zimie lub wiośnie grozi wymakaniem upraw "
+        "(zwłaszcza ozimin). Lepszy jest kontrolowany staw lub zastawka z odpływem (przelewem): "
+        "wiosną spuścisz nadmiar wody, a od maja zatrzymasz ją na suche tygodnie."
+    )
 
 
 def irrigation_text(params: dict[str, ParamValue]) -> str:

@@ -1,5 +1,6 @@
 """Scenarios for recommendation tests: weather (dry / wet), soils, terrain shapes and OSM features."""
 
+import dataclasses
 from collections.abc import Callable
 from datetime import date
 from typing import Any
@@ -135,6 +136,7 @@ def scenario(
     dem: bool = True,
     hydro_data: Callable[[Parcel], HydroData] | None | bool = None,
     weather: bool = True,
+    flood: Any = None,
 ) -> tuple[Assessment, AnalysisInputs, list[Recommendation]]:
     parcel = default_parcel()
     inputs = make_inputs(
@@ -149,6 +151,8 @@ def scenario(
         weather=weather,
         parcel=parcel,
     )
+    if flood is not None:
+        inputs = dataclasses.replace(inputs, flood=flood)
     a = assess(inputs)
     return a, inputs, recommend(a, inputs)
 

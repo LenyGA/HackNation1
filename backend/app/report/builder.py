@@ -89,9 +89,15 @@ def _step_for(value: float) -> float:
     return 10.0 ** -min(decimals, 2)
 
 
+# Yes/no indicators (1 = present).
+FLAG_KEYS = {"groundwater_flooding_risk", "flood_zone_risk"}
+
+
 def format_value(key: str, value: float | None, unit: str) -> str:
     if value is None:
         return "brak danych"
+    if key in FLAG_KEYS:
+        return "tak" if value >= 1 else "nie"
     if key == "soil_category":
         idx = int(value) - 1
         return f"kategoria {ROMAN[idx]}" if 0 <= idx < len(ROMAN) else "brak danych"
