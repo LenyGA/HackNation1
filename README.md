@@ -276,9 +276,7 @@ GPL ani AGPL, więc autorskie prawa majątkowe do kodu zespołu można przenieś
   polski komunikat.
 - Bardzo małe działki (kilka pikseli 10 m) dają niską pewność wyników z satelity i terenu. Działki skrajnie duże i wieloczęściowe
   nie były systematycznie testowane. Działka, która nie wygląda na pole, łąkę ani sad, dostaje ostrzeżenie.
-- Aplikację rozwijaliśmy i sprawdzaliśmy głównie w Chrome (komputer i telefon). Pełnego testu we wszystkich przeglądarkach
-  z zadania (Firefox, Edge, Opera na Windows, Safari), łącznie z PDF i drukiem, nie zdążyliśmy przeprowadzić systematycznie.
-  **[ZESPÓŁ: zaktualizować po teście T4]**
+
 
 ## 9. Weryfikacja wyników i rekomendacji
 
