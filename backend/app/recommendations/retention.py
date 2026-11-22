@@ -17,6 +17,7 @@ DITCH_MIN_LENGTH_M = 20.0
 # Q6: on a heavy (category IV) soil or with a flood / groundwater-flooding hazard an uncontrolled pool after a
 # wet winter waterlogs the crop; the advice becomes a controlled pond or a weir with an outlet.
 HEAVY_SOIL_CATEGORIES = (SoilCategory.IV,)
+FLOOD_ZONES_FOR_POND = ("q10", "q1")
 FLOW_PATH_MIN_CONTRIBUTING_M2 = 5_000.0
 FLOW_PATH_MIN_SLOPE_PCT = 2.0
 PROTECT_RADIUS_M = 300.0
@@ -98,7 +99,8 @@ def _wet_hazards(ctx: RuleContext) -> tuple[bool, bool]:
     flood = ctx.inputs.flood.data if ctx.inputs.flood is not None else None
     if flood is None:
         return False, False
-    return bool(flood.groundwater_flooding), any(flood.zones.values())
+    # Zones of floods every 10 and 100 years; the 1-in-500-year zone alone does not change the advice.
+    return bool(flood.groundwater_flooding), any(flood.zones.get(z, False) for z in FLOOD_ZONES_FOR_POND)
 
 
 def _wet_risk_evidence(ctx: RuleContext) -> list[Indicator]:
@@ -372,7 +374,8 @@ def _protect_params(ctx: RuleContext) -> dict[str, ParamValue]:
     if not feats:
         lc = _protected_landcover(ctx)
         assert lc is not None
-        return {"kind": lc[0], "distance_m": round(lc[1], -1), "count": 1, "radius_m": int(PROTECT_RADIUS_M)}
+        kind = "open_water" if lc[0] == "water_body" else lc[0]
+        return {"kind": kind, "distance_m": round(lc[1], -1), "count": 1, "radius_m": int(PROTECT_RADIUS_M)}
     nearest = min(feats, key=lambda f: f.distance_m)
     return {
         "kind": nearest.kind,

@@ -10,6 +10,7 @@ OSM completeness varies, which is always stated in the uncertainty.
 
 import asyncio
 import logging
+import time
 from datetime import date, timedelta
 from typing import Any, Literal
 
@@ -48,6 +49,21 @@ LICENSE = "ODbL 1.0 (© współtwórcy OpenStreetMap)"
 TIMEOUT_S = 7.0  # per request; one retry round fits in BUDGET_S
 BUDGET_S = 15.0
 ATTEMPTS = 2
+# After every mirror failed, Overpass is treated as down for this long (process-wide): the next analyses
+# fall back to WorldCover at once instead of each waiting the whole budget (review M1: 15 s per analysis).
+DOWN_COOLDOWN_S = 300.0
+_down_until = 0.0
+
+
+def _mark_down() -> None:
+    global _down_until
+    _down_until = time.monotonic() + DOWN_COOLDOWN_S
+
+
+def _is_down() -> bool:
+    return time.monotonic() < _down_until
+
+
 SEARCH_RADIUS_M = 1000
 BOUNDARY_BUFFER_M = 30.0
 MAX_FEATURES = 400
@@ -79,7 +95,7 @@ class HydroData(BaseModel):
 def build_query(lat: float, lon: float, radius_m: int) -> str:
     a = f"(around:{radius_m},{lat:.6f},{lon:.6f})"
     return (
-        "[out:json][timeout:10];("
+        "[out:json][timeout:6];("  # below TIMEOUT_S: Overpass answers before we give up
         f'way["waterway"~"^(ditch|drain|canal|stream|river|brook)$"]{a};'
         f'way["natural"~"^(water|wetland|wood|tree_row)$"]{a};'
         f'relation["natural"~"^(water|wetland|wood)$"]{a};'
@@ -211,7 +227,8 @@ async def _query_server(url: str, query: str) -> list[dict[str, Any]]:
 
 
 def _rotated(servers: list[str]) -> list[str]:
-    """Servers in a rotating order, so one slow instance is not always asked first (Q4)."""
+    """Servers in a rotating order. All mirrors are raced at once, so this only spreads which request is
+    sent first; the robustness comes from the race and the retry round (Q4)."""
     global _rotation
     _rotation = (_rotation + 1) % len(servers)
     return servers[_rotation:] + servers[:_rotation]
@@ -247,17 +264,21 @@ async def query_first(query: str, attempts: int = ATTEMPTS) -> list[dict[str, An
     raise last
 
 
+def _down_result(message_pl: str) -> SourceResult[HydroData]:
+    return missing(NAME, source=SOURCE, license=LICENSE, message_pl=message_pl)
+
+
+def _timed_out() -> SourceResult[HydroData]:
+    _mark_down()
+    return _down_result("Serwis danych o ciekach i rowach (OpenStreetMap) nie odpowiedział na czas.")
+
+
 async def fetch(parcel: Parcel, analysis_date: date) -> SourceResult[HydroData]:
     return await within_budget(
         NAME,
         _fetch(parcel),
         BUDGET_S,
-        lambda: missing(
-            NAME,
-            source=SOURCE,
-            license=LICENSE,
-            message_pl=("Serwis danych o ciekach i rowach (OpenStreetMap) nie odpowiedział na czas."),
-        ),
+        _timed_out,
     )
 
 
@@ -274,16 +295,16 @@ async def _fetch(parcel: Parcel) -> SourceResult[HydroData]:
     cached = cache.get(NAME, params)
     if cached is not None:
         elements = cached
+    elif _is_down():
+        return _down_result(
+            "Serwis danych o ciekach i rowach (OpenStreetMap) nie odpowiadał w ostatnich minutach."
+        )
     else:
         try:
             elements = await query_first(build_query(parcel.centroid_lat, parcel.centroid_lon, radius))
         except SourceError as exc:
-            return missing(
-                NAME,
-                source=SOURCE,
-                license=LICENSE,
-                message_pl=exc.message_pl,
-            )
+            _mark_down()
+            return _down_result(exc.message_pl)
         cache.set(NAME, params, elements, timedelta(days=CACHE_TTL_DAYS))
 
     # Geometry work on hundreds of features is CPU-bound: keep it off the event loop.

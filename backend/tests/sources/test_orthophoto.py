@@ -13,7 +13,18 @@ from app.report.map_svg import map_frame, parcel_map_svg
 from app.report.pdf import render_html
 from tests.report.builders import rich_report
 
-JPEG = b"\xff\xd8\xff" + b"0" * 2000
+
+def _jpeg() -> bytes:
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (60, 40), (90, 140, 60)).save(buf, "JPEG")
+    return buf.getvalue() + b"\0" * 1000  # padded above the 1 kB sanity limit
+
+
+JPEG = _jpeg()
 BOUNDS = (637000.0, 486000.0, 637600.0, 486400.0)
 
 
@@ -73,8 +84,9 @@ def test_map_with_and_without_background() -> None:
     with_bg = parcel_map_svg(r, uri)
     assert "<image " in with_bg and uri in with_bg
     assert "<image " not in parcel_map_svg(r)
-    assert "Bez podkładu ortofotomapy" in render_html(r)
-    assert "ortofotomapa © GUGiK" in render_html(r, uri)
+    assert "Bez podkładu ortofotomapy" in render_html(r, None, basemap_requested=True)
+    assert "Bez podkładu" not in render_html(r)  # print view: the service was never asked
+    assert "ortofotomapa © GUGiK" in render_html(r, uri, basemap_requested=True)
 
 
 def test_pdf_embeds_background_without_external_requests(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -91,5 +103,12 @@ def test_pdf_embeds_background_without_external_requests(monkeypatch: pytest.Mon
     r = rich_report()
     pdf = asyncio.run(pdf_module.render_pdf(r))
     assert pdf.startswith(b"%PDF") and seen == [map_frame(r)]
+    assert b"/Subtype /Image" in pdf or b"/Subtype/Image" in pdf  # the photo really is in the PDF
     with pytest.raises(ValueError):
-        pdf_module._no_fetch("https://example.org/x.png")
+        pdf_module._fetcher().fetch("https://example.org/x.png")
+
+
+def test_pdf_without_background_is_not_cached() -> None:
+    r = rich_report()
+    asyncio.run(pdf_module.render_pdf(r))  # autouse fixture: no orthophoto
+    assert r.id not in pdf_module._pdf_cache

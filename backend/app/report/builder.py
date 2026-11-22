@@ -54,6 +54,7 @@ from app.report.models import (
 from app.report.outlook import build_outlook, flood_info, groundwater_info
 from app.report.texts import date_dmy, num, render_line, render_text, years_pl
 from app.sources import open_meteo, uldk
+from app.sources.landcover import SURROUNDINGS_RADIUS_M
 
 # Hydro features shown on the report map (the source covers 1 km; the map focuses on the surroundings).
 MAP_FEATURE_RADIUS_M = 500.0
@@ -488,6 +489,7 @@ def _missing_data(inputs: AnalysisInputs) -> list[str]:
             message=r.message_pl or "",
             label=L.SOURCE_LABELS.get(r.name, r.name),
             landcover_fallback=r.name == "hydro" and landcover_surroundings(inputs) is not None,
+            radius_m=SURROUNDINGS_RADIUS_M,
         )
         if line:
             out.append(line)

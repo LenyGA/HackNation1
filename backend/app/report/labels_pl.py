@@ -42,7 +42,7 @@ INDICATOR_LABELS: dict[str, str] = {
     "nearest_wetland_or_pond_m": "Odległość do najbliższego oczka lub mokradła",
     "nearest_trees_m": "Odległość do najbliższego zadrzewienia",
     "trees_within_radius_count": "Zadrzewienia w pobliżu działki",
-    "trees_share_surroundings_pct": "Udział drzew w promieniu 500 m od działki",
+    "trees_share_surroundings_pct": "Udział drzew w okolicy działki (pierścień z mapy pokrycia terenu)",
     "wetlands_and_ponds_count": "Oczka i mokradła w pobliżu działki",
     "ditch_length_along_boundary_m": "Długość rowów wzdłuż granicy działki",
     "depression_count": "Zagłębienia terenu na działce",
@@ -108,7 +108,7 @@ SECTION_TITLES: dict[str, str] = {
 }
 
 MAP_LEGEND: dict[str, str] = {
-    "depression": "Główne zagłębienie terenu na działce — tu zbiera się woda",
+    "depression": "Zagłębienie terenu na działce, w którym zbiera się woda (opisane w zaleceniach)",
     "depression_minor": "Inne, małe zagłębienia lub leżące głównie poza działką",
     "flow_path": "Linia, którą po deszczu spływa woda",
     "outlet": "Miejsce, którym woda spływa z działki",

@@ -1,7 +1,7 @@
 {#- Missing / degraded data message for the source "hydro" (CLAUDE.md rule 4). -#}
 {{ label }}: {% if status == 'missing' %}brak danych{% else %}dane z ograniczeniami{% endif %}{% if message %} — {{ message.rstrip('.') }}{% endif %}.
 {% if status == 'missing' and landcover_fallback %}
-Zadrzewienia, oczka i mokradła w promieniu 500 m od działki oceniamy zastępczo z mapy pokrycia terenu ESA WorldCover 10 m. Brakuje danych tylko o rowach i ciekach, więc nie sprawdzamy zaleceń o zastawkach na rowach.
+Zadrzewienia, oczka i mokradła w promieniu {{ radius_m|num }} m od działki oceniamy zastępczo z mapy pokrycia terenu ESA WorldCover 10 m. Brakuje danych tylko o rowach i ciekach, więc nie sprawdzamy zaleceń o zastawkach na rowach.
 {% elif status == 'missing' %}
 Bez mapy rowów, cieków, oczek i zadrzewień nie sprawdzamy zaleceń, które ich dotyczą.
 {% elif not message %}

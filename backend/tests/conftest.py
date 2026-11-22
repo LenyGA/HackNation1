@@ -52,3 +52,13 @@ def _no_orthophoto(monkeypatch: pytest.MonkeyPatch) -> None:
         return None
 
     monkeypatch.setattr(orthophoto, "fetch_data_uri", _none)
+
+
+@pytest.fixture(autouse=True)
+def _overpass_not_marked_down() -> Iterator[None]:
+    """The Overpass 'down' cooldown is process-wide; every test starts with it cleared."""
+    from app.sources import hydro
+
+    hydro._down_until = 0.0
+    yield
+    hydro._down_until = 0.0

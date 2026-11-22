@@ -12,7 +12,7 @@ from shapely.geometry import Point, shape
 
 from app.analysis.assessment import Assessment
 from app.analysis.context import AnalysisInputs, computed_source
-from app.analysis.history import TABLE_MONTHS, HistoryMethod
+from app.analysis.history import MIN_YEARS_FOR_PERCENTILE, TABLE_MONTHS, HistoryMethod
 from app.analysis.profile import ProfilePoint as ProfileResultPoint
 from app.analysis.profile import SlopeProfile as ProfileResult
 from app.analysis.profile import slope_profile
@@ -48,7 +48,7 @@ from app.report.models import (
     WaterPlan,
     WaterPlanMonth,
 )
-from app.report.texts import date_dmy, num, plural, render_text
+from app.report.texts import date_dmy, num, plural, render_line, render_text
 from app.sources.base import METRIC_CRS, parcel_shape, to_crs
 from app.sources.flood import MZP_LAYER, MZP_WMS, FloodData
 from app.sources.groundwater import GroundwaterData
@@ -226,7 +226,7 @@ def _trend_summary(key: str, values: dict[str, Any]) -> str:
         f"ostatnie 3 lata {num(values['mean_mid'], step)} {unit}",
         f"ostatnie 2 lata {num(values['mean_recent'], step)} {unit}",
     ]
-    if values["slope"] is not None:
+    if values["slope"] is not None and values["direction"] in ("worse", "better"):
         sign = "+" if values["slope"] > 0 else "−" if values["slope"] < 0 else ""
         parts.append(f"trend {sign}{num(abs(values['slope']), step)} {unit} na dekadę")
     return "; ".join(parts)
@@ -493,7 +493,8 @@ def _satellite(inputs: AnalysisInputs, a: Assessment) -> SatelliteSeries | None:
     applicable = check in ("agrees", "disagrees")
     last = max(current, key=lambda s: s.date) if current else None
     band = None
-    if last is not None and hist:
+    # The band is named only when there are enough past scenes to compare with (as in the assessment).
+    if last is not None and len(hist) >= MIN_YEARS_FOR_PERCENTILE:
         lo, hi = round(hist[0], 2), round(hist[-1], 2)
         v = round(last.ndvi_mean, 2)
         band = "above" if v > hi else "below" if v < lo else "inside"
@@ -607,31 +608,24 @@ def _tile_metric(t: ClimateTrends) -> TrendMetric | None:
 
 
 def _climate_tile_detail(t: ClimateTrends) -> str:
+    """Numbers for the tile; the Polish sentence lives in blocks/climate_tile.j2."""
     m = _tile_metric(t)
-    if m is None:
-        return "Za mało danych, by pokazać liczbę."
-    unit = m.unit
-    recent, mean_all = m.mean_recent, m.mean_all
-    assert mean_all is not None
-    parts: list[str] = []
+    recent = m.mean_recent if m is not None else None
     against = recent is None
-    if recent is not None:
-        recent_worse = (recent - mean_all) * (1 if m.key != "kbw_mm" else -1) > 0
+    if m is not None and recent is not None and m.mean_all is not None:
+        recent_worse = (recent - m.mean_all) * (1 if m.key != "kbw_mm" else -1) > 0
         # The recent comparison is shown unless it points against the verdict.
-        against = (t.level in ("worse", "critical") and not recent_worse and recent != mean_all) or (
+        against = (t.level in ("worse", "critical") and not recent_worse and recent != m.mean_all) or (
             t.level == "better" and recent_worse
         )
-    if not against and recent is not None:
-        parts.append(
-            f"ostatnie 2 lata {num(recent)} {unit} wobec {num(mean_all)} {unit} "
-            f"średnio z {len(t.seasons)} lat"
-        )
-    if m.direction in ("worse", "better") and m.slope_per_decade is not None:
-        sign = "+" if m.slope_per_decade > 0 else "−"
-        parts.append(f"trend {sign}{num(abs(m.slope_per_decade))} {unit} na dekadę")
-    if not parts:
-        return f"{TILE_TREND_NAMES[m.key]}: średnio {num(mean_all)} {unit} w {len(t.seasons)} latach."
-    return f"{TILE_TREND_NAMES[m.key]}: " + "; ".join(parts) + "."
+    return render_line(
+        "blocks/climate_tile.j2",
+        m=m,
+        name=TILE_TREND_NAMES[m.key] if m is not None else "",
+        show_recent=not against,
+        show_slope=m is not None and m.direction in ("worse", "better") and m.slope_per_decade is not None,
+        n=len(t.seasons),
+    )
 
 
 def _climate_tile(t: ClimateTrends | None) -> SummaryTile:

@@ -153,7 +153,12 @@ RESIDUES_PL = {
     ),
 }
 
-KIND_PL = {"wetland": "mokradło", "water_body": "oczko lub zbiornik wodny"}
+KIND_PL = {
+    "wetland": "mokradło",
+    "water_body": "oczko lub zbiornik wodny",
+    # WorldCover class 80 (fallback without OSM) does not tell a pond from a river or canal.
+    "open_water": "woda powierzchniowa (oczko, zbiornik lub ciek)",
+}
 
 
 def fmt(value: ParamValue) -> str:
@@ -252,6 +257,10 @@ NO_CROP_PL: dict[str, str] = {
         "W dniu analizy ({date}) uprawa ({crop}) jest zwykle już po zbiorze, "
         "więc jej nawadnianie nie dotyczy. "
         "Wodę w glebie warto teraz chronić dla międzyplonu lub następnej uprawy."
+    ),
+    "before_regrowth": (
+        "W dniu analizy ({date}) użytki zielone jeszcze nie ruszyły z wegetacją po zimie, "
+        "więc nawadnianie nie dotyczy."
     ),
     "before_sowing": (
         "W dniu analizy ({date}) uprawa ({crop}) nie jest jeszcze wysiana albo dopiero wschodzi, "
@@ -492,7 +501,11 @@ def irrigation_text(params: dict[str, ParamValue]) -> str:
         out["late_pl"] = LATE_PL["grassland" if params.get("grassland") else "crop"].format(**out)
     if status == "no_crop":
         out["no_crop_pl"] = NO_CROP_PL[
-            "after_harvest" if params.get("after_harvest") else "before_sowing"
+            "after_harvest"
+            if params.get("after_harvest")
+            else "before_regrowth"
+            if params.get("grassland")
+            else "before_sowing"
         ].format(**out)
     if status == "no_balance":
         out["no_balance_pl"] = NO_BALANCE_PL[str(params.get("reason", "soil"))]

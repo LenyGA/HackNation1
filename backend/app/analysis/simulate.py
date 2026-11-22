@@ -234,7 +234,14 @@ def simulate(
     t_trend = trends.get("tmean_c") if trends is not None else None
     rel_per_year = 0.0
     et0_pct_dec: float | None = None
-    if et0_trend is not None and et0_trend.slope_per_decade is not None and et0_trend.mean_all:
+    # Only a significant ET0 trend (Mann–Kendall, analysis/trends.py) is extrapolated; otherwise the future
+    # seasons are the past ones unchanged, as the trends block says "no clear change" (review M1, Q5).
+    if (
+        et0_trend is not None
+        and et0_trend.significant
+        and et0_trend.slope_per_decade is not None
+        and et0_trend.mean_all
+    ):
         rel_per_year = et0_trend.slope_per_decade / 10 / et0_trend.mean_all
         et0_pct_dec = 100 * rel_per_year * 10
 

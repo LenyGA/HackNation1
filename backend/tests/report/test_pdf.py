@@ -96,4 +96,4 @@ def test_main_depression_is_one_definition_for_text_map_and_profile() -> None:
     assert all(rec.number in f.recommendation_numbers for f in main_on_map)
     assert all(f.recommendation_numbers == [] for f in r.map.features if f.kind == "depression_minor")
     if r.profile is not None and "obniż" in r.profile.text_pl:
-        assert "głównym zagłębieniu" in r.profile.text_pl or "główne zagłębienie" in r.profile.text_pl
+        assert "zagłębieni" in r.profile.text_pl

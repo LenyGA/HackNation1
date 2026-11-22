@@ -1,0 +1,9 @@
+{#- Climate tile: the verdict's own metric (Q5); recent comparison and per-decade trend only when they agree. -#}
+{% if m is none %}
+Za mało danych, by pokazać liczbę.
+{% else %}
+{% set parts = [] %}
+{% if show_recent %}{% set _ = parts.append('ostatnie 2 lata ' ~ (m.mean_recent|num) ~ ' ' ~ m.unit ~ ' wobec ' ~ (m.mean_all|num) ~ ' ' ~ m.unit ~ ' średnio z ' ~ n ~ ' lat') %}{% endif %}
+{% if show_slope %}{% set _ = parts.append('trend ' ~ ('+' if m.slope_per_decade > 0 else '−') ~ (m.slope_per_decade|abs|num) ~ ' ' ~ m.unit ~ ' na dekadę') %}{% endif %}
+{% if parts %}{{ name }}: {{ parts|join('; ') }}.{% else %}{{ name }}: średnio {{ m.mean_all|num }} {{ m.unit }} w {{ n }} latach.{% endif %}
+{% endif %}

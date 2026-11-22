@@ -7,6 +7,8 @@
 Dzień analizy ({{ day|date_pl }}) wypada poza okresem wegetacji ({{ season_start|day_month_pl }} – {{ season_end|day_month_pl }}). Oceniamy więc, jak gleba odbudowuje zapas wody od jesieni, oraz jak przebiegł ostatni sezon.
 {% elif not c.crop_on_field and phase == 'after_harvest' %}
 Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) jest zwykle już po zbiorze (wg typowego kalendarza upraw koniec sezonu ok. {{ harvest_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i wodę w glebie dla międzyplonu lub następnej uprawy.
+{% elif not c.crop_on_field and grassland %}
+Na dzień {{ day|date_dmy }} użytki zielone jeszcze nie ruszyły z wegetacją po zimie (zwykle ok. {{ sowing_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i zapas wody w glebie.
 {% elif not c.crop_on_field %}
 Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) nie jest jeszcze wysiana albo dopiero wschodzi (typowy siew ok. {{ sowing_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i zapas wody w glebie przed siewem.
 {% elif phase == 'ripening' and not grassland %}
@@ -82,7 +84,7 @@ Zdjęcia satelitarne nie potwierdzają tej oceny: kondycja roślin jest {% if lo
 {% elif c.satellite == 'not_applicable' and phase in ('ripening', 'after_harvest') %}
 Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'ripening' %}uprawa dojrzewa i naturalnie traci zieleń{% else %}pole jest po zbiorze{% endif %}, więc spadek zieleni nie oznacza braku wody.
 {% elif c.satellite == 'not_applicable' and phase in ('before_sowing', 'establishment') %}
-Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'before_sowing' %}uprawy nie ma jeszcze na polu{% else %}rośliny są jeszcze małe i nie zakrywają pola{% endif %}, więc niska zieleń jest normalna.
+Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'before_sowing' and grassland %}ruń jeszcze nie odrosła po zimie{% elif phase == 'before_sowing' %}uprawy nie ma jeszcze na polu{% else %}rośliny są jeszcze małe i nie zakrywają pola{% endif %}, więc niska zieleń jest normalna.
 {% elif c.satellite == 'not_applicable' %}
 Zdjęć satelitarnych nie używamy w tym terminie do oceny — brakuje bezchmurnych zdjęć z poprzednich lat do porównania.
 {% else %}

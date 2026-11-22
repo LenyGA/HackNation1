@@ -139,7 +139,7 @@
       <div><span style="background:#ffffff;border:1.4pt solid #000"></span>Granica działki</div>
       {% for kind, text in r.map.legend_pl.items() %}<div><span style="background:{{ legend_colors[kind] }}"></span>{{ text }}</div>{% endfor %}
       <div><span style="background:#fff;border-radius:50%"></span>Numer zalecenia</div>
-      <div class="small">{% if basemap %}Podkład: ortofotomapa © GUGiK (Geoportal.gov.pl), stan obecny.{% else %}Bez podkładu ortofotomapy — usługa Geoportalu nie odpowiedziała na czas.{% endif %}</div>
+      {% if basemap == 'ok' %}<div class="small">Podkład: ortofotomapa © GUGiK (Geoportal.gov.pl), stan obecny.</div>{% elif basemap == 'failed' %}<div class="small">Bez podkładu ortofotomapy — usługa Geoportalu nie odpowiedziała na czas.</div>{% endif %}
     </div>
   </div>
   {% endif %}

@@ -142,3 +142,15 @@ def test_mirrors_rotate_and_timeouts_fit_the_budget() -> None:
     orders = {tuple(hydro._rotated(hydro.SERVERS)) for _ in range(len(hydro.SERVERS))}
     assert len(hydro.SERVERS) >= 3 and len(orders) == len(hydro.SERVERS)
     assert hydro.TIMEOUT_S * hydro.ATTEMPTS <= hydro.BUDGET_S
+
+
+async def test_after_all_mirrors_fail_next_call_skips_overpass(tmp_cache: DiskCache, parcel: Parcel) -> None:
+    """Review M1: while Overpass is down, analyses fall back at once instead of waiting the whole budget."""
+    with respx.mock() as mock:
+        routes = [mock.post(u).mock(return_value=httpx.Response(504)) for u in hydro.SERVERS]
+        first = await hydro.fetch(parcel, DATE)
+        calls = sum(r.call_count for r in routes)
+        second = await hydro.fetch(parcel, DATE)
+        assert sum(r.call_count for r in routes) == calls  # no new request
+    assert first.status is SourceStatus.MISSING and second.status is SourceStatus.MISSING
+    assert second.message_pl is not None and "ostatnich minutach" in second.message_pl

@@ -19,7 +19,7 @@ import numpy as np
 import shapely
 from pydantic import BaseModel
 from pyproj import Transformer
-from shapely.geometry import mapping
+from shapely.geometry import box, mapping
 from shapely.geometry.base import BaseGeometry
 
 from app.core.cache import get_cache
@@ -209,7 +209,11 @@ def items_for_year(items: list[dict[str, Any]], year: int) -> list[dict[str, Any
 async def _fetch_counts(geom: BaseGeometry, year: int) -> _Counts:
     token = await planetary.get_token(COLLECTION)
     items = items_for_year(
-        await planetary.search({"collections": [COLLECTION], "intersects": mapping(geom), "limit": 8}), year
+        # Tiles touching the ring too (3° tile edges cross Poland), not only the parcel (review M1).
+        await planetary.search(
+            {"collections": [COLLECTION], "intersects": mapping(box(*_ring_bounds(geom)[2])), "limit": 8}
+        ),
+        year,
     )
     if not items:
         raise SourceError("Brak mapy pokrycia terenu dla tego miejsca.")

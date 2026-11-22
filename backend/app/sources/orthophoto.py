@@ -66,6 +66,7 @@ async def fetch_data_uri(bounds: tuple[float, float, float, float]) -> str | Non
     if resp.status_code != 200 or not ctype.startswith("image/") or len(resp.content) < 1000:
         log.info("orthophoto WMS returned %s %s", resp.status_code, ctype)
         return None
-    uri = f"data:{ctype.split(';')[0]};base64,{base64.b64encode(resp.content).decode('ascii')}"
+    # Fixed media type (FORMAT=image/jpeg): nothing from the response header reaches the SVG markup.
+    uri = f"data:image/jpeg;base64,{base64.b64encode(resp.content).decode('ascii')}"
     cache.set(NAME, params, uri, timedelta(days=CACHE_TTL_DAYS))
     return uri

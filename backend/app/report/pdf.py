@@ -40,7 +40,9 @@ def _charts(report: Report) -> dict[str, object]:
     }
 
 
-def render_html(report: Report, basemap_uri: str | None = None) -> str:
+def render_html(report: Report, basemap_uri: str | None = None, basemap_requested: bool = False) -> str:
+    """`basemap_requested`: the server asked Geoportal for the orthophoto (PDF). The print view does not,
+    so it never claims that the service failed."""
     return (
         html_env()
         .get_template("report.html.j2")
@@ -48,7 +50,7 @@ def render_html(report: Report, basemap_uri: str | None = None) -> str:
             r=report,
             css=_css(),
             map_svg=parcel_map_svg(report, basemap_uri),
-            basemap=basemap_uri is not None,
+            basemap="ok" if basemap_uri is not None else ("failed" if basemap_requested else "none"),
             charts=_charts(report),
             recs={rec.number: rec for rec in report.recommendations},
             legend_colors=_legend_colors(),
@@ -57,21 +59,19 @@ def render_html(report: Report, basemap_uri: str | None = None) -> str:
     )
 
 
-def _no_fetch(url: str, *args: object, **kwargs: object) -> Any:
-    """WeasyPrint URL fetcher that refuses every request: the PDF must not load anything from outside.
+def _fetcher() -> Any:
+    """WeasyPrint URL fetcher that allows only embedded data: URIs (the orthophoto fetched by the server).
 
-    Embedded data: URIs (the orthophoto fetched by the server) are allowed."""
-    if url.startswith("data:"):
-        from weasyprint import default_url_fetcher
+    Every http(s)/file URL raises: the PDF must not load anything from outside."""
+    from weasyprint import URLFetcher
 
-        return default_url_fetcher(url, *args, **kwargs)
-    raise ValueError(f"external resource blocked: {url}")
+    return URLFetcher(allowed_protocols={"data"}, fail_on_errors=False)
 
 
 def _write_pdf(html: str) -> bytes:
     from weasyprint import HTML  # heavy import, only when a PDF is requested
 
-    pdf: bytes = HTML(string=html, url_fetcher=_no_fetch).write_pdf()
+    pdf: bytes = HTML(string=html, url_fetcher=_fetcher()).write_pdf()
     return pdf
 
 
@@ -81,7 +81,7 @@ PDF_CONCURRENCY = 2
 
 
 def _render(report: Report, basemap_uri: str | None = None) -> bytes:
-    return _write_pdf(render_html(report, basemap_uri))
+    return _write_pdf(render_html(report, basemap_uri, basemap_requested=True))
 
 
 # Saved reports never change, so a rendered PDF is reused: repeated downloads (or a client hammering one
@@ -98,12 +98,15 @@ async def render_pdf(report: Report) -> bytes:
         return cached
     if _pdf_slots is None:
         _pdf_slots = asyncio.Semaphore(PDF_CONCURRENCY)
+    # The WMS call runs before taking a render slot, so a slow Geoportal never blocks other PDFs.
+    basemap = await orthophoto.fetch_data_uri(map_frame(report))
     async with _pdf_slots:
         cached = _pdf_cache.get(report.id)  # rendered by another request while this one waited
         if cached is not None:
             return cached
-        basemap = await orthophoto.fetch_data_uri(map_frame(report)) if report.map is not None else None
         pdf = await asyncio.to_thread(_render, report, basemap)
+    if basemap is None:
+        return pdf  # not cached: the next download tries the orthophoto again
     _pdf_cache[report.id] = pdf
     while len(_pdf_cache) > PDF_CACHE_SIZE:
         _pdf_cache.popitem(last=False)
