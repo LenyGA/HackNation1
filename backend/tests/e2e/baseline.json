@@ -6,7 +6,8 @@
     "recommendations": [
       "crop_residues",
       "crop_timing_variety",
-      "depression_retention"
+      "depression_retention",
+      "ditch_check_dam"
     ],
     "irrigation": "late_stage",
     "sources": {
@@ -15,12 +16,12 @@
       "sentinel2": "degraded",
       "soilgrids": "ok",
       "dem": "ok",
-      "hydro": "missing",
+      "hydro": "ok",
       "landcover": "ok",
       "flood": "ok",
       "groundwater": "missing"
     },
-    "elapsed_s": 13.9
+    "elapsed_s": 8.7
   },
   "heavy_soil@current": {
     "analysis_date": "2026-11-21",
@@ -55,6 +56,7 @@
       "crop_timing_variety",
       "grassed_flow_path",
       "outlet_buffer_strip",
+      "protect_wetlands",
       "reduced_tillage_mulch"
     ],
     "irrigation": "late_stage",
@@ -106,6 +108,7 @@
       "crop_timing_variety",
       "depression_retention",
       "irrigation",
+      "protect_wetlands",
       "winter_cover_crop"
     ],
     "irrigation": "irrigate",
@@ -115,12 +118,12 @@
       "sentinel2": "degraded",
       "soilgrids": "ok",
       "dem": "ok",
-      "hydro": "missing",
+      "hydro": "ok",
       "landcover": "ok",
       "flood": "degraded",
       "groundwater": "missing"
     },
-    "elapsed_s": 13.5
+    "elapsed_s": 8.0
   },
   "opencast_mine@current": {
     "analysis_date": "2026-11-21",
@@ -164,10 +167,10 @@
       "dem": "ok",
       "hydro": "missing",
       "landcover": "degraded",
-      "flood": "degraded",
+      "flood": "ok",
       "groundwater": "missing"
     },
-    "elapsed_s": 13.5
+    "elapsed_s": 16.5
   },
   "orchard@current": {
     "analysis_date": "2026-11-21",
@@ -198,7 +201,8 @@
     "complete": true,
     "recommendations": [
       "grassland_cutting",
-      "irrigation"
+      "irrigation",
+      "protect_wetlands"
     ],
     "irrigation": "irrigate",
     "sources": {
@@ -212,7 +216,7 @@
       "flood": "ok",
       "groundwater": "missing"
     },
-    "elapsed_s": 13.7
+    "elapsed_s": 17.5
   },
   "river_valley@current": {
     "analysis_date": "2026-11-21",
@@ -257,10 +261,10 @@
       "dem": "ok",
       "hydro": "missing",
       "landcover": "ok",
-      "flood": "ok",
+      "flood": "degraded",
       "groundwater": "missing"
     },
-    "elapsed_s": 13.3
+    "elapsed_s": 17.1
   },
   "slope@current": {
     "analysis_date": "2026-11-21",
