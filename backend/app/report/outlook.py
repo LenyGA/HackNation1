@@ -24,6 +24,7 @@ from app.analysis.water_plan import WaterPlanResult, water_plan
 from app.core.models import Period, SourceResult
 from app.recommendations.irrigation import IrrigationAdvice, single_dose_max_mm
 from app.recommendations.models import Category, Horizon, Recommendation
+from app.recommendations.retention_methods import POND_NOTIFICATION_MAX_AREA_M2
 from app.report import labels_pl as L
 from app.report.models import (
     ClimateTrends,
@@ -347,7 +348,12 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
         else computed_source(inputs.weather.source),
     )
     main, _ = render_text(
-        "blocks/water_plan.j2", p=view, crop=inputs.crop.name_pl.lower(), area_ha=area, top_months=top
+        "blocks/water_plan.j2",
+        p=view,
+        crop=inputs.crop.name_pl.lower(),
+        area_ha=area,
+        top_months=top,
+        pond_max_area_m2=POND_NOTIFICATION_MAX_AREA_M2,
     )
     return view.model_copy(update={"text_pl": main})
 

@@ -1,5 +1,6 @@
 import type { RetentionMethodStatus, RetentionPlan } from '@/api/types'
 import { Disclosure, EvidenceList } from '@/components/report/ReportParts'
+import { formatNumberPl } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 // G9: coverage card (depression volume vs dry-year needs) and the five ways to keep or store water.
@@ -23,13 +24,13 @@ export function CoverageCard({ plan }: { plan: RetentionPlan }) {
   const tone = c.full_pct !== null && c.full_pct >= 100 ? 'good' : c.status === 'ok' ? 'warn' : 'unknown'
   return (
     <div className={cn('space-y-1 rounded-lg border border-l-4 bg-card p-3.5', COVERAGE_BORDER[tone])}>
-      <h3 className="font-semibold">Ile wody da retencja na działce?</h3>
+      <h4 className="font-semibold">Ile wody da retencja na działce?</h4>
       {c.full_pct !== null && (
         <div className="flex items-center gap-3" aria-hidden>
           <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-sky-600" style={{ width: `${Math.min(100, c.full_pct)}%` }} />
+            <div className="h-full rounded-full bg-sky-600" style={{ width: `${Math.max(1, Math.min(100, c.full_pct))}%` }} />
           </div>
-          <span className="shrink-0 text-sm font-semibold tabular-nums">{c.full_pct >= 100 ? '100 %' : `${c.full_pct} %`}</span>
+          <span className="shrink-0 text-sm font-semibold tabular-nums">{c.full_pct >= 100 ? '100 %' : c.full_pct < 1 ? '< 1 %' : `${formatNumberPl(c.full_pct)} %`}</span>
         </div>
       )}
       <p className="leading-relaxed">{c.text_pl}</p>

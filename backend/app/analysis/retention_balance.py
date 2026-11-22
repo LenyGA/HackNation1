@@ -29,8 +29,9 @@ class CoverageStatus(StrEnum):
 class RetentionCoverage:
     status: CoverageStatus
     volume_m3: float | None  # main depression, rounded like the recommendation text
-    area_m2: float | None  # water surface of the filled depression
+    area_m2: float | None  # water surface of the filled depression (unrounded; templates round it)
     max_depth_m: float | None
+    inside_share: float | None  # share of the depression inside the parcel
     full_need_m3: float | None  # gross, dry year, full irrigation
     rescue_need_m3: float | None  # gross, dry year, critical periods only
     full_pct: float | None  # volume / full need, %
@@ -48,7 +49,9 @@ def depression_volume_m3(site: RetentionSite) -> float | None:
 def share_pct(volume_m3: float | None, need_m3: float | None) -> float | None:
     if volume_m3 is None or need_m3 is None or need_m3 < MIN_NEED_M3:
         return None
-    return float(round(100 * volume_m3 / need_m3))
+    pct = 100 * volume_m3 / need_m3
+    # Below 1 % keep one decimal so the card says "less than 1 %", never a fake "0 %" (rule 4).
+    return float(round(pct)) if pct >= 1 else max(0.1, round(pct, 1))
 
 
 def retention_coverage(
@@ -71,8 +74,9 @@ def retention_coverage(
     return RetentionCoverage(
         status=status,
         volume_m3=volume,
-        area_m2=round(top.area_m2, -1) if top is not None else None,
+        area_m2=top.area_m2 if top is not None else None,
         max_depth_m=top.max_depth_m if top is not None else None,
+        inside_share=top.inside_parcel_share if top is not None else None,
         full_need_m3=full_need_m3,
         rescue_need_m3=rescue_need_m3,
         full_pct=share_pct(volume, full_need_m3) if ok else None,

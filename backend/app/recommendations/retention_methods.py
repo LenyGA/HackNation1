@@ -19,7 +19,7 @@ from typing import Literal
 
 from app.analysis.common import indicator
 from app.analysis.context import computed_source
-from app.analysis.retention_balance import CoverageStatus, RetentionCoverage
+from app.analysis.retention_balance import MIN_NEED_M3, CoverageStatus, RetentionCoverage
 from app.analysis.soil import SoilCategory
 from app.core.models import Confidence, Indicator
 from app.recommendations.common import LIGHT_SOIL_CATEGORIES, found, water_need
@@ -34,12 +34,14 @@ WATER_LAW_PL = "Prawo wodne (tekst jednolity Dz.U. 2025 poz. 960), stan sprawdzo
 
 # Team assumptions (docs/METHODOLOGY.md, section 8a).
 POND_MIN_VOLUME_M3 = 200.0  # smaller hollows hold too little to be worth digging out
+POND_MIN_MEAN_DEPTH_M = 0.5  # shallower on average: summer evaporation takes a large part of the water
 SEALED_SOIL_CATEGORIES = (SoilCategory.III, SoilCategory.IV)  # loam and clay hold water without a liner
 WEIR_MAX_DISTANCE_M = 150.0  # ditch or stream close enough to raise the water table under the parcel
 FLAT_SLOPE_PCT = 2.0
 ROOF_MAX_DISTANCE_M = 100.0
 ROOF_MAIN_SOURCE_MAX_M3 = 1000.0  # needs in thousands of m³ are beyond what roofs nearby can collect
 LOW_TREE_SHARE_PCT = 5.0  # open landscape: under 1/20 of the 500 m ring is trees
+BUILT_UP_ON_PARCEL_MIN_PCT = 1.0  # single WorldCover pixels of class 50 are often roads, not roofs
 DAYS_PER_YEAR = 365
 
 MethodId = Literal["pond", "weir", "rainwater", "well", "tree_belts"]
@@ -62,6 +64,9 @@ class Permit(StrEnum):
     )
     ORDINARY_USE = "ordinary_use"  # within ordinary use of water, no permit
     CHECK = "check"  # depends on the structure: ask Wody Polskie and the ditch owner
+    CHECK_DRAINAGE = (
+        "check_drainage"  # controlled drainage without a known ditch: water company, Wody Polskie
+    )
 
 
 @dataclass(frozen=True)
@@ -117,13 +122,17 @@ def _wet_hazard(ctx: RuleContext) -> bool | None:
 def _pond(ctx: RuleContext, cov: RetentionCoverage) -> MethodAssessment:
     if cov.status is CoverageStatus.NO_TERRAIN:
         return MethodAssessment("pond", MethodStatus.NO_DATA, "no_terrain")
-    if cov.volume_m3 is None:
-        return MethodAssessment("pond", MethodStatus.NOT_RECOMMENDED, "no_depression")
     t = ctx.terrain
     assert t is not None
     nmt = t.dataset == "gugik_nmt"
     src = computed_source(ctx.inputs.dem.source)
     conf, why = (Confidence.HIGH, "terrain_nmt") if nmt else (Confidence.MEDIUM, "terrain_cop")
+    if cov.volume_m3 is None:
+        # Rule 1: "no depression" is itself a number from the terrain analysis.
+        count = indicator("depression_count", 0, "szt.", src, level=conf, reason=why)
+        return MethodAssessment(
+            "pond", MethodStatus.NOT_RECOMMENDED, "no_depression", {}, [count, *found(ctx, "slope_mean_pct")]
+        )
     evidence = [indicator("depression_volume_m3", cov.volume_m3, "m³", src, level=conf, reason=why, step=10)]
     params: dict[str, ParamValue] = {"volume_m3": cov.volume_m3, "min_volume_m3": POND_MIN_VOLUME_M3}
     if cov.volume_m3 < POND_MIN_VOLUME_M3:
@@ -152,13 +161,30 @@ def _pond(ctx: RuleContext, cov: RetentionCoverage) -> MethodAssessment:
             "controlled": int(bool(wet) or soil is SoilCategory.IV),
             "full_pct": cov.full_pct if cov.full_pct is not None else "",
             "rescue_pct": cov.rescue_pct if cov.rescue_pct is not None else "",
+            "rescue_smaller": int(
+                cov.rescue_need_m3 is not None
+                and cov.full_need_m3 is not None
+                and cov.rescue_need_m3 < cov.full_need_m3
+            ),
             "max_area_m2": POND_NOTIFICATION_MAX_AREA_M2,
             "max_depth_m": POND_NOTIFICATION_MAX_DEPTH_M,
         }
     )
-    over = area > POND_NOTIFICATION_MAX_AREA_M2 or depth > POND_NOTIFICATION_MAX_DEPTH_M
-    permit = Permit.PERMIT if over else Permit.NOTIFICATION
-    status = MethodStatus.RECOMMENDED if sealing == "natural" else MethodStatus.CONDITIONAL
+    # Unrounded values decide; the sentence names exactly what is over the limit.
+    area_over = area > POND_NOTIFICATION_MAX_AREA_M2
+    depth_over = depth > POND_NOTIFICATION_MAX_DEPTH_M
+    params["area_over"] = int(area_over)
+    params["depth_over"] = int(depth_over)
+    # The notification covers a pond whose effect stays on the owner's land: part of the hollow lies outside.
+    params["outside_parcel"] = int(cov.inside_share is not None and cov.inside_share < 1.0)
+    permit = Permit.PERMIT if area_over or depth_over else Permit.NOTIFICATION
+    # A shallow, sprawling hollow loses much of its water to summer evaporation (team assumption, 8a).
+    mean_depth = cov.volume_m3 / area if area > 0 else None
+    shallow = mean_depth is not None and mean_depth < POND_MIN_MEAN_DEPTH_M
+    params["shallow"] = int(shallow)
+    params["mean_depth_m"] = round(mean_depth, 2) if mean_depth is not None else ""
+    params["min_mean_depth_m"] = POND_MIN_MEAN_DEPTH_M
+    status = MethodStatus.RECOMMENDED if sealing == "natural" and not shallow else MethodStatus.CONDITIONAL
     return MethodAssessment("pond", status, "depression", params, evidence, permit)
 
 
@@ -193,6 +219,13 @@ def _weir(ctx: RuleContext) -> MethodAssessment:
         )
         params["distance_m"] = round(near, -1)
     if near is not None and near <= WEIR_MAX_DISTANCE_M:
+        if t is not None and t.slope_mean_pct >= FLAT_SLOPE_PCT:
+            # On a slope a weir holds water in the ditch, but cannot raise the water table under the field.
+            params["slope_mean_pct"] = t.slope_mean_pct
+            evidence += found(ctx, "slope_mean_pct")
+            return MethodAssessment(
+                "weir", MethodStatus.CONDITIONAL, "ditch_near_slope", params, evidence, Permit.CHECK
+            )
         return MethodAssessment(
             "weir", MethodStatus.RECOMMENDED, "ditch_near", params, evidence, Permit.CHECK
         )
@@ -201,23 +234,38 @@ def _weir(ctx: RuleContext) -> MethodAssessment:
         params["slope_mean_pct"] = t.slope_mean_pct
         evidence += found(ctx, "slope_mean_pct")
         evidence += _wet_evidence(ctx)
-        return MethodAssessment("weir", MethodStatus.RECOMMENDED, "flat_wet", params, evidence, Permit.CHECK)
+        return MethodAssessment(
+            "weir", MethodStatus.RECOMMENDED, "flat_wet", params, evidence, Permit.CHECK_DRAINAGE
+        )
     if ctx.hydro is None:
         return MethodAssessment("weir", MethodStatus.NO_DATA, "no_hydro", params)
     params["radius_m"] = ctx.hydro.radius_m
+    # Rule 4: without terrain, or on flat ground without the flood map, "flat and wet" was not checked.
+    unknown_terrain = t is None
+    unknown_wet = t is not None and t.slope_mean_pct < FLAT_SLOPE_PCT and wet is None
+    if unknown_terrain or unknown_wet:
+        params["missing"] = "terrain" if unknown_terrain else "flood"
+        if not evidence:
+            evidence.append(_ditch_count(ctx))
+        return MethodAssessment("weir", MethodStatus.CONDITIONAL, "no_ditch_unchecked", params, evidence)
     if not evidence:
-        # No ditch on the map within the searched radius: the evidence is the (empty) count.
-        evidence.append(
-            indicator(
-                "ditches_within_radius_count",
-                ctx.hydro.counts.get("ditch", 0) + ctx.hydro.counts.get("watercourse", 0),
-                "szt.",
-                computed_source(ctx.inputs.hydro.source),
-                level=Confidence.LOW,
-                reason="osm",
-            )
-        )
+        evidence.append(_ditch_count(ctx))
+    if t is not None:
+        evidence += found(ctx, "slope_mean_pct")
     return MethodAssessment("weir", MethodStatus.NOT_RECOMMENDED, "no_ditch", params, evidence)
+
+
+def _ditch_count(ctx: RuleContext) -> Indicator:
+    """No ditch on the map within the searched radius: the evidence is the (empty) count."""
+    assert ctx.hydro is not None
+    return indicator(
+        "ditches_within_radius_count",
+        ctx.hydro.counts.get("ditch", 0) + ctx.hydro.counts.get("watercourse", 0),
+        "szt.",
+        computed_source(ctx.inputs.hydro.source),
+        level=Confidence.LOW,
+        reason="osm",
+    )
 
 
 def _wet_evidence(ctx: RuleContext) -> list[Indicator]:
@@ -241,7 +289,7 @@ def _rainwater(ctx: RuleContext, cov: RetentionCoverage) -> MethodAssessment:
     if lc is None:
         return MethodAssessment("rainwater", MethodStatus.NO_DATA, "no_landcover")
     ring = lc.surroundings
-    on_parcel = lc.built_up_pct > 0
+    on_parcel = lc.built_up_pct >= BUILT_UP_ON_PARCEL_MIN_PCT
     nearest = 0.0 if on_parcel else (ring.nearest_m.get("built_up") if ring is not None else None)
     if ring is None and not on_parcel:
         return MethodAssessment("rainwater", MethodStatus.NO_DATA, "no_landcover")
@@ -294,7 +342,8 @@ def _rainwater(ctx: RuleContext, cov: RetentionCoverage) -> MethodAssessment:
         return MethodAssessment("rainwater", MethodStatus.CONDITIONAL, "too_small", params, evidence)
     if need is not None and need >= 1:
         params["need_m3"] = need
-        return MethodAssessment("rainwater", MethodStatus.RECOMMENDED, "small_need", params, evidence)
+        # A tank helps, but how much roof there is cannot be read from a 10 m land-cover map.
+        return MethodAssessment("rainwater", MethodStatus.CONDITIONAL, "small_need", params, evidence)
     return MethodAssessment("rainwater", MethodStatus.CONDITIONAL, "auxiliary", params, evidence)
 
 
@@ -343,7 +392,9 @@ def _well(ctx: RuleContext, cov: RetentionCoverage) -> MethodAssessment:
         return MethodAssessment(
             "well", MethodStatus.NOT_RECOMMENDED, "no_need", params, _coverage_evidence(ctx, cov)
         )
-    kept = cov.volume_m3 or 0.0
+    # Only a hollow worth turning into a pond (≥ POND_MIN_VOLUME_M3) reduces what the well must supply.
+    kept = cov.volume_m3 if cov.volume_m3 is not None and cov.volume_m3 >= POND_MIN_VOLUME_M3 else 0.0
+    params["terrain_unknown"] = int(cov.status is CoverageStatus.NO_TERRAIN)
     if kept >= cov.full_need_m3:
         return MethodAssessment(
             "well", MethodStatus.NOT_RECOMMENDED, "retention_covers", params, _coverage_evidence(ctx, cov)
@@ -411,9 +462,15 @@ def _tree_belts(ctx: RuleContext) -> MethodAssessment:
         "radius_m": ring.radius_m,
         "low_share_pct": LOW_TREE_SHARE_PCT,
     }
+    t = ctx.terrain
+    runoff = ctx.cause("excessive_runoff")
+    if runoff is not None and runoff.flagged is True and t is not None and t.outlets:
+        # Water runs off the field: a grass or tree strip at the outlet holds it, whatever the trees around.
+        params["outlets"] = len(t.outlets)
+        evidence += found(ctx, "main_outlet_area_m2", "slope_mean_pct")
+        return MethodAssessment("tree_belts", MethodStatus.RECOMMENDED, "runoff_outlet", params, evidence)
     if share >= LOW_TREE_SHARE_PCT:
         return MethodAssessment("tree_belts", MethodStatus.NOT_RECOMMENDED, "enough_trees", params, evidence)
-    t = ctx.terrain
     if t is not None and t.outlets:
         params["outlets"] = len(t.outlets)
         evidence += found(ctx, "main_outlet_area_m2")
@@ -430,12 +487,15 @@ def _tree_belts(ctx: RuleContext) -> MethodAssessment:
 # --- entry point ----------------------------------------------------------------------------------
 
 
-def _without_need(m: MethodAssessment) -> MethodAssessment:
-    """Without a water need shown by the data a recommended method becomes conditional (rule 1)."""
+STORAGE_METHODS: tuple[MethodId, ...] = ("pond", "rainwater")
+
+
+def _downgrade(m: MethodAssessment, flag: str) -> MethodAssessment:
+    """A recommended method becomes conditional, with the reason named in the text (rule 1)."""
     if m.status is not MethodStatus.RECOMMENDED:
         return m
     return MethodAssessment(
-        m.id, MethodStatus.CONDITIONAL, m.reason, {**m.params, "no_need": 1}, m.evidence, m.permit
+        m.id, MethodStatus.CONDITIONAL, m.reason, {**m.params, flag: 1}, m.evidence, m.permit
     )
 
 
@@ -447,17 +507,19 @@ def assess_methods(ctx: RuleContext, coverage: RetentionCoverage) -> list[Method
         _well(ctx, coverage),
         _tree_belts(ctx),
     ]
-    need = water_need(ctx)
-    if not need:
-        methods = [_without_need(m) for m in methods]
+    # One notion of need for the whole table: a deficit now or in most years (rule engine), or water to
+    # irrigate in a dry year (coverage card). Storing water for irrigation needs the latter.
+    deficit = bool(water_need(ctx))
+    irrigation = coverage.full_need_m3 is not None and coverage.full_need_m3 >= MIN_NEED_M3
     out: list[MethodAssessment] = []
     for m in methods:
+        if not deficit and not irrigation:
+            m = _downgrade(m, "no_need")
+        elif m.id in STORAGE_METHODS and coverage.status is CoverageStatus.NO_NEED:
+            m = _downgrade(m, "no_irrigation_need")
         unique: list[Indicator] = []
         for i in m.evidence:
             if i.value is not None and all(u.key != i.key for u in unique):
                 unique.append(i)
-        if m.status is not MethodStatus.NO_DATA and not unique:
-            # Rule 1: a status must rest on at least one number from this parcel.
-            unique = need[:1]
         out.append(MethodAssessment(m.id, m.status, m.reason, m.params, unique, m.permit))
     return out

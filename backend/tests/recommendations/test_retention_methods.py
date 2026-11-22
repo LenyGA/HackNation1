@@ -73,6 +73,7 @@ def _cov(volume: float | None, full: float | None = NEED_FULL, **kw: Any) -> Ret
         "volume_m3": volume,
         "area_m2": 1200.0,
         "max_depth_m": 0.8,
+        "inside_share": 1.0,
         "full_need_m3": full,
         "rescue_need_m3": NEED_RESCUE,
         "full_pct": None,
@@ -192,9 +193,15 @@ def test_rainwater_too_small_for_thousands_of_m3() -> None:
     assert m.reason == "too_small"
 
 
-def test_rainwater_recommended_for_small_need() -> None:
+def test_rainwater_helps_with_small_need_but_roof_area_is_unknown() -> None:
     m = _methods(landcover=_landcover(built_m=50.0), full=600.0, rescue=300.0)["rainwater"]
-    assert m.status is MethodStatus.RECOMMENDED
+    assert m.status is MethodStatus.CONDITIONAL
+    assert m.reason == "small_need"
+
+
+def test_rainwater_single_built_up_pixel_on_parcel_is_not_a_roof() -> None:
+    m = _methods(landcover=_landcover(built_m=400.0, on_parcel_built=0.5))["rainwater"]
+    assert m.status is MethodStatus.NOT_RECOMMENDED
 
 
 def test_rainwater_not_recommended_without_roofs() -> None:
@@ -254,10 +261,19 @@ def test_well_no_data_without_plan() -> None:
 # --- 5. tree belts ----------------------------------------------------------------------------------
 
 
-def test_trees_recommended_in_open_landscape_with_outlet() -> None:
-    m = _methods(surface=lambda p: tilted(p, 0.04), landcover=_landcover(trees_pct=1.0))["tree_belts"]
+def test_trees_recommended_where_water_runs_off_even_with_trees_around() -> None:
+    # Same trigger as the outlet buffer strip recommendation: the table never contradicts it.
+    a, _, recs = scenario(surface=lambda p: tilted(p, 0.04))
+    assert "outlet_buffer_strip" in [r.id for r in recs]
+    m = _methods(surface=lambda p: tilted(p, 0.04), landcover=_landcover(trees_pct=20.0))["tree_belts"]
     assert m.status is MethodStatus.RECOMMENDED
-    assert m.reason == "open_outlet"
+    assert m.reason == "runoff_outlet"
+
+
+def test_trees_recommended_in_open_landscape_with_outlet() -> None:
+    m = _methods(surface=lambda p: tilted(p, 0.005), landcover=_landcover(trees_pct=1.0))["tree_belts"]
+    assert m.status in (MethodStatus.RECOMMENDED, MethodStatus.CONDITIONAL)
+    assert m.reason in ("open_outlet", "runoff_outlet", "open_no_outlet")
 
 
 def test_trees_not_recommended_with_enough_trees() -> None:
@@ -274,6 +290,8 @@ def test_trees_no_data_without_landcover() -> None:
 
 def test_without_water_need_nothing_is_recommended() -> None:
     ms = _methods(
+        full=0.0,
+        rescue=0.0,
         precip=wet,
         surface=basin,
         texture=CLAY_LOAM_RICH,
@@ -281,3 +299,100 @@ def test_without_water_need_nothing_is_recommended() -> None:
     )
     assert all(m.status is not MethodStatus.RECOMMENDED for m in ms.values())
     assert ms["weir"].params.get("no_need") == 1
+
+
+def test_every_non_missing_status_has_its_own_evidence_without_deficit() -> None:
+    ms = _methods(precip=wet, surface=flat, full=0.0, rescue=0.0, landcover=_landcover())
+    for m in ms.values():
+        assert m.status is MethodStatus.NO_DATA or m.evidence, m.id
+    assert ms["pond"].evidence[0].key == "depression_count"
+
+
+def test_dry_year_need_without_deficit_flag_still_recommends() -> None:
+    # The coverage card asks for 12 090 m³: the table must not say "no need" next to it.
+    ms = _methods(precip=wet, hydro_data=lambda p: hydro(p, ditch_m=200.0), surface=flat)
+    assert ms["weir"].status is MethodStatus.RECOMMENDED
+    assert "no_need" not in ms["weir"].params
+
+
+def test_no_irrigation_need_downgrades_pond() -> None:
+    ms = _methods(surface=basin, texture=CLAY_LOAM_RICH, full=0.0, rescue=0.0)
+    assert ms["pond"].status is not MethodStatus.RECOMMENDED
+
+
+# --- review fixes: weir without terrain / flood, near-ditch on a slope, 150 m boundary ----------------
+
+
+def test_weir_without_terrain_is_not_called_not_recommended() -> None:
+    m = _methods(dem=False, hydro_data=lambda p: hydro(p))["weir"]
+    assert m.status is MethodStatus.CONDITIONAL
+    assert m.reason == "no_ditch_unchecked" and m.params["missing"] == "terrain"
+
+
+def test_weir_on_flat_ground_without_flood_map_is_unchecked() -> None:
+    m = _methods(surface=flat, hydro_data=lambda p: hydro(p))["weir"]
+    assert m.reason == "no_ditch_unchecked" and m.params["missing"] == "flood"
+
+
+def test_weir_near_ditch_on_slope_is_conditional() -> None:
+    m = _methods(surface=lambda p: tilted(p, 0.08), hydro_data=lambda p: hydro(p, ditch_m=200.0))["weir"]
+    assert m.status is MethodStatus.CONDITIONAL
+    assert m.reason == "ditch_near_slope"
+
+
+def _ditch_at(distance_m: float) -> Any:
+    def make(p: Any) -> Any:
+        h = hydro(p)
+        return h.model_copy(update={"nearest_m": {**h.nearest_m, "watercourse": distance_m}})
+
+    return make
+
+
+def test_weir_150_m_boundary() -> None:
+    near = _methods(surface=flat, hydro_data=_ditch_at(140.0))["weir"]
+    far = _methods(surface=flat, hydro_data=_ditch_at(160.0), flood=_flood(False))["weir"]
+    assert near.status is MethodStatus.RECOMMENDED
+    assert far.status is MethodStatus.NOT_RECOMMENDED
+
+
+# --- review fixes: pond permit flags, shallow hollow, part outside the parcel -------------------------
+
+
+def test_pond_depth_only_over_limit() -> None:
+    m = _methods(
+        surface=basin, texture=CLAY_LOAM_RICH, coverage=_cov(2320.0, area_m2=1200.0, max_depth_m=3.04)
+    )["pond"]
+    assert m.permit is Permit.PERMIT
+    assert m.params["area_over"] == 0 and m.params["depth_over"] == 1
+
+
+def test_pond_area_just_over_limit_is_not_rounded_away() -> None:
+    m = _methods(surface=basin, texture=CLAY_LOAM_RICH, coverage=_cov(5000.0, area_m2=5004.0))["pond"]
+    assert m.permit is Permit.PERMIT
+
+
+def test_shallow_sprawling_depression_is_conditional() -> None:
+    # Żuławy live case: 11 960 m³ over 34 900 m² → mean depth 0.34 m.
+    m = _methods(
+        surface=basin, texture=CLAY_LOAM_RICH, coverage=_cov(11960.0, area_m2=34900.0, max_depth_m=0.8)
+    )["pond"]
+    assert m.status is MethodStatus.CONDITIONAL
+    assert m.params["shallow"] == 1
+
+
+def test_pond_partly_outside_parcel_is_flagged() -> None:
+    m = _methods(surface=basin, texture=CLAY_LOAM_RICH, coverage=_cov(800.0, inside_share=0.6))["pond"]
+    assert m.params["outside_parcel"] == 1
+
+
+# --- review fixes: well ---------------------------------------------------------------------------
+
+
+def test_well_ignores_hollow_too_small_for_a_pond() -> None:
+    m = _methods(coverage=_cov(20.0, full=13030.0))["well"]
+    assert m.params["gap_m3"] == 13030
+
+
+def test_well_with_unknown_terrain_says_so() -> None:
+    m = _methods(dem=False)["well"]
+    assert m.params["terrain_unknown"] == 1

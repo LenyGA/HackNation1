@@ -185,17 +185,17 @@ raz zaokrąglone liczby pokazuje plan wody. Udział = objętość / potrzeby, w 
 i wsiąkania ze stawu). Brak modelu terenu, brak zagłębienia albo brak planu wody → karta mówi to wprost, bez zera.
 
 **Pięć metod** dostaje status POLECANE / WARUNKOWO / NIEZALECANE albo BRAK DANYCH (źródło nie odpowiedziało —
-nigdy „niezalecane”). Bez potrzeby wody (rozdz. 8) żadna metoda nie jest „polecana”, najwyżej „warunkowo”.
+nigdy „niezalecane”). Gdy dane nie pokazują ani potrzeby wody (rozdz. 8), ani potrzeby nawadniania w roku suchym, żadna metoda nie jest „polecana”, najwyżej „warunkowo”; staw i deszczówka nie są „polecane”, gdy w roku suchym nie trzeba nawadniać. Każdy status poza „brak danych” ma co najmniej jedną liczbę z tej działki (np. „0 zagłębień” z modelu terenu). Udział poniżej 1 % raport podaje jako „mniej niż 1 %”, nie „0 %”.
 
 | Metoda | Polecane | Warunkowo | Niezalecane | Brak danych |
 |---|---|---|---|---|
-| Oczko / staw w zagłębieniu | zagłębienie ≥ 200 m³ na glebie kat. III–IV (naturalne uszczelnienie) | to samo na glebie lekkiej (uszczelnienie) lub nieznanej | brak zagłębienia lub < 200 m³ | brak NMT |
-| Zastawka / drenaż kontrolowany | rów lub ciek ≤ 150 m (OSM) **albo** średni spadek < 2 % i zagrożenie podtopieniami / strefa Q10, Q100 | — | brak rowu w zasięgu i teren nie płaski-podmokły | brak OSM (i brak drugiej ścieżki) |
-| Deszczówka z dachów | zabudowa ≤ 100 m (WorldCover kl. 50) i potrzeby w roku suchym < 1000 m³ | zabudowa ≤ 100 m i potrzeby ≥ 1000 m³ („nie jako główne źródło”) albo brak potrzeb | brak zabudowy w 100 m | brak WorldCover |
-| Studnia | — | retencja nie pokrywa potrzeb; głębokość wody z najbliższej stacji PIG-PIB | brak potrzeb lub zagłębienie je pokrywa | brak planu wody |
-| Pasy zadrzewień | drzewa < 5 % pierścienia 500 m (WorldCover) + wylot spływu z działki | drzewa < 5 %, wylot nieznany / brak | drzewa ≥ 5 % | brak WorldCover |
+| Oczko / staw w zagłębieniu | zagłębienie ≥ 200 m³ i średnio ≥ 0,5 m głębokości (objętość / powierzchnia) na glebie kat. III–IV (naturalne uszczelnienie) | to samo na glebie lekkiej (uszczelnienie) lub nieznanej, albo zagłębienie płytkie i rozległe (latem wyparuje) | brak zagłębienia lub < 200 m³ | brak NMT |
+| Zastawka / drenaż kontrolowany | rów lub ciek ≤ 150 m (OSM) na terenie o średnim spadku < 2 % **albo** spadek < 2 % i zagrożenie podtopieniami / strefa Q10, Q100 | rów ≤ 150 m na stoku ≥ 2 % (woda zostanie w rowie, nie pod polem); brak rowu, a płaskość lub podtopienia niesprawdzone (brak NMT lub map) | brak rowu w zasięgu i teren nie płaski-podmokły | brak OSM (i brak drugiej ścieżki) |
+| Deszczówka z dachów | — (powierzchni dachów nie da się odczytać z mapy 10 m) | zabudowa ≤ 100 m (WorldCover kl. 50; na działce: ≥ 1 % pikseli) — przy potrzebach ≥ 1000 m³ „nie jako główne źródło” | brak zabudowy w 100 m | brak WorldCover |
+| Studnia | — | retencja nie pokrywa potrzeb (liczy się tylko zagłębienie ≥ 200 m³); głębokość wody z najbliższej stacji PIG-PIB | brak potrzeb lub zagłębienie je pokrywa | brak planu wody |
+| Pasy zadrzewień i buforowe | przyczyna „nadmierny odpływ” z wylotem spływu (jak zalecenie pasa zieleni) **albo** drzewa < 5 % pierścienia 500 m (WorldCover) + wylot spływu | drzewa < 5 %, wylot nieznany / brak | drzewa ≥ 5 % i brak spływu | brak WorldCover |
 
-Progi 200 m³, 150 m, 2 %, 100 m, 1000 m³ i 5 % to **jawne założenia zespołu** (z uwag eksperckich do raportu),
+Progi 200 m³, 0,5 m, 150 m, 2 %, 100 m, 1 %, 1000 m³ i 5 % to **jawne założenia zespołu** (z uwag eksperckich do raportu),
 nie wartości z literatury.
 
 **Wymogi Prawa wodnego** (tekst jednolity Dz.U. 2025 poz. 960, sprawdzone 22.11.2026; ISAP:
@@ -203,8 +203,12 @@ https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=WDU20250000960):
 - art. 394 ust. 1 pkt 9 — staw o powierzchni ≤ 5000 m² i głębokości ≤ 3 m od naturalnej powierzchni terenu, napełniany
   wyłącznie wodami opadowymi, roztopowymi lub gruntowymi: **zgłoszenie wodnoprawne**; większy lub głębszy:
   **pozwolenie wodnoprawne**. Powierzchnię lustra bierzemy z zagłębienia wypełnionego do progu przelewu;
-- art. 33 ust. 4 pkt 1 — zwykłe korzystanie z wód (bez pozwolenia) to pobór ≤ 5 m³ na dobę średnio w roku. Dzielimy
-  mniejszą z potrzeb roku suchego (zwykle ratunkową) przez 365 dni; powyżej 5 m³/dobę raport mówi o pozwoleniu;
+- art. 33 ust. 4 pkt 1 — zwykłe korzystanie z wód (bez pozwolenia) to pobór ≤ 5 m³ na dobę średnio w roku. Pobór ze
+  studni = potrzeby roku suchego minus woda z zagłębienia (≥ 200 m³), osobno dla pełnego i ratunkowego nawadniania,
+  podzielone przez 365 dni; powyżej 5 m³/dobę raport mówi o pozwoleniu. Raport dodaje, że limit obejmuje cały pobór
+  gospodarstwa, a wykonanie studni i instalacji może wymagać osobnej zgody (art. 33 ust. 2);
+- zgłoszenie stawu obejmuje staw na własnym gruncie: gdy część zagłębienia leży poza działką, raport każe to
+  najpierw ustalić; staw z planu wody o lustrze > 5000 m² jest oznaczony jako wymagający pozwolenia;
 - zastawka na rowie: raport każe uzgodnić z zarządcą rowu i sprawdzić w Wodach Polskich formę zgody (bez liczb).
 
 ## 9. Nawadnianie — termin i dawka (`recommendations/irrigation.py`)
