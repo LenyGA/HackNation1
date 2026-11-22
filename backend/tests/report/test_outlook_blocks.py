@@ -69,3 +69,31 @@ def test_pdf_has_new_charts_and_tiles() -> None:
     assert "Plan wody na sezon" in html
     assert "Porównanie strategii" in html
     assert "Przekrój terenu" in html
+
+
+def test_rescue_irrigation_in_a_dry_year_has_one_value_everywhere() -> None:
+    """Q2/T3: the plan, the simulator text and the PDF quote one rescue amount, rounded once."""
+    import re
+
+    from app.report.texts import num
+
+    r = rich_report()
+    p = r.water_plan
+    assert p is not None and p.critical_p80_mm is not None and p.season_p80_mm is not None
+    assert p.critical_p80_mm % 5 == 0 and p.season_p80_mm % 5 == 0
+    rescue = f"ok. {num(p.critical_p80_mm)} mm"
+    sim_text = " ".join(r.simulation.text_pl) if r.simulation else ""
+    plan_text = " ".join(p.text_pl)
+    html = render_html(r)
+    for text in (sim_text, plan_text, html):
+        quoted = re.findall(r"(?:ratunkow\w*|ratowanie plonu)[^.]*?ok\. ([\d ]+) mm", text)
+        assert quoted, text[:200]
+        assert {f"ok. {q} mm" for q in quoted} == {rescue}, quoted
+    # Simulator year 1 starts from the same seasons as the plan: only the ET0 trend may move it.
+    sim = r.simulation
+    assert sim is not None
+    rescue_y1 = next(s for s in sim.strategies if s.id == "rescue").years[0].irrigation_mm_p80
+    assert rescue_y1 is not None and abs(rescue_y1 - p.critical_p80_mm) <= max(10.0, 0.15 * p.critical_p80_mm)
+    for st in sim.strategies:
+        for y in st.years:
+            assert y.irrigation_mm_p80 is None or y.irrigation_mm_p80 % 5 == 0

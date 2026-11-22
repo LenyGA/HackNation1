@@ -98,7 +98,8 @@ SIM_ASSUMPTIONS: list[str] = [
     "niewielki (Minasny i McBratney 2018).",
     "Ściółka z resztek na ok. połowie powierzchni ogranicza parowanie z gleby o ok. 25 % "
     "(FAO-56, rozdz. 11): w pełni, gdy gleba jest odkryta, coraz mniej w miarę zakrywania pola przez uprawę, "
-    "a wcale pod pełnym łanem. To szacunek: pokrycie pola wyznaczamy z krzywej rozwoju uprawy, nie z pomiaru.",
+    "a wcale pod pełnym łanem. To szacunek: pokrycie pola wyznaczamy z krzywej rozwoju uprawy, "
+    "nie z pomiaru.",
     "„Retencja + podlewanie ratunkowe” podlewa w te same dni co samo podlewanie ratunkowe, ale każda dawka "
     "jest mniejsza o wodę, którą zatrzymała gleba — dołożenie retencji nigdy nie pogarsza wyniku.",
     "„Rok suchy” to sezon, który wśród 10 symulowanych jest gorszy od 8 z nich "
@@ -116,6 +117,11 @@ class Outlook:
     profile: SlopeProfile | None
     simulation: Simulation | None
     satellite: SatelliteSeries | None
+
+
+# Seasonal water amounts (plan, simulator, tiles) are rounded once, here, to this step (Q2/T3): the page, the
+# PDF and every sentence then show the same number. Single irrigation doses keep 1 mm (irrigation.py).
+SEASON_WATER_STEP_MM = 5.0
 
 
 def _r(value: float | None, step: float = 1.0) -> float | None:
@@ -288,7 +294,8 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
     if p is None or p.season_median_mm is None:
         return None
     area = inputs.parcel.area_ha
-    p80_m3 = _r(p.season_p80_mm * area * 10, 10) if p.season_p80_mm is not None and area else None
+    season_p80 = _r(p.season_p80_mm, SEASON_WATER_STEP_MM)
+    p80_m3 = _r(season_p80 * area * 10, 10) if season_p80 is not None and area else None
     gross_m3 = _r(p80_m3 / SPRINKLER_EFFICIENCY, 10) if p80_m3 is not None else None
     pond = None
     if gross_m3 is not None and gross_m3 >= 50:
@@ -316,13 +323,13 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
         method=p.method.value,
         years=len(p.years),
         months=months,
-        season_median_mm=_r(p.season_median_mm),
-        season_p80_mm=_r(p.season_p80_mm),
-        season_p90_mm=_r(p.season_p90_mm),
+        season_median_mm=_r(p.season_median_mm, SEASON_WATER_STEP_MM),
+        season_p80_mm=_r(p.season_p80_mm, SEASON_WATER_STEP_MM),
+        season_p90_mm=_r(p.season_p90_mm, SEASON_WATER_STEP_MM),
         season_p80_m3_parcel=p80_m3,
         season_p80_m3_parcel_gross=gross_m3,
         efficiency_pct=round(100 * SPRINKLER_EFFICIENCY),
-        critical_p80_mm=_r(p.critical_p80_mm),
+        critical_p80_mm=_r(p.critical_p80_mm, SEASON_WATER_STEP_MM),
         pond_side_m=pond,
         pond_depth_m=POND_DEPTH_M,
         text_pl=[],
@@ -370,7 +377,9 @@ def _profile(pr: ProfileResult | None, inputs: AnalysisInputs) -> SlopeProfile |
 # --- simulator --------------------------------------------------------------------------------------
 
 
-def _simulation(s: SimulationResult | None, inputs: AnalysisInputs) -> Simulation | None:
+def _simulation(
+    s: SimulationResult | None, inputs: AnalysisInputs, plan: WaterPlan | None = None
+) -> Simulation | None:
     if s is None:
         return None
     area = inputs.parcel.area_ha
@@ -381,9 +390,11 @@ def _simulation(s: SimulationResult | None, inputs: AnalysisInputs) -> Simulatio
                 year_ahead=r.year_ahead,
                 stress_days_median=_r(r.stress_days_median),
                 stress_days_p80=_r(r.stress_days_p80),
-                irrigation_mm_median=_r(r.irrigation_mm_median),
-                irrigation_mm_p80=_r(r.irrigation_mm_p80),
-                irrigation_m3_parcel_p80=_r(r.irrigation_mm_p80 * area * 10, 10)
+                irrigation_mm_median=_r(r.irrigation_mm_median, SEASON_WATER_STEP_MM),
+                irrigation_mm_p80=_r(r.irrigation_mm_p80, SEASON_WATER_STEP_MM),
+                irrigation_m3_parcel_p80=_r(
+                    (_r(r.irrigation_mm_p80, SEASON_WATER_STEP_MM) or 0.0) * area * 10, 10
+                )
                 if r.irrigation_mm_p80 is not None and area
                 else None,
                 taw_mm=round(r.taw_mm, 1),
@@ -419,6 +430,7 @@ def _simulation(s: SimulationResult | None, inputs: AnalysisInputs) -> Simulatio
         rescue_y1=by["rescue"].get(1),
         ret_y5=by["retention"].get(5),
         both_y1=by["retention_rescue"].get(1),
+        plan=plan,
     )
     return view.model_copy(update={"text_pl": main})
 
@@ -703,7 +715,7 @@ def build_outlook(
         trends=trends,
         water_plan=plan,
         profile=_profile(profile_r, inputs),
-        simulation=_simulation(sim_r, inputs),
+        simulation=_simulation(sim_r, inputs, plan),
         satellite=_satellite(inputs, a),
     )
 

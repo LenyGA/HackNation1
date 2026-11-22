@@ -44,7 +44,7 @@ from app.analysis.series import Weather
 from app.analysis.soil import OM_PER_SOC, TOPSOIL_DEPTH_CM, SoilProperties, saxton_rawls
 from app.analysis.trends import TrendResult
 from app.analysis.water_balance import RootZoneBalance, crop_calendar, root_zone_balance
-from app.analysis.water_plan import irrigated_balance, percentile, plan_years
+from app.analysis.water_plan import irrigated_balance, percentile, plan_years, season_members
 from app.crops.catalog import Crop
 
 YEARS_AHEAD = 5
@@ -105,21 +105,6 @@ def extra_soc_after(years: int) -> float:
     """Extra topsoil organic carbon (g C per kg soil) after `years` of cover crops."""
     soil_mass_t_ha = TOPSOIL_BULK_DENSITY_T_M3 * (TOPSOIL_DEPTH_CM / 100) * 10_000
     return COVER_CROP_SOC_T_HA_YR * years / soil_mass_t_ha * 1000
-
-
-def _member(weather: Weather, year: int) -> Weather | None:
-    """Weather from 1 October of the year before to 31 October of `year` (one hydrological year + October)."""
-    start, end = date(year - 1, 10, 1), date(year, 10, 31)
-    if not weather.covers(start, end):
-        return None
-    keep = [i for i, d in enumerate(weather.dates) if start <= d <= end]
-    return Weather(
-        dates=[weather.dates[i] for i in keep],
-        precip_mm=[weather.precip_mm[i] for i in keep],
-        et0_mm=[weather.et0_mm[i] for i in keep],
-        tmax_c=[weather.tmax_c[i] for i in keep],
-        tmean_c=[weather.tmean_c[i] for i in keep],
-    )
 
 
 def mulch_kc(weather: Weather, crop: Crop) -> list[float]:
@@ -232,17 +217,11 @@ def simulate(
     years = plan_years(weather, analysis_date)
     taw0 = soil.taw_mm
     kc_all, season_all = crop_calendar(weather, crop)
-    # Real (non-irrigated) soil state: each simulated season starts from the depletion actually computed for
-    # 30 September of the year before, not from a full profile (dry autumns and winters are kept).
     dry = root_zone_balance(
         weather.dates, weather.precip_mm, weather.et0_mm, kc_all, season_all, taw0, crop.p
     )
-    members: list[tuple[Weather, float]] = []
-    for y in years:
-        m = _member(weather, y)
-        start = dry.at(date(y - 1, 9, 30))
-        if m is not None:
-            members.append((m, start.dr_mm if start is not None else 0.0))
+    # The same seasons and starting soil water as the water plan (one value for "rescue in a dry year", Q2).
+    members = [(m.weather, m.dr0_mm) for m in season_members(weather, crop, years, taw0)]
     if len(members) < 5:
         return None
     mid_year = sum(years) / len(years)

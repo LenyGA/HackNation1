@@ -10,6 +10,9 @@ Method (FAO-56, Allen et al. 1998):
   allowed depletion (Dr > RAW → refill to field capacity, FAO-56 ch. 8). This counts rain stored in the soil;
 - without soil data: the crop balance max(0, ETc − P) per month (cruder: it ignores the water stored in the
   soil, so it overstates the need in spring and understates it after a dry spell).
+- every season is run on its own (1 October of the year before → 31 October), starting from the soil water
+  actually computed without irrigation for 30 September (`season_members`). The strategy simulator uses the
+  same seasons, so the plan and the simulator give one value for "rescue irrigation in a dry year" (Q2);
 - Precautionary values (not only the average): the 80th and 90th percentile over the 10 years (a dry year that
   happens about once in 5 and once in 10 years), next to the median ("a typical year").
 """
@@ -103,6 +106,49 @@ def irrigated_balance(
     )
 
 
+@dataclass(frozen=True)
+class SeasonMember:
+    """One past season as a possible weather year: 1 October of the year before → 31 October of `year`."""
+
+    year: int
+    weather: Weather
+    dr0_mm: float  # root-zone depletion on 30 September of the year before, without irrigation
+
+
+def _season_weather(weather: Weather, year: int) -> Weather | None:
+    start, end = date(year - 1, 10, 1), date(year, 10, 31)
+    if not weather.covers(start, end):
+        return None
+    keep = [i for i, d in enumerate(weather.dates) if start <= d <= end]
+    return Weather(
+        dates=[weather.dates[i] for i in keep],
+        precip_mm=[weather.precip_mm[i] for i in keep],
+        et0_mm=[weather.et0_mm[i] for i in keep],
+        tmax_c=[weather.tmax_c[i] for i in keep],
+        tmean_c=[weather.tmean_c[i] for i in keep],
+    )
+
+
+def season_members(weather: Weather, crop: Crop, years: list[int], taw_mm: float) -> list[SeasonMember]:
+    """Past seasons with their real starting soil water (dry autumns and winters that did not refill the root
+    zone are kept; irrigation of one season never carries over into the next)."""
+    kc, season = crop_calendar(weather, crop)
+    dry = root_zone_balance(weather.dates, weather.precip_mm, weather.et0_mm, kc, season, taw_mm, crop.p)
+    out: list[SeasonMember] = []
+    for y in years:
+        w = _season_weather(weather, y)
+        if w is None:
+            continue
+        start = dry.at(date(y - 1, 9, 30))
+        out.append(SeasonMember(y, w, start.dr_mm if start is not None else 0.0))
+    return out
+
+
+def season_irrigation_mm(balance: RootZoneBalance, year: int) -> float:
+    """Net irrigation applied in March–October of `year`."""
+    return sum(b.irrigation_mm for b in balance.between(date(year, 3, 1), date(year, 10, 31)))
+
+
 def _month_days(year: int, month: int) -> list[date]:
     start = date(year, month, 1)
     nxt = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
@@ -154,22 +200,28 @@ def water_plan(
     years = plan_years(weather, analysis_date)
     if len(years) < MIN_YEARS:
         return None
-    balance = (
-        irrigated_balance(weather, crop, taw_mm, dose_cap_mm=dose_cap_mm) if taw_mm is not None else None
-    )
-    rescue = (
-        irrigated_balance(weather, crop, taw_mm, only_critical=True, dose_cap_mm=dose_cap_mm)
-        if taw_mm is not None
-        else None
-    )
-    method = PlanMethod.ROOT_ZONE if balance is not None else PlanMethod.CROP_BALANCE
+    full_by_year: dict[int, RootZoneBalance] = {}
+    rescue_by_year: dict[int, RootZoneBalance] = {}
+    if taw_mm is not None:
+        for sm in season_members(weather, crop, years, taw_mm):
+            dr0 = min(sm.dr0_mm, taw_mm)
+            full_by_year[sm.year] = irrigated_balance(
+                sm.weather, crop, taw_mm, dr0_mm=dr0, dose_cap_mm=dose_cap_mm
+            )
+            rescue_by_year[sm.year] = irrigated_balance(
+                sm.weather, crop, taw_mm, only_critical=True, dr0_mm=dr0, dose_cap_mm=dose_cap_mm
+            )
+        years = [y for y in years if y in full_by_year]
+        if len(years) < MIN_YEARS:
+            return None
+    method = PlanMethod.ROOT_ZONE if taw_mm is not None else PlanMethod.CROP_BALANCE
     critical = crop.critical_months()
 
     months: list[PlanMonth] = []
     season_totals: dict[int, float] = dict.fromkeys(years, 0.0)
     complete: set[int] = set(years)
     for m in PLAN_MONTHS:
-        rows = {y: _month_values(weather, crop, balance, y, m) for y in years}
+        rows = {y: _month_values(weather, crop, full_by_year.get(y), y, m) for y in years}
         for y, row in rows.items():
             if row is None:
                 complete.discard(y)
@@ -193,11 +245,8 @@ def water_plan(
         )
     totals = [season_totals[y] for y in years if y in complete]
     critical_need: list[float] = []
-    if rescue is not None:
-        for y in years:
-            if y not in complete:
-                continue
-            critical_need.append(sum(b.irrigation_mm for b in rescue.between(date(y, 3, 1), date(y, 10, 31))))
+    if method is PlanMethod.ROOT_ZONE:
+        critical_need = [season_irrigation_mm(rescue_by_year[y], y) for y in years if y in complete]
     else:
         for y in years:
             if y not in complete:

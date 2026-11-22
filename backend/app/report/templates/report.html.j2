@@ -125,7 +125,7 @@
     <thead><tr><th>Strategia</th>{% for y in sim.strategies[0].years if y.year_ahead in (1, 3, 5) %}<th>za {{ y.year_ahead }} {{ y.year_ahead|plural('rok', 'lata', 'lat') }}</th>{% endfor %}</tr></thead>
     <tbody>
     {% for st in sim.strategies %}
-      <tr><td><b>{{ st.label_pl }}</b><br><span class="small">{{ st.description_pl }}</span></td>{% for y in st.years if y.year_ahead in (1, 3, 5) %}<td class="num">{% if y.stress_days_median is not none %}{{ y.stress_days_median|num }} dni stresu{% endif %}{% if y.stress_days_p80 is not none %}<br><span class="small">rok suchy: {{ y.stress_days_p80|num }}</span>{% endif %}{% if y.irrigation_mm_p80 %}<br><span class="small">woda: {{ y.irrigation_mm_p80|num(5) }} mm</span>{% endif %}</td>{% endfor %}</tr>
+      <tr><td><b>{{ st.label_pl }}</b><br><span class="small">{{ st.description_pl }}</span></td>{% for y in st.years if y.year_ahead in (1, 3, 5) %}<td class="num">{% if y.stress_days_median is not none %}{{ y.stress_days_median|num }} dni stresu{% endif %}{% if y.stress_days_p80 is not none %}<br><span class="small">rok suchy: {{ y.stress_days_p80|num }}</span>{% endif %}{% if y.irrigation_mm_p80 %}<br><span class="small">woda: {{ y.irrigation_mm_p80|num }} mm</span>{% endif %}</td>{% endfor %}</tr>
     {% endfor %}
     </tbody>
   </table>
