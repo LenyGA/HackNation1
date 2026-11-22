@@ -219,9 +219,9 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
 
 ### M8. Po 09:00 (Claude, 0:30)
 
-- [ ] **M8.1** `git status` czysty, pełne `pytest`, `ruff`, `mypy`, `tsc`, `npm run build`.
-- [ ] **M8.2** `deploy/deploy.sh root@129.121.162.156`, potem `deploy/e2e-vps.sh`; publiczny adres sprawdzony dla działki i daty spoza cache.
-- [ ] **M8.3** Macierz zgodności w `claude33.md`: statusy i data; lista tego, co nie weszło, przekazana zespołowi do „znanych ograniczeń” w README.
+- [x] **M8.1** `git status` czysty, pełne `pytest`, `ruff`, `mypy`, `tsc`, `npm run build`.
+- [x] **M8.2** `deploy/deploy.sh root@129.121.162.156`, potem `deploy/e2e-vps.sh`; publiczny adres sprawdzony dla działki i daty spoza cache.
+- [x] **M8.3** Macierz zgodności w `claude33.md`: statusy i data; lista tego, co nie weszło, przekazana zespołowi do „znanych ograniczeń” w README.
 - [ ] **M8.4** Po wdrożeniu żadnych zmian w kodzie poza poprawką błędu blokującego demo.
 - [x] **M8.5 Nowy wygląd wg `../UI/`.** Przebudowa UI na wzór 3 makiet z folderu `UI/` (`*.webp`) + wstawienie logo zespołu
   (nagłówek strony, favicon, nagłówek PDF). **Plik logo trzeba dołączyć** — nie ma go jeszcze w repo ani w `UI/`.
