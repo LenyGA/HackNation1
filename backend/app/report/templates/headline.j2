@@ -23,7 +23,7 @@ Uprawie ({{ crop }}) bardzo brakuje wody — w glebie zostało zaledwie ok. {{ a
 {% set taw = v.get('taw_mm') %}{% set dr = v.get('root_zone_depletion_mm') %}{% set raw = v.get('raw_mm') %}
 {% set low = dr is not none and raw is not none and dr > raw %}
 {% set full = taw and avail >= 0.75 * taw %}
-Poza sezonem wegetacji: uprawa ({{ crop }}) jest na polu, a w glebie jest ok. {{ avail|num }} mm wody dostępnej dla roślin — {% if low %}to mało{% elif full %}zapas jest prawie pełny{% else %}zapas jest w normie{% endif %}{% if c.level != 'none' and not low %}, ale od jesieni spadło mniej deszczu niż zwykle{% endif %}.
+Poza sezonem wegetacji: {% if fruit %}drzewa i krzewy ({{ crop }}) jeszcze nie zrzuciły liści{% else %}uprawa ({{ crop }}) jest na polu{% endif %}, a w glebie jest ok. {{ avail|num }} mm wody dostępnej dla roślin — {% if low %}to mało{% elif full %}zapas jest prawie pełny{% else %}zapas jest w normie{% endif %}{% if c.level != 'none' and not low %}, ale {% if fruit and day.month in (10, 11) %}w ostatnich tygodniach{% else %}od jesieni{% endif %} spadło mniej deszczu niż zwykle{% endif %}.
 {% else %}
 {% set r = v.get('recharge_kbw_mm') %}
 Poza sezonem wegetacji:

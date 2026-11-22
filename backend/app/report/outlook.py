@@ -96,6 +96,27 @@ STRATEGY_TEXTS: dict[str, tuple[str, str]] = {
         "Budowanie retencji gleby i woda tylko w okresach krytycznych.",
     ),
 }
+# Orchards and fruit bushes (plan33 M6): same model, practices named for an orchard
+# (no catch crops or ploughing).
+STRATEGY_TEXTS_FRUIT: dict[str, str] = {
+    "none": "Bez nawadniania i bez zmian w pielęgnacji sadu.",
+    "retention": (
+        "Ściółka w pasie rzędów, kompost pod rzędy i zwarta murawa w międzyrzędziach — bez nawadniania."
+    ),
+}
+SIM_ASSUMPTIONS_FRUIT: dict[int, str] = {
+    2: (
+        "Przyrost węgla organicznego z kompostu i ściółki przyjęto taki jak dla roślin okrywowych "
+        "na gruntach ornych: 0,32 t C/ha rocznie (Poeplau i Don 2015) — dla sadu to przybliżenie. "
+        "Przeliczamy go na zapas wody tymi samymi wzorami co ocena gleby (Saxton i Rawls 2006). "
+        "Wpływ próchnicy na zapas wody jest niewielki (Minasny i McBratney 2018)."
+    ),
+    3: (
+        "Ściółka w pasie rzędów na ok. połowie powierzchni ogranicza parowanie z gleby o ok. 25 % "
+        "(FAO-56, rozdz. 11): w pełni przed rozwojem liści, coraz mniej w miarę rozwoju koron, a wcale "
+        "przy pełnym ulistnieniu. To szacunek z typowego kalendarza sadu, nie z pomiaru."
+    ),
+}
 SIM_ASSUMPTIONS: list[str] = [
     "Możliwa pogoda w kolejnych latach to pogoda z ostatnich 10 sezonów tej działki, z parowaniem zmienionym "
     "zgodnie z trendem z tych lat; opadów nie zmieniamy, bo 10 lat to za mało na wiarygodny trend deszczu.",
@@ -430,8 +451,11 @@ def _simulation(
     if s is None:
         return None
     area = inputs.parcel.area_ha
+    fruit = inputs.crop.is_fruit
     strategies: list[Strategy] = []
     for sid, (label, desc) in STRATEGY_TEXTS.items():
+        if fruit:
+            desc = STRATEGY_TEXTS_FRUIT.get(sid, desc)
         years = [
             StrategyYear(
                 year_ahead=r.year_ahead,
@@ -465,7 +489,9 @@ def _simulation(
         spring_storage_none_mm=_r(s.spring_storage_none_mm),
         spring_storage_full_mm=_r(s.spring_storage_full_mm),
         text_pl=[],
-        assumptions_pl=SIM_ASSUMPTIONS,
+        assumptions_pl=[
+            SIM_ASSUMPTIONS_FRUIT.get(i, a) if fruit else a for i, a in enumerate(SIM_ASSUMPTIONS)
+        ],
         source=computed_source(inputs.weather.source, inputs.soil.source),
     )
     main, _ = render_text(
@@ -478,6 +504,7 @@ def _simulation(
         ret_y5=by["retention"].get(5),
         both_y1=by["retention_rescue"].get(1),
         plan=plan,
+        fruit=fruit,
     )
     return view.model_copy(update={"text_pl": main})
 
@@ -760,7 +787,7 @@ def _dry_year_tile(plan: WaterPlan | None) -> SummaryTile:
         value_pl=f"ok. {num(plan.season_p80_mm, 5)} mm{m3}",
         detail_pl=f"W typowym roku ok. {num(plan.season_median_mm or 0, 5)} mm. "
         + (
-            f"Z deszczowni trzeba wylać ok. {num(plan.season_p80_m3_parcel_gross, 10)} m³ "
+            f"Z instalacji trzeba podać ok. {num(plan.season_p80_m3_parcel_gross, 10)} m³ "
             "(część wody się traci). "
             if plan.season_p80_m3_parcel_gross is not None
             else ""

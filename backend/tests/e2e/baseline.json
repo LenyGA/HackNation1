@@ -154,46 +154,43 @@
     "level": "severe",
     "complete": true,
     "recommendations": [
-      "crop_residues",
-      "crop_timing_variety",
-      "winter_cover_crop"
+      "irrigation",
+      "orchard_mulch_sward"
     ],
-    "irrigation": "late_stage",
+    "irrigation": "irrigate",
     "sources": {
       "uldk": "ok",
-      "open_meteo": "ok",
+      "open_meteo": "degraded",
       "sentinel2": "degraded",
       "soilgrids": "ok",
       "dem": "ok",
       "hydro": "missing",
-      "landcover": "degraded",
+      "landcover": "ok",
       "flood": "ok",
       "groundwater": "missing"
     },
-    "elapsed_s": 16.5
+    "elapsed_s": 14.7
   },
   "orchard@current": {
-    "analysis_date": "2026-11-21",
+    "analysis_date": "2026-11-22",
     "level": "none",
     "complete": true,
     "recommendations": [
-      "crop_residues",
-      "crop_timing_variety",
-      "winter_cover_crop"
+      "orchard_mulch_sward"
     ],
     "irrigation": "off_season",
     "sources": {
       "uldk": "ok",
-      "open_meteo": "ok",
+      "open_meteo": "degraded",
       "sentinel2": "ok",
       "soilgrids": "ok",
       "dem": "ok",
       "hydro": "missing",
       "landcover": "ok",
-      "flood": "degraded",
+      "flood": "ok",
       "groundwater": "degraded"
     },
-    "elapsed_s": 14.1
+    "elapsed_s": 15.2
   },
   "river_valley@2019-07-15": {
     "analysis_date": "2019-07-15",

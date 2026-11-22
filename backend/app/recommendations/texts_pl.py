@@ -287,8 +287,11 @@ NO_CROP_PL: dict[str, str] = {
         "więc nawadnianie nie dotyczy."
     ),
     "fruit_dormant": (
-        "W dniu analizy ({date}) drzewa i krzewy ({crop}) są jeszcze w spoczynku zimowym "
-        "albo już zrzuciły liście, więc nawadnianie nie dotyczy."
+        "W dniu analizy ({date}) drzewa i krzewy ({crop}) są jeszcze w spoczynku zimowym, "
+        "więc nawadnianie nie dotyczy."
+    ),
+    "fruit_leafless": (
+        "W dniu analizy ({date}) drzewa i krzewy ({crop}) zrzuciły już liście, więc nawadnianie nie dotyczy."
     ),
 }
 
@@ -444,7 +447,8 @@ def irrigation_title(status: str) -> str:
 
 def irrigation_caveats(status: str, fruit: bool = False) -> list[str]:
     if status in ("irrigate", "irrigate_soon"):
-        return [*IRRIGATION_CAVEATS_PL, DOSE_CAVEAT_PL, *([FRUIT_CAVEAT_PL] if fruit else [])]
+        # Fruit: drip, not a sprinkler, so the sprinkler-loss caveat is replaced by the wetted-strip one.
+        return [*IRRIGATION_CAVEATS_PL, FRUIT_CAVEAT_PL if fruit else DOSE_CAVEAT_PL]
     if status in ("not_needed", "wait_for_rain", "no_balance"):
         return list(IRRIGATION_CAVEATS_PL)
     return []
@@ -538,7 +542,7 @@ def irrigation_text(params: dict[str, ParamValue]) -> str:
         ].format(**out)
     if status == "no_crop":
         out["no_crop_pl"] = NO_CROP_PL[
-            "fruit_dormant"
+            ("fruit_leafless" if params.get("after_harvest") else "fruit_dormant")
             if params.get("fruit")
             else "after_harvest"
             if params.get("after_harvest")

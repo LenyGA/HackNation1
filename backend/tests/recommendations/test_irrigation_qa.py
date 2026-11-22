@@ -91,8 +91,8 @@ def check_consistency(adv: IrrigationAdvice) -> None:
         assert abs(single * adv.applications - adv.dose_mm) <= 0.5 * adv.applications + 1e-9
         assert adv.volume_m3 is not None
         assert "ostatni krok" in adv.text_pl
-        # access + permit + dose; fruit crops add the drip / wetted-strip note (plan2 L2.4)
-        assert len(adv.caveats_pl) == (4 if adv.params.get("fruit") else 3)
+        # access + permit + dose (fruit: the drip / wetted-strip note instead of sprinkler losses, plan2 L2.4)
+        assert len(adv.caveats_pl) == 3
     else:
         assert adv.dose_mm is None and adv.applications is None and adv.volume_m3 is None
     if adv.status is IrrigationStatus.IRRIGATE_SOON:

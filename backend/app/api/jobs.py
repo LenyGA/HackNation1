@@ -156,6 +156,10 @@ async def _fetch_source(job: Job, spec: SourceSpec, parcel: Parcel) -> SourceRes
     except Exception:  # a source must never break the whole analysis (CLAUDE.md, module boundaries)
         log.exception("source %s failed", spec.name)
         result = missing(spec.name, source=spec.source, license=spec.license, message_pl=MSG_SOURCE_ERROR)
+    if spec.name == landcover.NAME:
+        # Orchards: WorldCover "trees" count as agricultural use (plan2 L2.5); adapted here so that the
+        # progress screen and the report show the same status.
+        result = landcover_for_crop(result, job.crop)
     job.sources[spec.name] = SourceProgressState(result.status.value)
     return result
 
@@ -171,7 +175,7 @@ def _compute(job: Job, parcel: Parcel, parcel_source: ParcelSource, results: dic
         sentinel2=results[sentinel2.NAME],
         dem=results[dem.NAME],
         hydro=results[hydro.NAME],
-        landcover=landcover_for_crop(results[landcover.NAME], job.crop),
+        landcover=results[landcover.NAME],
         flood=results.get(flood.NAME),
         groundwater=results.get(groundwater.NAME),
     )

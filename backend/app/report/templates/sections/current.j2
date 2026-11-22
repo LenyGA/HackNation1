@@ -89,7 +89,7 @@ Porównanie z oficjalnym progiem suszy rolniczej (rozporządzenie ministra rolni
 {{ {'crop_not_covered': 'Dla tej uprawy nie ma oficjalnego progu suszy rolniczej IUNG-PIB',
     'soil_not_covered': 'Dla tej uprawy na tak lekkiej glebie oficjalny próg suszy rolniczej IUNG-PIB nie jest określony',
     'outside_periods': 'System monitoringu suszy IUNG-PIB nie ocenia tej uprawy w tym terminie',
-    'crop_not_on_field': ('Poza okresem wegetacji' if not c.in_vegetation else 'Gdy uprawa nie rośnie na polu,') ~ ' oficjalnego progu suszy rolniczej IUNG-PIB nie stosujemy',
+    'crop_not_on_field': ('Poza okresem wegetacji' if not c.in_vegetation else ('Gdy drzewa i krzewy są w spoczynku lub bez liści,' if fruit else 'Gdy uprawa nie rośnie na polu,')) ~ ' oficjalnego progu suszy rolniczej IUNG-PIB nie stosujemy',
     'no_soil_category': 'Bez danych o glebie nie da się porównać z oficjalnym progiem suszy rolniczej IUNG-PIB',
     'no_weather': 'Brakuje danych pogodowych z okresu, dla którego liczony jest oficjalny próg suszy rolniczej IUNG-PIB'}[iung_missing] }}. Ocena opiera się na porównaniu z poprzednimi latami{% if c.root_zone %} i na bilansie wody w glebie{% endif %}.
 {% endif %}

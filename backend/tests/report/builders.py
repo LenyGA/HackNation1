@@ -56,4 +56,6 @@ SCENARIOS = {
     ),
     "orchard_dormant": lambda: report_for(crop_id="orchard_cherry", day=date(2024, 3, 25)),
     "berry_late": lambda: report_for(crop_id="berry_bushes", day=date(2024, 9, 20)),
+    # After the vegetation period (30 Sep) but before leaf fall: crop_on_field without in_vegetation.
+    "orchard_october": lambda: report_for(crop_id="orchard_pome", day=date(2024, 10, 15)),
 }

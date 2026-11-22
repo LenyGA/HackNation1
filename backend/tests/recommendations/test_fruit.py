@@ -12,7 +12,7 @@ from app.core.models import SourceStatus
 from app.crops.catalog import load_crops
 from app.recommendations.irrigation import IrrigationStatus, irrigation_advice
 from app.recommendations.irrigation_tech import choose_technology
-from app.recommendations.texts_pl import FRUIT_CAVEAT_PL, OM_ACTIONS_PL
+from app.recommendations.texts_pl import DOSE_CAVEAT_PL, FRUIT_CAVEAT_PL, OM_ACTIONS_PL
 from app.sources.landcover import LandCoverData, not_agricultural_pl
 from tests.analysis.builders import ok
 from tests.recommendations.builders import (
@@ -120,7 +120,8 @@ def test_orchard_mulch_never_for_field_crops_or_grassland(crop_id: str) -> None:
 
 @pytest.mark.parametrize("crop_id", FRUIT)
 def test_dormant_orchard_text(crop_id: str) -> None:
-    # 1 April: inside the vegetation period, before bud break of every fruit crop except on the start day.
+    # 25 March: inside the vegetation period (from 21 March), before bud break of every fruit crop
+    # (1–10 April).
     a, inputs, _ = scenario(crop_id=crop_id, day=date(2024, 3, 25))
     adv = irrigation_advice(a, inputs, today=inputs.analysis_date)
     assert adv.status is IrrigationStatus.NO_CROP
@@ -144,9 +145,11 @@ def test_drip_caveat_only_for_fruit_when_irrigating() -> None:
     adv = irrigation_advice(a, inputs, today=inputs.analysis_date)
     assert adv.status in (IrrigationStatus.IRRIGATE, IrrigationStatus.IRRIGATE_SOON)
     assert FRUIT_CAVEAT_PL in adv.caveats_pl
+    assert DOSE_CAVEAT_PL not in adv.caveats_pl  # sprinkler losses do not apply to drip
     a, inputs, _ = scenario(crop_id="maize", precip=dry)
     adv = irrigation_advice(a, inputs, today=inputs.analysis_date)
     assert FRUIT_CAVEAT_PL not in adv.caveats_pl
+    assert DOSE_CAVEAT_PL in adv.caveats_pl
 
 
 @pytest.mark.parametrize("crop_id", FRUIT)
@@ -221,12 +224,27 @@ def test_landcover_limitation_follows_crop(crop_id: str, warned: bool) -> None:
 # --- whole report -----------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("scenario_id", ["orchard_summer", "orchard_dormant", "berry_late"])
+@pytest.mark.parametrize(
+    "scenario_id", ["orchard_summer", "orchard_dormant", "berry_late", "orchard_october"]
+)
 def test_fruit_report_has_no_sowing_or_ploughing(scenario_id: str) -> None:
+    """The whole report JSON (simulation, retention plan, limitations included) — review finding of M6."""
     from tests.report.builders import SCENARIOS
 
-    r = SCENARIOS[scenario_id]()
-    texts = [r.headline.sentence_pl, *(p for s in r.sections for p in s.paragraphs_pl), r.irrigation.text_pl]
-    texts += [t for rec in r.recommendations for t in (rec.title_pl, rec.text_pl)]
-    for t in texts:
-        assert not FIELD_WORDS.search(t), t
+    text = SCENARIOS[scenario_id]().model_dump_json()
+    assert not FIELD_WORDS.search(text), FIELD_WORDS.search(text)
+
+
+def test_october_orchard_headline_not_on_field() -> None:
+    from tests.report.builders import SCENARIOS
+
+    r = SCENARIOS["orchard_october"]()
+    assert "na polu" not in r.headline.sentence_pl
+
+
+def test_fruit_simulation_assumptions_replace_the_right_items() -> None:
+    from app.report.outlook import SIM_ASSUMPTIONS, SIM_ASSUMPTIONS_FRUIT
+
+    assert SIM_ASSUMPTIONS[2].startswith("Przyrost węgla organicznego")
+    assert SIM_ASSUMPTIONS[3].startswith("Ściółka")
+    assert set(SIM_ASSUMPTIONS_FRUIT) == {2, 3}
