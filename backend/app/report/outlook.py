@@ -97,7 +97,10 @@ SIM_ASSUMPTIONS: list[str] = [
     "zapas wody tymi samymi wzorami co ocena gleby (Saxton i Rawls 2006). Wpływ próchnicy na zapas wody jest "
     "niewielki (Minasny i McBratney 2018).",
     "Ściółka z resztek na ok. połowie powierzchni ogranicza parowanie z gleby o ok. 25 % "
-    "(FAO-56, rozdz. 11).",
+    "(FAO-56, rozdz. 11): w pełni, gdy gleba jest odkryta, coraz mniej w miarę zakrywania pola przez uprawę, "
+    "a wcale pod pełnym łanem. To szacunek: pokrycie pola wyznaczamy z krzywej rozwoju uprawy, nie z pomiaru.",
+    "„Retencja + podlewanie ratunkowe” podlewa w te same dni co samo podlewanie ratunkowe, ale każda dawka "
+    "jest mniejsza o wodę, którą zatrzymała gleba — dołożenie retencji nigdy nie pogarsza wyniku.",
     "„Rok suchy” to sezon, który wśród 10 symulowanych jest gorszy od 8 z nich "
     "(zdarza się mniej więcej raz na 5 lat).",
     "To porównanie strategii, a nie prognoza pogody: pokazuje kierunek i skalę różnic.",
@@ -384,6 +387,10 @@ def _simulation(s: SimulationResult | None, inputs: AnalysisInputs) -> Simulatio
                 if r.irrigation_mm_p80 is not None and area
                 else None,
                 taw_mm=round(r.taw_mm, 1),
+                evaporation_saved_mm_median=_r(r.evaporation_saved_mm_median),
+                evaporation_saved_m3_parcel_median=_r(r.evaporation_saved_mm_median * area * 10, 10)
+                if r.evaporation_saved_mm_median is not None and area
+                else None,
             )
             for r in s.results
             if r.strategy == sid
@@ -411,6 +418,7 @@ def _simulation(s: SimulationResult | None, inputs: AnalysisInputs) -> Simulatio
         full_y1=by["full"].get(1),
         rescue_y1=by["rescue"].get(1),
         ret_y5=by["retention"].get(5),
+        both_y1=by["retention_rescue"].get(1),
     )
     return view.model_copy(update={"text_pl": main})
 

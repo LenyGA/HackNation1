@@ -71,18 +71,17 @@ def irrigated_balance(
     taw_mm: float,
     *,
     only_critical: bool = False,
-    kc_factor_off_season: float = 1.0,
+    kc: list[float] | None = None,
     et0_factor: float = 1.0,
     dr0_mm: float = 0.0,
     dose_cap_mm: float | None = None,
 ) -> RootZoneBalance:
-    """Root-zone balance with irrigation on in-season days (or only in the crop's critical periods)."""
-    kc, season = crop_calendar(weather, crop)
-    if kc_factor_off_season != 1.0:
-        kc = [
-            k * kc_factor_off_season if (not s or crop.stage(d) == "initial") else k
-            for k, s, d in zip(kc, season, weather.dates, strict=True)
-        ]
+    """Root-zone balance with irrigation on in-season days (or only in the crop's critical periods).
+
+    `kc`: a crop-coefficient curve to use instead of the crop's own (e.g. lowered by a mulch)."""
+    base_kc, season = crop_calendar(weather, crop)
+    if kc is None:
+        kc = base_kc
     if only_critical:
         allowed = [
             s and crop.critical_period_at(d) is not None for d, s in zip(weather.dates, season, strict=True)

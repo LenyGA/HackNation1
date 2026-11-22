@@ -186,6 +186,44 @@ def test_strategies_order_is_physical() -> None:
         assert by[("retention", k)].stress_days_median <= none.stress_days_median
 
 
+@pytest.mark.parametrize("crop_id", ["potato", "maize", "winter_wheat", "sugar_beet"])
+@pytest.mark.parametrize("texture", [(80, 10, 10, 6), (40, 40, 20, 12), (20, 40, 40, 20)])
+@pytest.mark.parametrize("dose_cap", [None, 25.0])
+def test_adding_an_action_never_makes_the_result_worse(crop_id, texture, dose_cap) -> None:
+    """Q1 invariant: retention and irrigation only add water, so no combined strategy is worse than its parts."""
+    c = crop(crop_id)
+    soil = soil_properties(soil_data(soil_layers(*texture)), c.root_depth_m)
+    for seed in (1, 3, 5):
+        sim = simulate(weather(precip=random_precip(seed)), c, DAY, soil, None, dose_cap_mm=dose_cap)
+        assert sim is not None
+        by = {(r.strategy, r.year_ahead): r for r in sim.results}
+        for k in range(1, 6):
+            none, rescue, ret, both = (by[(s, k)] for s in ("none", "rescue", "retention", "retention_rescue"))
+            for q in ("stress_days_median", "stress_days_p80"):
+                assert getattr(both, q) <= getattr(rescue, q) <= getattr(none, q), (seed, k, q)
+                assert getattr(ret, q) <= getattr(none, q), (seed, k, q)
+            assert both.irrigation_mm_median <= rescue.irrigation_mm_median + 1e-6
+            assert both.irrigation_mm_p80 <= rescue.irrigation_mm_p80 + 1e-6
+            assert ret.evaporation_saved_mm_median > 0  # the mulch always saves some water
+
+
+def test_mulch_cuts_soil_evaporation_only_where_soil_is_exposed() -> None:
+    from app.analysis.simulate import MULCH_EVAPORATION_CUT, mulch_kc
+    from app.analysis.water_balance import crop_calendar
+
+    w, c = weather(), crop("maize")
+    base, season = crop_calendar(w, c)
+    cut = mulch_kc(w, c)
+    for d, k0, k1, s in zip(w.dates, base, cut, season, strict=True):
+        stage = c.stage(d) if s else None
+        if stage in ("mid", "late"):
+            assert k1 == k0  # full canopy: the mulch is shaded, transpiration unchanged
+        elif stage in (None, "initial"):
+            assert k1 == pytest.approx(k0 * (1 - MULCH_EVAPORATION_CUT))
+        else:
+            assert k0 * (1 - MULCH_EVAPORATION_CUT) - 1e-9 <= k1 <= k0
+
+
 def test_irrigation_does_not_carry_over_after_wet_winters() -> None:
     def precip(d: date) -> float:
         return 4.0 if d.month in (10, 11, 12, 1, 2, 3) else 0.5

@@ -153,6 +153,14 @@ export function Simulator({ sim }: { sim: Simulation }) {
           <div className="rounded-md border bg-background px-3 py-2">
             <dt className="text-xs text-muted-foreground">Zapas wody w glebie (pełna)</dt>
             <dd className="text-lg font-semibold tabular-nums">{val(row.taw_mm, 'mm', 1)}</dd>
+            {row.evaporation_saved_mm_median !== null && row.evaporation_saved_mm_median >= 1 && (
+              <dd className="text-xs text-green-700">
+                ściółka zatrzymuje ok. {formatNumberPl(row.evaporation_saved_mm_median)} mm w sezonie
+                {row.evaporation_saved_m3_parcel_median !== null && row.evaporation_saved_m3_parcel_median >= 10
+                  ? ` (ok. ${formatNumberPl(row.evaporation_saved_m3_parcel_median)} m³)`
+                  : ''}
+              </dd>
+            )}
           </div>
         </dl>
       )}

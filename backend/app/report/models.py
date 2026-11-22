@@ -237,6 +237,10 @@ class StrategyYear(BaseModel):
     irrigation_mm_p80: float | None
     irrigation_m3_parcel_p80: float | None
     taw_mm: float
+    evaporation_saved_mm_median: float | None = Field(
+        default=None, description="Soil evaporation avoided by the residue mulch (retention strategies)."
+    )
+    evaporation_saved_m3_parcel_median: float | None = None
 
 
 class Strategy(BaseModel):

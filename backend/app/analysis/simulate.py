@@ -23,8 +23,14 @@ Strategies:
     2018,
     Eur. J. Soil Sci. 69:39–47: "limited effect of organic matter on soil available water capacity");
   * a residue mulch covering ~MULCH_COVER of the surface cuts soil evaporation by 5 % per 10 % of cover
-    (FAO-56 ch. 11), applied to the bare-soil and initial-stage crop coefficient;
-- retention_rescue: retention + rescue irrigation.
+    (FAO-56 ch. 11). The cut applies to the soil-evaporation part of the crop coefficient: all of it on bare
+    soil and in the initial stage, a share falling with canopy cover in the development stage (cover estimated
+    linearly from Kc between Kc_ini and Kc_mid, a simplification of FAO-56 eq. 76), none under a full canopy.
+    Reported separately as evaporation avoided (mm), so a small effect is visible even when the stress days
+    do not change;
+- retention_rescue: retention + rescue irrigation on the same days as the rescue strategy, each dose limited
+  to what the (wetter) soil can take. Same trigger as "rescue": adding retention never shifts the irrigation
+  later and never makes the result worse (it only saves water).
 
 What the simulator shows on purpose: irrigation water does not stay in the soil until next year. The spring
 (1 April) soil water of irrigated and non-irrigated runs of the real 10 years is reported side by side.
@@ -60,6 +66,7 @@ class StrategyYear:
     stress_days_p80: float | None
     irrigation_mm_median: float | None
     irrigation_mm_p80: float | None
+    evaporation_saved_mm_median: float | None = None  # soil evaporation avoided by the mulch, March–October
 
 
 @dataclass(frozen=True)
@@ -115,6 +122,31 @@ def _member(weather: Weather, year: int) -> Weather | None:
     )
 
 
+def mulch_kc(weather: Weather, crop: Crop) -> list[float]:
+    """Crop-coefficient curve with the residue mulch: soil evaporation cut by MULCH_EVAPORATION_CUT."""
+    kc, season = crop_calendar(weather, crop)
+    span = crop.kc_mid - crop.kc_ini
+    out: list[float] = []
+    for k, s, d in zip(kc, season, weather.dates, strict=True):
+        stage = crop.stage(d) if s else None
+        if not s or stage == "initial":
+            bare = 1.0
+        elif stage == "development" and span > 0:
+            bare = 1 - min(max((k - crop.kc_ini) / span, 0.0), 1.0)
+        else:
+            bare = 0.0
+        out.append(k * (1 - MULCH_EVAPORATION_CUT * bare))
+    return out
+
+
+@dataclass(frozen=True)
+class _Run:
+    balance: RootZoneBalance
+    stress_days: int
+    irrigation_mm: float
+    evaporation_saved_mm: float
+
+
 def _run(
     member: Weather,
     crop: Crop,
@@ -123,21 +155,19 @@ def _run(
     et0_factor: float,
     dr0_mm: float,
     dose_cap_mm: float | None = None,
-) -> tuple[int, float]:
-    """(stress days, irrigation mm) in March–October of the member's season.
+    schedule: RootZoneBalance | None = None,
+) -> _Run:
+    """Stress days, irrigation and evaporation saved in March–October of the member's season.
 
-    The run starts on 1 October with root-zone depletion `dr0_mm`.
+    The run starts on 1 October with root-zone depletion `dr0_mm`. `schedule` (retention_rescue): the rescue
+    run of the same member, whose irrigation days and doses are replayed on the retention soil.
     """
     mulch = strategy.startswith("retention")
-    kc_factor = 1 - MULCH_EVAPORATION_CUT if mulch else 1.0
+    base_kc, season = crop_calendar(member, crop)
+    kc = mulch_kc(member, crop) if mulch else base_kc
+    dr0 = min(dr0_mm, taw)
     if strategy in ("none", "retention"):
-        kc, season = crop_calendar(member, crop)
-        if mulch:
-            kc = [
-                k * kc_factor if (not s or crop.stage(d) == "initial") else k
-                for k, s, d in zip(kc, season, member.dates, strict=True)
-            ]
-        balance: RootZoneBalance = root_zone_balance(
+        balance = root_zone_balance(
             member.dates,
             member.precip_mm,
             member.et0_mm,
@@ -145,8 +175,21 @@ def _run(
             season,
             taw,
             crop.p,
-            dr0_mm=min(dr0_mm, taw),
+            dr0_mm=dr0,
             et0_factor=et0_factor,
+        )
+    elif strategy == "retention_rescue" and schedule is not None:
+        balance = root_zone_balance(
+            member.dates,
+            member.precip_mm,
+            member.et0_mm,
+            kc,
+            season,
+            taw,
+            crop.p,
+            dr0_mm=dr0,
+            et0_factor=et0_factor,
+            schedule_mm=[b.irrigation_mm for b in schedule.days],
         )
     else:
         balance = irrigated_balance(
@@ -154,14 +197,21 @@ def _run(
             crop,
             taw,
             only_critical=strategy.endswith("rescue"),
-            kc_factor_off_season=kc_factor,
+            kc=kc,
             et0_factor=et0_factor,
-            dr0_mm=min(dr0_mm, taw),
+            dr0_mm=dr0,
             dose_cap_mm=dose_cap_mm,
         )
     year = member.last.year
-    days = balance.between(date(year, 3, 1), date(year, 10, 31))
-    return sum(1 for b in days if b.stressed), sum(b.irrigation_mm for b in days)
+    window = date(year, 3, 1), date(year, 10, 31)
+    days = balance.between(*window)
+    saved = 0.0
+    if mulch:
+        base = dict(zip(member.dates, base_kc, strict=True))
+        for b in days:
+            if b.etc_mm is not None and b.kc > 0:
+                saved += b.etc_mm * (base[b.day] / b.kc - 1)
+    return _Run(balance, sum(1 for b in days if b.stressed), sum(b.irrigation_mm for b in days), saved)
 
 
 def _spring_storage(balance: RootZoneBalance, years: list[int]) -> float | None:
@@ -214,11 +264,26 @@ def simulate(
         factor = 1 + rel_per_year * (first_season + k - 1 - mid_year)
         factor = min(max(factor, 1 - MAX_ET0_FACTOR_CHANGE), 1 + MAX_ET0_FACTOR_CHANGE)
         taw_ret = _taw_with_extra_soc(soil, extra_soc_after(k)) or taw0
+        rescue_runs: list[_Run] = []
         for strategy in STRATEGIES:
             taw = taw_ret if strategy.startswith("retention") else taw0
-            runs = [_run(m, crop, taw, strategy, factor, dr0, dose_cap_mm) for m, dr0 in members]
-            stress = [float(r[0]) for r in runs]
-            water = [r[1] for r in runs]
+            runs = [
+                _run(
+                    m,
+                    crop,
+                    taw,
+                    strategy,
+                    factor,
+                    dr0,
+                    dose_cap_mm,
+                    schedule=rescue_runs[i].balance if strategy == "retention_rescue" else None,
+                )
+                for i, (m, dr0) in enumerate(members)
+            ]
+            if strategy == "rescue":
+                rescue_runs = runs
+            stress = [float(r.stress_days) for r in runs]
+            water = [r.irrigation_mm for r in runs]
             results.append(
                 StrategyYear(
                     strategy=strategy,
@@ -228,6 +293,9 @@ def simulate(
                     stress_days_p80=percentile(stress, 80),
                     irrigation_mm_median=percentile(water, 50),
                     irrigation_mm_p80=percentile(water, 80),
+                    evaporation_saved_mm_median=percentile([r.evaporation_saved_mm for r in runs], 50)
+                    if strategy.startswith("retention")
+                    else None,
                 )
             )
 

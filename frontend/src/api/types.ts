@@ -277,6 +277,8 @@ export interface StrategyYear {
   irrigation_mm_p80: number | null
   irrigation_m3_parcel_p80: number | null
   taw_mm: number
+  evaporation_saved_mm_median: number | null
+  evaporation_saved_m3_parcel_median: number | null
 }
 
 export type StrategyId = 'none' | 'rescue' | 'full' | 'retention' | 'retention_rescue'

@@ -88,12 +88,15 @@ def root_zone_balance(
     irrigate: Sequence[bool] | None = None,
     et0_factor: float = 1.0,
     dose_cap_mm: float | None = None,
+    schedule_mm: Sequence[float] | None = None,
 ) -> RootZoneBalance:
     """Run the daily balance. A day without P or ET0 keeps the previous depletion and is marked as a gap.
 
     `irrigate` (simulations): on days marked True, when the depletion exceeds RAW the root zone is refilled to
     field capacity at the start of the day (FAO-56 ch. 8, irrigation at the management allowed depletion;
     the net dose equals Dr), or with at most `dose_cap_mm` per day (a realistic sprinkler application).
+    `schedule_mm` (simulations): a fixed irrigation schedule instead of the RAW trigger — on each day at most
+    the scheduled dose, never more than the depletion (the soil takes no water above field capacity).
     `et0_factor` scales ET0 (climate-change scenarios).
     """
     if taw_mm <= 0:
@@ -104,6 +107,8 @@ def root_zone_balance(
         raise ValueError("all series must have the same length")
     if irrigate is not None and len(irrigate) != len(days):
         raise ValueError("irrigate must have the same length as days")
+    if schedule_mm is not None and (len(schedule_mm) != len(days) or irrigate is not None):
+        raise ValueError("schedule_mm must match days and cannot be combined with irrigate")
     dr = min(max(dr0_mm, 0.0), taw_mm)
     raw = p * taw_mm
     out: list[BalanceDay] = []
@@ -111,6 +116,9 @@ def root_zone_balance(
         irrigation = 0.0
         if irrigate is not None and irrigate[i] and dr > raw:
             irrigation = dr if dose_cap_mm is None else min(dr, dose_cap_mm)
+            dr -= irrigation
+        elif schedule_mm is not None and schedule_mm[i] > 0:
+            irrigation = min(dr, schedule_mm[i])
             dr -= irrigation
         ks = stress_coefficient(dr, taw_mm, p)
         etc: float | None = None
