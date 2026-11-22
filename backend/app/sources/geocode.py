@@ -9,7 +9,6 @@ village without streets, "Village Number"; a query with no match comes back with
 import logging
 import re
 from datetime import timedelta
-from functools import partial
 from typing import Any, Literal
 
 import httpx
@@ -25,8 +24,11 @@ log = logging.getLogger(__name__)
 NAME = "uug"
 URL = "https://services.gugik.gov.pl/uug/"
 SOURCE = "GUGiK, Usługa Uniwersalnego Geokodowania (punkty adresowe PRG), https://services.gugik.gov.pl/uug/"
-TIMEOUT_S = 6.0
+TIMEOUT_S = 5.0
 CACHE_TTL = timedelta(days=7)
+# The service now and then answers "returned objects: 0" for a query it can match; an empty answer is
+# therefore kept only briefly.
+EMPTY_CACHE_TTL = timedelta(hours=1)
 MAX_RESULTS = 8
 
 MSG_UNAVAILABLE = (
@@ -126,7 +128,9 @@ def _variants(q: str) -> list[str]:
 
 async def _fetch(q: str) -> list[dict[str, Any]]:
     try:
-        resp = await request("GET", URL, timeout_s=TIMEOUT_S, params={"request": "GetAddress", "address": q})
+        resp = await request(
+            "GET", URL, timeout_s=TIMEOUT_S, retries=0, params={"request": "GetAddress", "address": q}
+        )
         body = resp.json()
     except (httpx.HTTPError, ValueError) as exc:
         log.info("uug failed: %s", type(exc).__name__)
@@ -138,7 +142,11 @@ async def search(q: str) -> list[Place]:
     """Places matching the text, best first; an empty list when nothing matches."""
     cache = get_cache()
     for variant in _variants(q):
-        found = await cache.get_or_fetch(NAME, {"q": variant.lower()}, partial(_fetch, variant), CACHE_TTL)
+        params = {"q": variant.lower()}
+        found = cache.get(NAME, params)
+        if found is None:
+            found = await _fetch(variant)
+            cache.set(NAME, params, found, CACHE_TTL if found else EMPTY_CACHE_TTL)
         if found:
             return [Place.model_validate(p) for p in found]
     return []

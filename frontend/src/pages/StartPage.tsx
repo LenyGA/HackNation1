@@ -338,14 +338,18 @@ export function StartPage() {
   // Address search (M8.7): fly the map there; an address with a house number also picks the parcel at it.
   const [focus, setFocus] = useState<MapFocus | null>(null)
   const [addressNote, setAddressNote] = useState<string | null>(null)
-  async function onAddress(place: Place) {
+  async function onAddress(place: Place, stamp?: number) {
+    // The user picked a parcel another way while the address search was running: keep that choice.
+    if (stamp !== undefined && stamp !== pickSeq.current) return
+    // Every address choice supersedes a parcel lookup still in flight (an earlier address or number).
+    const seq = ++pickSeq.current
+    setLookingUp(false)
     setFocus({ lat: place.lat, lon: place.lon, zoom: place.kind === 'address' ? 17 : place.kind === 'street' ? 16 : 14 })
     setParcelError(null)
     if (place.kind !== 'address') {
       setAddressNote(`Mapa pokazuje: ${place.label_pl}. Przybliż ją i dotknij swojego pola, aby je wybrać.`)
       return
     }
-    const seq = ++pickSeq.current
     setLookingUp(true)
     setAddressNote(null)
     try {
@@ -459,8 +463,8 @@ export function StartPage() {
                   </button>
                 </div>
                 <p id="parcel-help" className="text-xs text-muted-foreground">
-                  Numer znajdziesz w wypisie z rejestru gruntów albo we wniosku o dopłaty. Nie znasz go? Wyszukaj adres
-                  lub dotknij pola na mapie.
+                  Przykład: <code>{PARCEL_ID_EXAMPLE}</code>. Numer znajdziesz w wypisie z rejestru gruntów albo we
+                  wniosku o dopłaty. Nie znasz go? Wyszukaj adres lub dotknij pola na mapie.
                 </p>
                 {parcelError && (
                   <p id="parcel-error" role="alert" className="text-sm text-destructive">
@@ -472,16 +476,34 @@ export function StartPage() {
 
               <fieldset className="space-y-2">
                 <legend className="mb-2 text-sm font-semibold">Co teraz rośnie na działce?</legend>
-                <div role="radiogroup" aria-label="Popularne uprawy" className="flex flex-wrap gap-2">
-                  {popular.map((c) => {
+                <div
+                  role="radiogroup"
+                  aria-label="Popularne uprawy"
+                  aria-describedby={cropError ? 'crop-error' : undefined}
+                  className="flex flex-wrap gap-2"
+                  onKeyDown={(e) => {
+                    // Radio-group keyboard pattern: arrows move the choice; one chip is in the tab order.
+                    const step =
+                      e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+                    if (!step || popular.length === 0) return
+                    e.preventDefault()
+                    const at = popular.findIndex((c) => c.id === cropId)
+                    const next = at < 0 ? (step > 0 ? 0 : popular.length - 1) : (at + step + popular.length) % popular.length
+                    chooseCrop(popular[next].id)
+                    e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus()
+                  }}
+                >
+                  {popular.map((c, i) => {
                     const Icon = CROP_ICON[c.id] ?? Sprout
                     const on = c.id === cropId
+                    const focusable = on || (i === 0 && !popular.some((x) => x.id === cropId))
                     return (
                       <button
                         key={c.id}
                         type="button"
                         role="radio"
                         aria-checked={on}
+                        tabIndex={focusable ? 0 : -1}
                         onClick={() => chooseCrop(c.id)}
                         className={cn(
                           'flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
@@ -526,7 +548,7 @@ export function StartPage() {
                   </SelectContent>
                 </Select>
                 {(cropError || cropsError) && (
-                  <p role="alert" className="text-sm text-destructive">
+                  <p id="crop-error" role="alert" className="text-sm text-destructive">
                     {cropError ?? cropsError}
                   </p>
                 )}
@@ -578,7 +600,7 @@ export function StartPage() {
               <p className="flex items-center gap-2 text-sm font-semibold">
                 <MapPin className="size-4 text-primary" aria-hidden /> Nie znasz numeru? Znajdź działkę po adresie
               </p>
-              <AddressSearch onChoose={(p) => void onAddress(p)} />
+              <AddressSearch onChoose={(p, st) => void onAddress(p, st)} stamp={() => pickSeq.current} />
               {addressNote && <p className="text-sm text-muted-foreground">{addressNote}</p>}
             </div>
             <p className="text-sm font-semibold">…albo dotknij swojego pola na mapie</p>

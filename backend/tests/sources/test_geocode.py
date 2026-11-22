@@ -126,3 +126,22 @@ def test_places_endpoint_service_down_is_503(client: TestClient) -> None:
 def test_places_endpoint_validates_length(client: TestClient) -> None:
     assert client.get("/api/places", params={"q": "a"}).status_code == 400
     assert client.get("/api/places", params={"q": "x" * 121}).status_code == 400
+
+
+def test_empty_answer_is_cached_briefly(tmp_cache: DiskCache) -> None:
+    import asyncio
+    import time
+
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.get(geocode.URL).mock(return_value=httpx.Response(200, json=EMPTY))
+        assert asyncio.run(geocode.search("Ksawerów 12")) == []
+        assert asyncio.run(geocode.search("Ksawerów 12")) == []
+        assert route.call_count == 1  # cached
+        # Past the short expiry of an empty answer the service is asked again.
+        real = time.time
+        try:
+            time.time = lambda: real() + geocode.EMPTY_CACHE_TTL.total_seconds() + 5  # type: ignore[assignment]
+            assert asyncio.run(geocode.search("Ksawerów 12")) == []
+        finally:
+            time.time = real  # type: ignore[assignment]
+        assert route.call_count == 2

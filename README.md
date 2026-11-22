@@ -34,4 +34,5 @@ aplikacja jako użytkownik bez uprawnień root, port API niewystawiony na zewną
 | Komponent | Rola | Licencja |
 |---|---|---|
 | vitest 5.1 | testy jednostkowe frontu (tylko deweloperska, nie trafia do paczki) | MIT |
+| Usługa Uniwersalnego Geokodowania GUGiK (`services.gugik.gov.pl/uug`) | wyszukiwanie działki po adresie (punkty adresowe PRG), pobierane na żywo, bez klucza | dane publiczne GUGiK, bezpłatne (Prawo geodezyjne i kartograficzne, art. 40a ust. 2) |
 | Obrys Polski `frontend/src/components/map/poland.json` | sprawdzenie, czy kliknięcie leży w Polsce; maska mapy | dane otwarte PRG GUGiK (szczegóły: `docs/DATA_SOURCES.md`) |

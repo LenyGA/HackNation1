@@ -390,7 +390,9 @@ export function ReportPage() {
 
   return (
     <div className="space-y-4">
-      <header className="overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-navy to-primary px-4 py-5 text-navy-foreground shadow-md sm:px-6">
+      {/* print-color-adjust keeps the dark banner on paper (browsers drop backgrounds by default), so the white
+          title never prints white on white. */}
+      <header className="overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-navy to-primary px-4 py-5 text-navy-foreground shadow-md [print-color-adjust:exact] sm:px-6">
         <p className="text-xs font-semibold tracking-[0.18em] text-white/75 uppercase">Raport wodny</p>
         <h1 className="mt-1 text-2xl leading-tight font-bold sm:text-3xl">Działka {p.number ?? p.id}</h1>
         <p className="mt-1 text-white/90">

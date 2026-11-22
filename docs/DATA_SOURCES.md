@@ -91,14 +91,23 @@ Uwagi:
 | `flood.py` | Wody Polskie, mapa powodzi historycznych (WORP), WMS `..._WORP_WMS`, warstwa `NZ.ObservedEvent` | GetFeatureInfo w centroidzie | 5 s (21.11.2026 serwer nie odpowiadał w 20 s) | j.w. | `historical = None` → raport mówi „nie sprawdzono” |
 | `flood.py` | PIG-PIB, obszary zagrożone podtopieniami, ArcGIS REST `cbdgmapa.pgi.gov.pl/.../hydrogeologia/podtopienia/MapServer/0` | zapytanie punktowe | 0,2 s | j.w. | `None` |
 | `groundwater.py` | PIG-PIB / PSH, automatyczny monitoring wód podziemnych, ArcGIS REST `cbdgmapa.pgi.gov.pl/.../hydrogeologia/mwp_auto/MapServer` (warstwa 0: stacje, tabela 2: pomiary, dane bez walidacji) | stacje w promieniu 50 km; średnia głębokość zwierciadła (m p.p.t.) z 60 dni przed datą analizy i z tych samych 60 dni 1–3 lata wcześniej (`outStatistics`, po stronie serwera) | ~0,1 s na zapytanie; 9 s łącznie | bez wygasania dla dat historycznych | brak stacji z danymi → `missing`; stacja bez historii → `degraded` (poziom bez trendu) |
-| `flood.py` → `report/outlook.py` | Wody Polskie, ten sam WMS `NZ.Fluvial`, GetMap w **EPSG:2180** (22.11.2026) | warstwa stref na mapie raportu w przeglądarce: jeden obraz PNG działka + 1 km, 2,5 m/piksel, narożniki w WGS84 (usługa w EPSG:3857 zwraca puste kafle) | pobiera przeglądarka | — | brak obrazu → mapa bez warstwy i bez legendy stref |
-| `geocode.py` | GUGiK, Usługa Uniwersalnego Geokodowania (UUG), `https://services.gugik.gov.pl/uug/?request=GetAddress` — punkty adresowe PRG (22.11.2026) | wyszukiwanie działki po adresie: adres / miejscowość / ulica → punkt (EPSG:2180 → WGS84); przy adresie z numerem aplikacja wskazuje działkę w tym punkcie (ULDK `GetParcelByXY`) | 6 s | 7 dni | brak wyniku → komunikat; brak odpowiedzi → 503 z prośbą o numer działki lub mapę |
 
 Licencje: dane publiczne Wód Polskich (INSPIRE) i PIG-PIB — bezpłatne, z podaniem źródła. Wszystkie pobierane na żywo.
 
 Ograniczenia: mapy zagrożenia powodziowego opisują stan z II cyklu planistycznego (mapy 2020–2022) i nie zależą od daty analizy. Automatyczne stacje PSH w wielu miejscach mierzą dopiero od 2026 r., więc dla dat historycznych trendu często nie ma — raport mówi to wprost.
 
 Sprawdzone i odrzucone: BDOT10k / MPHP jako WFS z cieków po bbox — publicznej usługi nie znaleziono (BDOT10k tylko jako paczki GML na powiat, 50–100 MB); zostaje OSM Overpass. IMGW `api/data/hydro` daje tylko stan bieżący (bez historii), więc nie nadaje się dla dat z przeszłości.
+
+## Nowe źródła i zmiany (22.11.2026, plan33 M8)
+
+| Moduł | Źródło | Co pobieramy | Czas / limit | Cache | Brak danych |
+|---|---|---|---|---|---|
+| `flood.py` → `report/outlook.py` | Wody Polskie, ten sam WMS `NZ.Fluvial`, GetMap w **EPSG:2180** (22.11.2026) | warstwa stref na mapie raportu w przeglądarce: jeden obraz PNG działka + 1 km, 2,5 m/piksel, narożniki w WGS84 (usługa w EPSG:3857 zwraca puste kafle) | pobiera przeglądarka | — | brak obrazu → mapa bez warstwy i bez legendy stref |
+| `geocode.py` | GUGiK, Usługa Uniwersalnego Geokodowania (UUG), `https://services.gugik.gov.pl/uug/?request=GetAddress` — punkty adresowe PRG (22.11.2026) | wyszukiwanie działki po adresie: adres / miejscowość / ulica → punkt (EPSG:2180 → WGS84); przy adresie z numerem aplikacja wskazuje działkę w tym punkcie (ULDK `GetParcelByXY`) | 5 s na zapytanie, bez ponowień; najgorzej ok. 10 s (2 warianty zapisu) | 7 dni, pusty wynik 1 h | brak wyniku → komunikat; brak odpowiedzi → 503 z prośbą o numer działki lub mapę |
+
+Licencje: Usługa Uniwersalnego Geokodowania GUGiK — dane publiczne PZGiK (punkty adresowe PRG), udostępniane bezpłatnie
+(Prawo geodezyjne i kartograficzne, art. 40a ust. 2), bez klucza i konta. Wody Polskie — jak wyżej. Obie usługi pobierane
+na żywo; wyszukiwanie adresu nie trafia do raportu ani logów (w cache na dysku zostaje sam tekst zapytania, bez adresu IP).
 
 ## Dane pobrane wcześniej (dołączone do aplikacji)
 
