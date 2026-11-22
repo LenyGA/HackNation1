@@ -155,21 +155,22 @@
     "complete": true,
     "recommendations": [
       "irrigation",
-      "orchard_mulch_sward"
+      "orchard_mulch_sward",
+      "protect_wetlands"
     ],
     "irrigation": "irrigate",
     "sources": {
       "uldk": "ok",
-      "open_meteo": "degraded",
+      "open_meteo": "ok",
       "sentinel2": "degraded",
       "soilgrids": "ok",
       "dem": "ok",
-      "hydro": "missing",
+      "hydro": "ok",
       "landcover": "ok",
-      "flood": "ok",
+      "flood": "degraded",
       "groundwater": "missing"
     },
-    "elapsed_s": 14.7
+    "elapsed_s": 9.7
   },
   "orchard@current": {
     "analysis_date": "2026-11-22",
@@ -181,7 +182,7 @@
     "irrigation": "off_season",
     "sources": {
       "uldk": "ok",
-      "open_meteo": "degraded",
+      "open_meteo": "ok",
       "sentinel2": "ok",
       "soilgrids": "ok",
       "dem": "ok",
@@ -190,7 +191,7 @@
       "flood": "ok",
       "groundwater": "degraded"
     },
-    "elapsed_s": 15.2
+    "elapsed_s": 17.7
   },
   "river_valley@2019-07-15": {
     "analysis_date": "2019-07-15",
