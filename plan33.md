@@ -223,16 +223,16 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
 - [ ] **M8.2** `deploy/deploy.sh root@129.121.162.156`, potem `deploy/e2e-vps.sh`; publiczny adres sprawdzony dla działki i daty spoza cache.
 - [ ] **M8.3** Macierz zgodności w `claude33.md`: statusy i data; lista tego, co nie weszło, przekazana zespołowi do „znanych ograniczeń” w README.
 - [ ] **M8.4** Po wdrożeniu żadnych zmian w kodzie poza poprawką błędu blokującego demo.
-- [ ] **M8.5 Nowy wygląd wg `../UI/`.** Przebudowa UI na wzór 3 makiet z folderu `UI/` (`*.webp`) + wstawienie logo zespołu
+- [x] **M8.5 Nowy wygląd wg `../UI/`.** Przebudowa UI na wzór 3 makiet z folderu `UI/` (`*.webp`) + wstawienie logo zespołu
   (nagłówek strony, favicon, nagłówek PDF). **Plik logo trzeba dołączyć** — nie ma go jeszcze w repo ani w `UI/`.
-- [ ] **M8.6 Poprawka mapy: ciek oznaczony jako strefa powodziowa.** Linia wodna (ciek / rów) na mapie raportu wygląda
+- [x] **M8.6 Poprawka mapy: ciek oznaczony jako strefa powodziowa.** Linia wodna (ciek / rów) na mapie raportu wygląda
   lub jest opisana jak strefa zagrożenia powodziowego ISOK — rozdzielić warstwy, kolory i legendę
   (`frontend/src/components/map/ReportMapView.tsx`, mapa w PDF).
-- [ ] **M8.7 Wyszukiwanie działki po adresie** (zgodnie z wymaganiami z treści zadania): adres → współrzędne → działka z ULDK
+- [x] **M8.7 Wyszukiwanie działki po adresie** (zgodnie z wymaganiami z treści zadania): adres → współrzędne → działka z ULDK
   (`StartPage.tsx`, `ParcelPickerMap.tsx`, endpoint w backendzie). Nie mylić z G12 (gmina / obręb, rozdz. 7).
-- [ ] **M8.8 „Najważniejsze wnioski” → „Podsumowanie”** w obu wersjach raportu (Podstawowy i Pełny), na stronie i w PDF:
+- [x] **M8.8 „Najważniejsze wnioski” → „Podsumowanie”** w obu wersjach raportu (Podstawowy i Pełny), na stronie i w PDF:
   `BasicReport.tsx:52`, `report_basic.html.j2:44`, podpowiedź w `ReportPage.tsx:131`, odpowiedniki w raporcie pełnym.
-- [ ] **M8.9 Suwak ładniejszy i płynniejszy** (`frontend/src/components/report/Simulator.tsx`): wygląd zgodny z nowym UI,
+- [x] **M8.9 Suwak ładniejszy i płynniejszy** (`frontend/src/components/report/Simulator.tsx`): wygląd zgodny z nowym UI,
   płynne przesuwanie bez szarpania (przeliczenie z opóźnieniem / po puszczeniu, bez przerysowania całego raportu).
 
 - [x] **M8.10 Zaznaczanie kilku działek naraz** (zrobione w M7) (klik na mapie i ID) — zakres i kroki jak w **M7.1–M7.3** (G11); robić tamte kroki,
