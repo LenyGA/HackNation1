@@ -329,7 +329,7 @@ def irrigation_advice(
         applications = max(1, math.ceil(dose / cap))
         # Half-up rounding (never Python's half-to-even), so the text and the UI show the same number.
         single = float(math.floor(dose / applications + 0.5))
-        raw_volume = dose * inputs.parcel.area_ha * 10.0  # 1 mm on 1 ha = 10 m³
+        raw_volume = dose * inputs.water_area_ha * 10.0  # 1 mm on 1 ha = 10 m³
         volume = round_to(raw_volume, 1.0 if raw_volume >= 10 else 0.1)
         params.update(
             {
@@ -339,6 +339,7 @@ def irrigation_advice(
                 "applications": applications,
                 "light_soil": int(category in (SoilCategory.I, SoilCategory.II)),
                 "volume_m3": volume or 0.0,
+                "farm_parcels": inputs.farm_parcels,
                 "severe": int(stress_coefficient(bday.dr_mm, balance.taw_mm, balance.p) < WAIT_MIN_KS),
             }
         )

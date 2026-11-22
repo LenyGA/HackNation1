@@ -18,7 +18,15 @@
   <span>{{ r.parcel.area_ha|num(0.01) }} ha</span>
   <span>Uprawa: {{ r.crop.name_pl }}</span>
   <span>Stan na: <b>{{ r.analysis_date|date_dmy }}</b></span>
+  {% if r.farm %}<span>Gospodarstwo: <b>{{ r.farm.count }} {{ r.farm.count|plural('działka', 'działki', 'działek') }}, {{ r.farm.total_area_ha|num(0.01) }} ha</b></span>{% endif %}
 </div>
+
+{% if r.farm %}
+<div class="farm">
+  {% for t in r.farm.text_pl %}<p class="small">{{ t }}</p>{% endfor %}
+  <p class="small">Pozostałe działki: {% for p in r.farm.parcels %}{{ p.id }} ({{ p.area_ha|num(0.01) }} ha{% if p.distance_m is not none %}, {% if p.distance_m == 0 %}przylega do głównej{% else %}ok. {{ p.distance_m|num }} m od głównej{% endif %}{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}.</p>
+</div>
+{% endif %}
 
 <div class="headline level-{{ r.headline.level }}">
   <div class="label">{{ r.headline.label_pl }}</div>

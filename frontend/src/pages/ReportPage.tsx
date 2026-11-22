@@ -2,7 +2,7 @@ import { Check, Download, Link2, Loader2, Printer, RotateCcw } from 'lucide-reac
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiRequestError } from '@/api/client'
-import type { Report, ReportSection, ReportVariant } from '@/api/types'
+import type { Farm, Report, ReportSection, ReportVariant } from '@/api/types'
 import { ReportMapView } from '@/components/map/ReportMapView'
 import {
   Disclosure,
@@ -24,7 +24,7 @@ import { Simulator } from '@/components/report/Simulator'
 import { SummaryTiles } from '@/components/report/SummaryTiles'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatAreaHa, formatDatePl, formatDateTimePl } from '@/lib/format'
+import { formatAreaHa, formatDatePl, formatDateTimePl, parcelsPl } from '@/lib/format'
 
 /** ULDK names sometimes already carry the prefix ("powiat miński"); never write it twice. */
 function withPrefix(prefix: string, name: string | null): string | null {
@@ -211,7 +211,7 @@ function SectionExtras({ section, report }: { section: ReportSection; report: Re
           {cards(true)}
           {report.water_plan && <WaterPlanChart data={report.water_plan} />}
           {report.irrigation_economics && <IrrigationEconomicsBlock e={report.irrigation_economics} />}
-          {report.simulation && <Simulator sim={report.simulation} />}
+          {report.simulation && <Simulator sim={report.simulation} farmCount={report.farm?.count} />}
         </>
       )
     case 'sources':
@@ -238,7 +238,7 @@ function SectionCard({ section, report }: { section: ReportSection; report: Repo
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {section.id === 'irrigation' && report.irrigation.applicable && <IrrigationBlock irrigation={report.irrigation} />}
+        {section.id === 'irrigation' && report.irrigation.applicable && <IrrigationBlock irrigation={report.irrigation} farmCount={report.farm?.count} />}
         <Paragraphs items={sectionParagraphs(section, report)} />
         <SectionExtras section={section} report={report} />
         {section.indicators.length > 0 && (
@@ -257,6 +257,29 @@ function SectionCard({ section, report }: { section: ReportSection; report: Repo
         )}
       </CardContent>
     </Card>
+  )
+}
+
+/** Farm mode (G11): which results are sums over all parcels and which describe the main parcel only. */
+function FarmNote({ farm }: { farm: Farm }) {
+  return (
+    <div className="space-y-1.5 rounded-md border border-sky-400/50 bg-sky-50 px-3 py-2 text-sm dark:bg-sky-950/30">
+      <p className="font-semibold">
+        Gospodarstwo: {farm.count} {parcelsPl(farm.count)}, {formatAreaHa(farm.total_area_ha)}
+      </p>
+      {farm.text_pl.map((t) => (
+        <p key={t}>{t}</p>
+      ))}
+      <ul className="text-xs text-muted-foreground">
+        {farm.parcels.map((fp) => (
+          <li key={fp.id}>
+            Działka {fp.number ? `${fp.number} (${fp.id})` : fp.id} · {formatAreaHa(fp.area_ha)}
+            {fp.distance_m !== null &&
+              (fp.distance_m === 0 ? ' · przylega do głównej' : ` · ok. ${Math.round(fp.distance_m)} m od głównej`)}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -377,6 +400,7 @@ export function ReportPage() {
           Numer działki: {p.id} · raport przygotowano {formatDateTimePl(report.created_at)}
         </p>
       </div>
+      {report.farm && <FarmNote farm={report.farm} />}
 
       <HeadlineBanner headline={report.headline} />
       <SummaryTiles tiles={report.summary_tiles} sections={report.sections} />

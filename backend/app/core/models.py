@@ -105,15 +105,38 @@ def analysis_date_bounds(today: date | None = None) -> tuple[date, date]:
     return today - relativedelta(years=HISTORY_YEARS), today
 
 
+# Farm mode (G11, plan33 M7): up to 5 more parcels within 2 km of the main one. Only the main parcel is
+# analysed (weather, soil, satellite, terrain); the extra ones add their area to the water volumes.
+MAX_EXTRA_PARCELS = 5
+MAX_FARM_DISTANCE_M = 2000.0
+
+
 class AnalysisRequest(BaseModel):
     parcel_id: str
     crop_id: str
     analysis_date: date
+    extra_parcel_ids: list[str] = Field(default_factory=list)
 
     @field_validator("parcel_id")
     @classmethod
     def _parcel_id(cls, v: str) -> str:
         return validate_parcel_id(v)
+
+    @field_validator("extra_parcel_ids")
+    @classmethod
+    def _extra_parcel_ids(cls, v: list[str]) -> list[str]:
+        if len(v) > MAX_EXTRA_PARCELS:
+            raise ValueError(f"Do analizy można dodać najwyżej {MAX_EXTRA_PARCELS} działek oprócz głównej.")
+        ids = [validate_parcel_id(x) for x in v]
+        if len(set(ids)) != len(ids):
+            raise ValueError("Ta sama działka jest dodana dwa razy.")
+        return ids
+
+    @model_validator(mode="after")
+    def _extra_not_main(self) -> Self:
+        if self.parcel_id in self.extra_parcel_ids:
+            raise ValueError("Działka główna nie może być jednocześnie działką dodatkową.")
+        return self
 
     @field_validator("analysis_date")
     @classmethod

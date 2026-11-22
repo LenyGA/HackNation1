@@ -264,3 +264,101 @@ def test_queue_full_is_429(client: TestClient, monkeypatch: pytest.MonkeyPatch) 
 
 def test_unknown_api_path_is_not_spa(client: TestClient) -> None:
     assert client.get("/api/nonexistent").status_code == 404
+
+
+# --- farm mode (G11, plan33 M7) ---------------------------------------------------------------------
+
+FAR_SUFFIX = ".7777"  # shifted 3 km east: 2.8 km between the outlines (main is 200 m wide)
+SAME_SUFFIX = ".8888"  # the fake ULDK resolves this id to the main parcel
+ALIAS_SUFFIX = ".6666"  # the fake ULDK resolves this id to extra parcel ".1"
+
+
+@pytest.fixture
+def farm_uldk(fake_sources: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    from shapely.affinity import translate
+    from shapely.geometry import mapping
+
+    from app.sources.base import METRIC_CRS, parcel_shape, to_crs
+    from tests.analysis.builders import default_parcel
+
+    plain = uldk.get_parcel_by_id
+
+    async def get_parcel(parcel_id: str) -> Parcel:
+        if parcel_id.endswith(SAME_SUFFIX):
+            return await plain(PARCEL_ID)
+        if parcel_id.endswith(ALIAS_SUFFIX):  # another spelling ULDK resolves to extra parcel ".1"
+            return await plain("141201_1.0001.1")
+        p = await plain(parcel_id)
+        if parcel_id.endswith(FAR_SUFFIX):
+            metric = translate(to_crs(parcel_shape(default_parcel()), METRIC_CRS), xoff=3000.0)
+            geom = to_crs(metric, 4326, src_crs=METRIC_CRS)
+            return p.model_copy(update={"geometry": dict(mapping(geom))})
+        return p
+
+    monkeypatch.setattr(uldk, "get_parcel_by_id", get_parcel)
+
+
+def test_farm_analysis_report_has_farm(client: TestClient, farm_uldk: None) -> None:
+    extra = ["141201_1.0001.1", "141201_1.0001.2"]
+    status = _wait(client, _post(client, extra_parcel_ids=extra).json()["id"])
+    assert status["status"] == "done", status
+    body = client.get(f"/api/reports/{status['report_id']}").json()
+    assert body["parcel"]["id"] == PARCEL_ID
+    farm = body["farm"]
+    assert farm["count"] == 3
+    assert [p["id"] for p in farm["parcels"]] == extra
+    assert farm["total_area_ha"] == pytest.approx(3 * body["parcel"]["area_ha"], abs=0.01)
+    assert all(p["distance_m"] == 0.0 for p in farm["parcels"])
+    html = client.get(f"/api/reports/{status['report_id']}.html").text
+    assert "Gospodarstwo" in html
+    assert client.get(f"/api/reports/{status['report_id']}.pdf").status_code == 200
+
+
+def test_no_extra_parcels_no_farm(client: TestClient) -> None:
+    status = _wait(client, _post(client).json()["id"])
+    assert client.get(f"/api/reports/{status['report_id']}").json()["farm"] is None
+
+
+@pytest.mark.parametrize(
+    ("extra_id", "fragments"),
+    [
+        ("141201_1.0001" + FAR_SUFFIX, ["leży ok. 2,8 km od działki głównej", "do 2 km"]),
+        ("141201_1.0001.9999", ["Działka dodatkowa 141201_1.0001.9999", "Nie znaleziono działki"]),
+        ("141201_1.0001" + SAME_SUFFIX, ["to ta sama działka co główna"]),
+    ],
+)
+def test_bad_extra_parcel_fails_job(
+    client: TestClient, farm_uldk: None, extra_id: str, fragments: list[str]
+) -> None:
+    status = _wait(client, _post(client, extra_parcel_ids=["141201_1.0001.1", extra_id]).json()["id"])
+    assert status["status"] == "failed"
+    assert status["report_id"] is None
+    assert extra_id in status["error_pl"]
+    for f in fragments:
+        assert f in status["error_pl"], status["error_pl"]
+    assert all(s["status"] != "pending" for s in status["sources"])
+
+
+def test_extra_parcels_resolving_to_one_parcel_fail_job(client: TestClient, farm_uldk: None) -> None:
+    """Two spellings of one parcel must not count its area twice (review M7)."""
+    extra = ["141201_1.0001.1", "141201_1.0001" + ALIAS_SUFFIX]
+    status = _wait(client, _post(client, extra_parcel_ids=extra).json()["id"])
+    assert status["status"] == "failed"
+    assert "dwa razy" in status["error_pl"]
+    uldk_row = next(s for s in status["sources"] if s["name"] == "uldk")
+    assert uldk_row["status"] == "ok"  # the parcels were found; only the farm list is wrong
+
+
+@pytest.mark.parametrize(
+    ("extra", "fragment"),
+    [
+        ([PARCEL_ID], "Działka główna"),
+        (["141201_1.0001.1"] * 2, "dwa razy"),
+        ([f"141201_1.0001.{n}" for n in range(1, 7)], "najwyżej 5"),
+        (["abc"], "Nieprawidłowy numer działki"),
+    ],
+)
+def test_bad_extra_parcel_ids_are_400(client: TestClient, extra: list[str], fragment: str) -> None:
+    r = _post(client, extra_parcel_ids=extra)
+    assert r.status_code == 400
+    assert fragment in r.json()["detail"]

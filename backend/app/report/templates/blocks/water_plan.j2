@@ -3,7 +3,7 @@
 W ostatnich {{ p.years }} latach uprawa ({{ crop }}) na tej działce nie potrzebowała nawadniania nawet w roku suchym — deszcz i woda zmagazynowana w glebie pokrywały jej potrzeby.
 
 {% elif p.season_median_mm is not none %}
-Plan wody na sezon (marzec–październik, uprawa: {{ crop }}): w typowym roku trzeba by dodać ok. {{ p.season_median_mm|num }} mm wody{% if area_ha %} (ok. {{ (p.season_median_mm * area_ha * 10)|num(10) }} m³ na działkę){% endif %}, w roku suchym, który zdarza się mniej więcej raz na 5 lat — ok. {{ p.season_p80_mm|num }} mm{% if p.season_p80_m3_parcel is not none %} (ok. {{ p.season_p80_m3_parcel|num(10) }} m³){% endif %}{% if p.season_p90_mm is not none %}, a w bardzo suchym (raz na 10 lat) — ok. {{ p.season_p90_mm|num }} mm{% endif %}. Planuj zapas wody na rok suchy, a nie na średni. To ilości netto — woda, która ma wsiąknąć w glebę.
+Plan wody na sezon (marzec–październik, uprawa: {{ crop }}): w typowym roku trzeba by dodać ok. {{ p.season_median_mm|num }} mm wody{% if area_ha %} (ok. {{ (p.season_median_mm * area_ha * 10)|num(10) }} m³ {{ farm_n|default(1)|m3_where }}){% endif %}, w roku suchym, który zdarza się mniej więcej raz na 5 lat — ok. {{ p.season_p80_mm|num }} mm{% if p.season_p80_m3_parcel is not none %} (ok. {{ p.season_p80_m3_parcel|num(10) }} m³){% endif %}{% if p.season_p90_mm is not none %}, a w bardzo suchym (raz na 10 lat) — ok. {{ p.season_p90_mm|num }} mm{% endif %}. Planuj zapas wody na rok suchy, a nie na średni. To ilości netto — woda, która ma wsiąknąć w glebę.
 
 {% if top_months %}
 Najwięcej wody brakuje w miesiącach: {{ top_months|months_pl }}.

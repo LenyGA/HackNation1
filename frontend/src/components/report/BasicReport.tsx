@@ -72,7 +72,7 @@ export function BasicReport({ report }: { report: Report }) {
             <CardTitle className="text-lg">Co zrobić teraz</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {irrigationNow && <IrrigationBlock irrigation={report.irrigation} />}
+            {irrigationNow && <IrrigationBlock irrigation={report.irrigation} farmCount={report.farm?.count} />}
             {now.length > 0 ? (
               <ol className="space-y-3">
                 {now.map((r) => (

@@ -13,7 +13,7 @@ import type {
   SourceStatus,
 } from '@/api/types'
 import { cn } from '@/lib/utils'
-import { formatDatePl, formatDateTimePl, formatNumberPl } from '@/lib/format'
+import { formatDatePl, formatDateTimePl, formatNumberPl, m3WherePl } from '@/lib/format'
 
 // UI labels only; every sentence about the parcel comes ready from the backend (plan, decision 2).
 
@@ -201,7 +201,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function IrrigationBlock({ irrigation }: { irrigation: ReportIrrigation }) {
+export function IrrigationBlock({ irrigation, farmCount }: { irrigation: ReportIrrigation; farmCount?: number }) {
   const stats: { label: string; value: string }[] = []
   if (irrigation.within_days === 0) stats.push({ label: 'Termin', value: 'od razu' })
   else if (irrigation.irrigate_by) stats.push({ label: 'Podlej do', value: formatDatePl(irrigation.irrigate_by) })
@@ -212,7 +212,7 @@ export function IrrigationBlock({ irrigation }: { irrigation: ReportIrrigation }
       value: `${irrigation.applications} × ok. ${formatNumberPl(irrigation.single_dose_mm)} mm`,
     })
   }
-  if (irrigation.volume_m3 !== null) stats.push({ label: 'Woda na całą działkę', value: `ok. ${formatNumberPl(irrigation.volume_m3)} m³` })
+  if (irrigation.volume_m3 !== null) stats.push({ label: `Woda ${m3WherePl(farmCount, 'na całą działkę')}`, value: `ok. ${formatNumberPl(irrigation.volume_m3)} m³` })
 
   return (
     <div className="space-y-3">

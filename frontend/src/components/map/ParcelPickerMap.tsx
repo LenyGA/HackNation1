@@ -22,17 +22,23 @@ import { useMapFullscreen } from './useMapFullscreen'
 
 interface Props {
   selected: Parcel | null
+  // Farm mode (G11): more parcels of the same farm, drawn in blue; a tap then adds a parcel instead.
+  extras?: Parcel[]
+  adding?: boolean
   onPick: (parcel: Parcel) => void
   onError: (message: string) => void
 }
 
+const NO_EXTRAS: Parcel[] = []
+
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
-function parcelCollection(parcel: Parcel | null): FeatureCollection {
-  if (!parcel) return EMPTY
+function parcelCollection(parcels: Parcel | null | Parcel[]): FeatureCollection {
+  const list = Array.isArray(parcels) ? parcels : parcels ? [parcels] : []
+  if (list.length === 0) return EMPTY
   return {
     type: 'FeatureCollection',
-    features: [{ type: 'Feature', properties: {}, geometry: parcel.geometry as unknown as Geometry }],
+    features: list.map((p) => ({ type: 'Feature', properties: {}, geometry: p.geometry as unknown as Geometry })),
   }
 }
 
@@ -47,10 +53,11 @@ function geolocationError(err: GeolocationPositionError): string {
 }
 
 /** Map for choosing a parcel: tap a field to look it up in the cadastre (ULDK) and highlight its outline. */
-export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
+export default function ParcelPickerMap({ selected, extras = NO_EXTRAS, adding = false, onPick, onError }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const selectedRef = useRef<Parcel | null>(selected)
+  const extrasRef = useRef<Parcel[]>(extras)
   // Latest callbacks, read by the map's click handler that is registered once.
   const handlers = useRef({ onPick, onError })
   const [busy, setBusy] = useState(false)
@@ -72,12 +79,15 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
       style: baseStyle(
         {
           selected: { type: 'geojson', data: parcelCollection(selectedRef.current) },
+          extras: { type: 'geojson', data: parcelCollection(extrasRef.current) },
           outside: { type: 'geojson', data: outsidePolandMask() },
         },
         [
           // Grey veil over everything outside Poland, under the parcel outline.
           { id: 'outside-fill', type: 'fill', source: 'outside', paint: { 'fill-color': '#334155', 'fill-opacity': 0.45 } },
           { id: 'outside-line', type: 'line', source: 'outside', paint: { 'line-color': '#dc2626', 'line-width': 1.5, 'line-opacity': 0.7 } },
+          { id: 'extras-fill', type: 'fill', source: 'extras', paint: { 'fill-color': '#38bdf8', 'fill-opacity': 0.25 } },
+          { id: 'extras-line', type: 'line', source: 'extras', paint: { 'line-color': '#38bdf8', 'line-width': 2.5 } },
           { id: 'selected-fill', type: 'fill', source: 'selected', paint: { 'fill-color': '#facc15', 'fill-opacity': 0.25 } },
           { id: 'selected-line', type: 'line', source: 'selected', paint: { 'line-color': '#facc15', 'line-width': 3 } },
         ],
@@ -154,6 +164,18 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
     if (b) map.fitBounds(b, { padding: 60, maxZoom: 18, duration: 800 })
   }, [selected])
 
+  useEffect(() => {
+    if (extrasRef.current === extras) return
+    extrasRef.current = extras
+    const map = mapRef.current
+    if (!map) return
+    const apply = () => {
+      ;(map.getSource('extras') as GeoJSONSource | undefined)?.setData(parcelCollection(extras))
+    }
+    if (map.getSource('extras')) apply()
+    else map.once('style.load', apply)
+  }, [extras])
+
   function locate() {
     if (!('geolocation' in navigator)) {
       onError('Ta przeglądarka nie udostępnia lokalizacji. Wpisz numer działki albo znajdź ją na mapie.')
@@ -222,7 +244,9 @@ export default function ParcelPickerMap({ selected, onPick, onError }: Props) {
         <p className="text-xs text-muted-foreground">
           {zoom < PARCELS_MIN_ZOOM
             ? 'Przybliż mapę, aby zobaczyć granice działek, i dotknij swojego pola.'
-            : 'Dotknij swojego pola, aby je wybrać.'}
+            : adding
+              ? 'Dotknij kolejnego pola, aby dodać je do gospodarstwa.'
+              : 'Dotknij swojego pola, aby je wybrać.'}
         </p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Simulation, StrategyId } from '@/api/types'
-import { formatNumberPl } from '@/lib/format'
+import { formatNumberPl, m3WherePl } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { AXIS, niceTicks, useMeasuredWidth } from './chartUtils'
 import { Disclosure } from './ReportParts'
@@ -67,7 +67,7 @@ function StressLines({ sim, chosen, year }: { sim: Simulation; chosen: StrategyI
   )
 }
 
-export function Simulator({ sim }: { sim: Simulation }) {
+export function Simulator({ sim, farmCount }: { sim: Simulation; farmCount?: number }) {
   const [chosen, setChosen] = useState<StrategyId>(sim.strategies[0]?.id ?? 'none')
   const [year, setYear] = useState(1)
   const strategy = sim.strategies.find((s) => s.id === chosen) ?? sim.strategies[0]
@@ -147,7 +147,7 @@ export function Simulator({ sim }: { sim: Simulation }) {
             <dt className="text-xs text-muted-foreground">Woda do podlewania (rok suchy)</dt>
             <dd className="text-lg font-semibold tabular-nums">{val(row.irrigation_mm_p80, 'mm')}</dd>
             {row.irrigation_m3_parcel_p80 !== null && row.irrigation_m3_parcel_p80 > 0 && (
-              <dd className="text-xs text-muted-foreground">ok. {formatNumberPl(row.irrigation_m3_parcel_p80)} m³ na działkę</dd>
+              <dd className="text-xs text-muted-foreground">ok. {formatNumberPl(row.irrigation_m3_parcel_p80)} m³ {m3WherePl(farmCount)}</dd>
             )}
           </div>
           <div className="rounded-md border bg-background px-3 py-2">

@@ -17,7 +17,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from app.analysis.common import round_to
 from app.core.config import LOCAL_TZ
-from app.recommendations.texts_pl import MONTHS_GENITIVE_PL, MONTHS_PL
+from app.recommendations.texts_pl import MONTHS_GENITIVE_PL, MONTHS_PL, farm_where_pl
 from app.report.labels_pl import CAUSE_TITLES
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -244,6 +244,7 @@ def _env(autoescape: bool) -> Environment:
         wetness_pl=wetness_pl,
         balance_pl=balance_pl,
         plural=plural,
+        m3_where=farm_where_pl,
         with_prefix=with_prefix,
         days_instr_pl=days_instr_pl,
         source_short=source_short,

@@ -67,7 +67,7 @@ INDICATOR_LABELS: dict[str, str] = {
     "hot_days_30d_history_mean": "Średnio dni upalnych w tym okresie w 10 latach",
     "forecast_precip_mm": "Prognozowany opad na najbliższe dni",
     "irrigation_dose_mm": "Dawka nawadniania (do pełnego uzupełnienia wody w glebie)",
-    "irrigation_volume_m3": "Ilość wody na całą działkę",
+    "irrigation_volume_m3": "Ilość wody do podania (na całą powierzchnię)",
 }
 MONTH_INDICATOR_PREFIX = "deficit_frequency_month_"
 MONTH_INDICATOR_LABEL = "Lata z niedoborem wody w miesiącu: {month}"

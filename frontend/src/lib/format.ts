@@ -80,3 +80,16 @@ export function formatDateDmy(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-')
   return `${d}.${m}.${y}`
 }
+
+/** Polish noun form after a parcel count: 1 działka, 2 działki, 5 działek (G11). */
+export function parcelsPl(n: number): string {
+  if (n === 1) return 'działka'
+  return n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14) ? 'działki' : 'działek'
+}
+
+/** Whom an m³ volume is for: "na działkę" or, in farm mode, "na 3 działki gospodarstwa" (G11). */
+export function m3WherePl(farmCount: number | null | undefined, single = 'na działkę'): string {
+  if (!farmCount || farmCount <= 1) return single
+  const form = parcelsPl(farmCount) === 'działki' ? 'działki' : 'działek'
+  return `na ${farmCount} ${form} gospodarstwa`
+}

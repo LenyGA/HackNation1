@@ -3,7 +3,7 @@
 from datetime import date
 from enum import StrEnum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.models import Parcel, SourceStatus
 from app.crops.catalog import CropKind
@@ -30,6 +30,9 @@ class AnalysisCreate(BaseModel):
     parcel_id: str
     crop_id: str
     analysis_date: date
+    # Farm mode (G11): more parcels of the same farm; empty = single-parcel analysis, unchanged.
+    # The hard cap only bounds the body; the limit the farmer sees is checked in AnalysisRequest.
+    extra_parcel_ids: list[str] = Field(default_factory=list, max_length=20)
 
 
 class AnalysisCreated(BaseModel):

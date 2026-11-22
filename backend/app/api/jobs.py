@@ -18,9 +18,10 @@ from typing import Any
 
 from app.analysis.assessment import assess
 from app.analysis.context import AnalysisInputs, landcover_for_crop
+from app.analysis.farm import distance_m
 from app.api.schemas import AnalysisState, AnalysisStatus, SourceProgress, SourceProgressState
 from app.core.config import get_settings
-from app.core.models import AnalysisRequest, Parcel, SourceResult
+from app.core.models import MAX_FARM_DISTANCE_M, AnalysisRequest, Parcel, SourceResult
 from app.crops.catalog import Crop
 from app.recommendations.engine import recommend
 from app.recommendations.irrigation import irrigation_advice
@@ -41,6 +42,16 @@ MAX_PENDING_TASKS = 50
 
 MSG_UNEXPECTED = "Wystąpił nieoczekiwany błąd podczas analizy. Spróbuj ponownie za chwilę."
 MSG_SOURCE_ERROR = "Nie udało się pobrać tych danych z powodu błędu po stronie serwisu."
+MSG_EXTRA_PARCEL = "Działka dodatkowa {id}: {reason}"
+MSG_EXTRA_TOO_FAR = (
+    "Działka {id} leży ok. {km} km od działki głównej — w jednej analizie łączymy tylko działki "
+    "do {max_km} km od siebie. Przeanalizuj ją osobno."
+)
+MSG_EXTRA_NO_GEOMETRY = (
+    "Nie udało się sprawdzić położenia działki {id} względem działki głównej. Przeanalizuj ją osobno."
+)
+MSG_EXTRA_DUPLICATE = "Działka {id} jest na liście dwa razy (pod różnymi numerami) — usuń jeden z nich."
+MSG_EXTRA_SAME = "Działka {id} to ta sama działka co główna — usuń ją z listy."
 
 Fetcher = Callable[[Parcel, date], Awaitable[SourceResult[Any]]]
 
@@ -164,7 +175,57 @@ async def _fetch_source(job: Job, spec: SourceSpec, parcel: Parcel) -> SourceRes
     return result
 
 
-def _compute(job: Job, parcel: Parcel, parcel_source: ParcelSource, results: dict[str, Any]) -> Any:
+class FarmError(Exception):
+    def __init__(self, message_pl: str) -> None:
+        super().__init__(message_pl)
+        self.message_pl = message_pl
+
+
+def _km(meters: float) -> str:
+    km = meters / 1000
+    km = round(km) if km >= 10 else round(km, 1)  # "501 km", "2,8 km", "2 km"
+    return f"{km:g}".replace(".", ",")
+
+
+async def _parcels(request: AnalysisRequest) -> tuple[Parcel, tuple[Parcel, ...]]:
+    """Main parcel and the extra farm parcels (G11), all from ULDK at once.
+
+    Raises the ULDK errors of the main parcel unchanged and FarmError for an extra parcel that cannot be used:
+    the farmer added it on purpose, so it is never dropped silently.
+    """
+    ids = [request.parcel_id, *request.extra_parcel_ids]
+    found = await asyncio.gather(*(uldk.get_parcel_by_id(i) for i in ids), return_exceptions=True)
+    main = found[0]
+    if isinstance(main, BaseException):
+        raise main
+    extra: list[Parcel] = []
+    seen = {main.id}
+    for pid, p in zip(request.extra_parcel_ids, found[1:], strict=True):
+        if isinstance(p, uldk.ParcelNotFound | uldk.ParcelServiceError):
+            raise FarmError(MSG_EXTRA_PARCEL.format(id=pid, reason=p.message_pl))
+        if isinstance(p, BaseException):
+            raise p
+        if p.id == main.id:
+            raise FarmError(MSG_EXTRA_SAME.format(id=pid))
+        if p.id in seen:  # two spellings ULDK resolves to one parcel: its area must not count twice
+            raise FarmError(MSG_EXTRA_DUPLICATE.format(id=p.id))
+        seen.add(p.id)
+        d = distance_m(main, p)
+        if d is None:
+            raise FarmError(MSG_EXTRA_NO_GEOMETRY.format(id=pid))
+        if d > MAX_FARM_DISTANCE_M:
+            raise FarmError(MSG_EXTRA_TOO_FAR.format(id=pid, km=_km(d), max_km=_km(MAX_FARM_DISTANCE_M)))
+        extra.append(p)
+    return main, tuple(extra)
+
+
+def _compute(
+    job: Job,
+    parcel: Parcel,
+    parcel_source: ParcelSource,
+    results: dict[str, Any],
+    extra_parcels: tuple[Parcel, ...] = (),
+) -> Any:
     """CPU part of the analysis (pure functions), run in a worker thread."""
     inputs = AnalysisInputs(
         parcel=parcel,
@@ -178,6 +239,7 @@ def _compute(job: Job, parcel: Parcel, parcel_source: ParcelSource, results: dic
         landcover=results[landcover.NAME],
         flood=results.get(flood.NAME),
         groundwater=results.get(groundwater.NAME),
+        extra_parcels=extra_parcels,
     )
     assessment = assess(inputs)
     recommendations = recommend(assessment, inputs)
@@ -198,17 +260,19 @@ async def _run(job: Job) -> None:
         job.state = AnalysisState.RUNNING
         try:
             try:
-                parcel = await uldk.get_parcel_by_id(job.request.parcel_id)
-            except (uldk.ParcelNotFound, uldk.ParcelServiceError) as exc:
+                parcel, extra_parcels = await _parcels(job.request)
+            except (uldk.ParcelNotFound, uldk.ParcelServiceError, FarmError) as exc:
                 # Without the parcel nothing else is fetched: no source stays "pending".
                 job.sources = dict.fromkeys(SOURCE_NAMES, SourceProgressState.MISSING)
+                if isinstance(exc, FarmError):  # the parcels were found; one of them cannot join the farm
+                    job.sources[uldk.NAME] = SourceProgressState.OK
                 job.state, job.error_pl = AnalysisState.FAILED, exc.message_pl
                 return
             job.sources[uldk.NAME] = SourceProgressState.OK
             parcel_source = ParcelSource(fetched_at=now_utc())
             fetched = await asyncio.gather(*(_fetch_source(job, spec, parcel) for spec in SOURCES))
             results = {spec.name: r for spec, r in zip(SOURCES, fetched, strict=True)}
-            report = await asyncio.to_thread(_compute, job, parcel, parcel_source, results)
+            report = await asyncio.to_thread(_compute, job, parcel, parcel_source, results, extra_parcels)
             await save_report(report)
             job.report_id = report.id
             job.state = AnalysisState.DONE

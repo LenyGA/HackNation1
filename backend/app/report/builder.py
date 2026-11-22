@@ -22,6 +22,7 @@ from app.analysis.context import (
     landcover_surroundings,
     surroundings_nearest_m,
 )
+from app.analysis.farm import distance_m
 from app.analysis.history import RISK_FREQUENCY, HistoryMethod
 from app.analysis.retention_balance import RetentionCoverage, retention_coverage
 from app.analysis.series import Weather, same_day_in_year
@@ -37,6 +38,8 @@ from app.report.models import (
     SECTION_ORDER,
     ChartPoint,
     EvidenceItem,
+    Farm,
+    FarmParcel,
     Headline,
     HeadlineLevel,
     MapFeature,
@@ -702,7 +705,7 @@ def _coverage_view(c: RetentionCoverage, inputs: AnalysisInputs, drip: bool = Fa
         rescue_need_m3=c.rescue_need_m3,
         full_pct=c.full_pct,
         rescue_pct=c.rescue_pct,
-        text_pl=render_line("blocks/retention_coverage.j2", c=c, drip=drip),
+        text_pl=render_line("blocks/retention_coverage.j2", c=c, drip=drip, farm_n=inputs.farm_parcels),
         source=computed_source(inputs.dem.source, inputs.weather.source, inputs.soil.source),
     )
 
@@ -726,8 +729,8 @@ def _retention_plan(
             label_pl=L.RETENTION_METHOD_LABELS[m.id],
             status=m.status.value,
             status_pl=L.RETENTION_STATUS_LABELS[m.status.value],
-            reason_pl=render_line("blocks/retention_method.j2", m=m),
-            legal_pl=render_line("blocks/retention_permit.j2", m=m) or None,
+            reason_pl=render_line("blocks/retention_method.j2", m=m, farm_n=inputs.farm_parcels),
+            legal_pl=render_line("blocks/retention_permit.j2", m=m, farm_n=inputs.farm_parcels) or None,
             evidence=[evidence_item(i) for i in m.evidence],
         )
         for m in sorted(methods, key=lambda m: order[m.id])
@@ -737,6 +740,42 @@ def _retention_plan(
         methods=views,
         legal_basis_pl=WATER_LAW_PL,
     )
+
+
+# --- farm mode (G11) --------------------------------------------------------------------------------
+
+
+def _farm(inputs: AnalysisInputs) -> Farm | None:
+    """None for a single parcel, so a one-parcel report is exactly what it was before G11."""
+    if not inputs.extra_parcels:
+        return None
+    n = inputs.farm_parcels
+    total = inputs.water_area_ha
+    main, _ = render_text("blocks/farm.j2", n=n, total_ha=total, main_ha=inputs.parcel.area_ha)
+    return Farm(
+        count=n,
+        total_area_ha=round(total, 4),
+        parcels=[
+            FarmParcel(
+                id=p.id,
+                number=p.number,
+                precinct=p.precinct,
+                commune=p.commune,
+                area_ha=p.area_ha,
+                distance_m=_r_distance(distance_m(inputs.parcel, p)),
+                geometry=p.geometry,
+            )
+            for p in inputs.extra_parcels
+        ],
+        text_pl=main,
+        source=uldk.SOURCE,
+    )
+
+
+def _r_distance(d: float | None) -> float | None:
+    if d is None:
+        return None
+    return 0.0 if d < 1 else float(round(d, -1 if d >= 100 else 0))
 
 
 # --- entry point ------------------------------------------------------------------------------------
@@ -803,6 +842,7 @@ def build_report(
         app=APP_TITLE,
         version=APP_VERSION,
         parcel=inputs.parcel,
+        farm=_farm(inputs),
         crop=ReportCrop(id=inputs.crop.id, name_pl=inputs.crop.name_pl),
         analysis_date=inputs.analysis_date,
         complete=assessment.complete,

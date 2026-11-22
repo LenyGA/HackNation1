@@ -87,3 +87,42 @@ def test_analysis_request_date_range() -> None:
         )
     with pytest.raises(ValidationError):
         AnalysisRequest(parcel_id="141201_1.0001.6509", crop_id="maize", analysis_date=date(2010, 1, 1))
+
+
+# --- farm mode (G11, plan33 M7) ---------------------------------------------------------------------
+
+MAIN = "141201_1.0001.6509"
+
+
+def _req(extra: list[str]) -> AnalysisRequest:
+    return AnalysisRequest(
+        parcel_id=MAIN, crop_id="maize", analysis_date=date.today(), extra_parcel_ids=extra
+    )
+
+
+def test_extra_parcels_default_empty() -> None:
+    r = AnalysisRequest(parcel_id=MAIN, crop_id="maize", analysis_date=date.today())
+    assert r.extra_parcel_ids == []
+
+
+def test_extra_parcels_valid_and_stripped() -> None:
+    ids = [f"141201_1.0001.{n}" for n in range(1, 6)]
+    assert _req(ids).extra_parcel_ids == ids
+    assert _req([" 141201_1.0001.123/4 "]).extra_parcel_ids == ["141201_1.0001.123/4"]
+
+
+@pytest.mark.parametrize(
+    ("extra", "fragment"),
+    [
+        ([f"141201_1.0001.{n}" for n in range(1, 7)], "najwyżej 5 działek"),
+        (["141201_1.0001.1", "141201_1.0001.1"], "dwa razy"),
+        (["141201_1.0001.1", " 141201_1.0001.1"], "dwa razy"),  # duplicate after stripping
+        (["abc"], "Nieprawidłowy numer działki"),
+        (["141201_1.0001.12;DROP"], "Nieprawidłowy numer działki"),
+        ([MAIN], "Działka główna nie może być"),
+        ([f" {MAIN} "], "Działka główna nie może być"),
+    ],
+)
+def test_extra_parcels_invalid(extra: list[str], fragment: str) -> None:
+    with pytest.raises(ValueError, match=fragment):
+        _req(extra)

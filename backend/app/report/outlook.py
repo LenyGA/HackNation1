@@ -26,6 +26,7 @@ from app.recommendations.irrigation import IrrigationAdvice, single_dose_max_mm
 from app.recommendations.irrigation_tech import TechChoice
 from app.recommendations.models import Category, Horizon, Recommendation
 from app.recommendations.retention_methods import POND_NOTIFICATION_MAX_AREA_M2
+from app.recommendations.texts_pl import farm_where_pl
 from app.report import labels_pl as L
 from app.report.irrigation_economics import economics_view, technology_for
 from app.report.models import (
@@ -327,7 +328,7 @@ def _water_plan(
     if p is None or p.season_median_mm is None:
         return None
     efficiency = tech.efficiency if tech is not None else SPRINKLER_EFFICIENCY
-    area = inputs.parcel.area_ha
+    area = inputs.water_area_ha
     season_p80 = _r(p.season_p80_mm, SEASON_WATER_STEP_MM)
     p80_m3 = _r(season_p80 * area * 10, 10) if season_p80 is not None and area else None
     gross_m3 = _r(p80_m3 / efficiency, 10) if p80_m3 is not None else None
@@ -379,6 +380,7 @@ def _water_plan(
     )
     main, _ = render_text(
         "blocks/water_plan.j2",
+        farm_n=inputs.farm_parcels,
         p=view,
         crop=inputs.crop.name_pl.lower(),
         area_ha=area,
@@ -450,7 +452,7 @@ def _simulation(
 ) -> Simulation | None:
     if s is None:
         return None
-    area = inputs.parcel.area_ha
+    area = inputs.water_area_ha
     fruit = inputs.crop.is_fruit
     strategies: list[Strategy] = []
     for sid, (label, desc) in STRATEGY_TEXTS.items():
@@ -496,6 +498,7 @@ def _simulation(
     )
     main, _ = render_text(
         "blocks/simulation.j2",
+        farm_n=inputs.farm_parcels,
         s=view,
         none_y1=by["none"].get(1),
         none_y5=by["none"].get(5),
@@ -761,7 +764,7 @@ def _action_tile(
     )
 
 
-def _dry_year_tile(plan: WaterPlan | None) -> SummaryTile:
+def _dry_year_tile(plan: WaterPlan | None, farm_n: int = 1) -> SummaryTile:
     if plan is None or plan.season_p80_mm is None:
         return SummaryTile(
             id="dry_year",
@@ -780,14 +783,16 @@ def _dry_year_tile(plan: WaterPlan | None) -> SummaryTile:
             status="good",
             link_section="irrigation",
         )
-    m3 = f" · ok. {num(plan.season_p80_m3_parcel, 10)} m³" if plan.season_p80_m3_parcel is not None else ""
+    where = f" {farm_where_pl(farm_n)}" if farm_n > 1 else ""
+    p80_m3 = plan.season_p80_m3_parcel
+    m3 = f" · ok. {num(p80_m3, 10)} m³{where}" if p80_m3 is not None else ""
     return SummaryTile(
         id="dry_year",
         label_pl="Woda dla roślin na rok suchy (raz na 5 lat)",
         value_pl=f"ok. {num(plan.season_p80_mm, 5)} mm{m3}",
         detail_pl=f"W typowym roku ok. {num(plan.season_median_mm or 0, 5)} mm. "
         + (
-            f"Z instalacji trzeba podać ok. {num(plan.season_p80_m3_parcel_gross, 10)} m³ "
+            f"Z instalacji trzeba podać ok. {num(plan.season_p80_m3_parcel_gross, 10)} m³{where} "
             "(część wody się traci). "
             if plan.season_p80_m3_parcel_gross is not None
             else ""
@@ -834,7 +839,7 @@ def build_outlook(
         _water_tile(a),
         _action_tile(a, recs, irrigation, inputs.analysis_date),
         _climate_tile(trends),
-        _dry_year_tile(plan),
+        _dry_year_tile(plan, inputs.farm_parcels),
         _flood_tile(flood),
     ]
     return Outlook(

@@ -39,7 +39,11 @@ export interface AnalysisCreate {
   parcel_id: string
   crop_id: string
   analysis_date: string // ISO date YYYY-MM-DD
+  // Farm mode (G11): up to MAX_EXTRA_PARCELS more parcels within 2 km; omitted or [] = one parcel.
+  extra_parcel_ids?: string[]
 }
+
+export const MAX_EXTRA_PARCELS = 5
 
 export interface AnalysisCreated {
   id: string
@@ -507,6 +511,25 @@ export interface ReportMap {
   legend_pl: Partial<Record<MapFeatureKind, string>>
 }
 
+export interface FarmParcel {
+  id: string
+  number: string | null
+  precinct: string | null
+  commune: string | null
+  area_ha: number
+  distance_m: number | null // shortest distance to the main parcel, 0 = touching
+  geometry: GeoJsonGeometry
+}
+
+// Farm mode (G11): only the m³ volumes and the irrigation economics are sums over all parcels.
+export interface Farm {
+  count: number // all parcels, the main one included
+  total_area_ha: number
+  parcels: FarmParcel[] // extra parcels only
+  text_pl: string[]
+  source: string
+}
+
 export interface SourceEntry {
   name: string
   label_pl: string
@@ -525,6 +548,7 @@ export interface Report {
   app: string
   version: string
   parcel: Parcel
+  farm?: Farm | null
   crop: Crop
   analysis_date: string
   complete: boolean

@@ -118,7 +118,7 @@ def economics_view(
         catalog=catalog,
         tech=tech,
         efficiency=choice.efficiency,
-        area_ha=inputs.parcel.area_ha,
+        area_ha=inputs.water_area_ha,
         balance=a.root_zone,
         years=plan.years if plan is not None else [],
         typical_need_mm=plan_view.season_median_mm if plan_view is not None else None,
@@ -150,7 +150,9 @@ def economics_view(
         reel_hose_m=REEL_HOSE_M,
         small_area_ha=SMALL_AREA_HA,
     )
-    econ_text, _ = render_text("blocks/irrigation_economics.j2", e=e, v=v, crop=crop)
+    econ_text, _ = render_text(
+        "blocks/irrigation_economics.j2", e=e, v=v, crop=crop, farm_n=inputs.farm_parcels
+    )
     ce = e.crop
     t = catalog.technologies.get(tech) if tech is not None else None
     assumptions = EconomicsAssumptions(
@@ -186,7 +188,7 @@ def economics_view(
         verdict=e.verdict.value,
         verdict_pl=VERDICT_LABELS[e.verdict.value],
         text_pl=econ_text,
-        area_ha=inputs.parcel.area_ha,
+        area_ha=inputs.water_area_ha,
         mean_loss_share=round(e.mean_loss_share, 4) if e.mean_loss_share is not None else None,
         seasons=[EconomicsSeason(year=s.year, loss_pct=round(100 * s.loss_share, 1)) for s in e.seasons],
         critical_deficit_years=e.critical_deficit_years,

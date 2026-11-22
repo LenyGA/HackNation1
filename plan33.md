@@ -206,11 +206,11 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
 
 ### M7. G11 — gospodarstwo / sąsiednie działki (3:30)
 
-- [ ] **M7.1 Kontrakt.** `api/schemas.py`: `AnalysisRequest.extra_parcel_ids: list[str]` (maks. 5, walidacja formatu i odległości ≤ 2 km);
+- [x] **M7.1 Kontrakt.** `api/schemas.py`: `AnalysisRequest.extra_parcel_ids: list[str]` (maks. 5, walidacja formatu i odległości ≤ 2 km);
   domyślnie pusta lista, czyli przepływ jury bez zmian i < 30 s.
-- [ ] **M7.2 Backend.** `api/jobs.py`: dodatkowe geometrie z ULDK równolegle; pogoda, wody gruntowe i satelita tylko dla działki głównej.
+- [x] **M7.2 Backend.** `api/jobs.py`: dodatkowe geometrie z ULDK równolegle; pogoda, wody gruntowe i satelita tylko dla działki głównej.
   Suma areału wchodzi do potrzeb wody (m³), karty pokrycia (M4.2), progów prawnych i opłacalności (M5.3, jeśli jest).
-- [ ] **M7.3 UI.** `StartPage.tsx`, `ParcelPickerMap.tsx`: „+ Dodaj działkę” (ID lub klik), lista z usuwaniem; raport pokazuje
+- [x] **M7.3 UI.** `StartPage.tsx`, `ParcelPickerMap.tsx`: „+ Dodaj działkę” (ID lub klik), lista z usuwaniem; raport pokazuje
   „gospodarstwo: N działek, X ha” i mówi wprost, które wyniki dotyczą działki głównej, a które sumy.
 - [ ] **M7.4** Wspólny NMT dla stykających się działek (zagłębienie na granicy) — tylko po M7.1–M7.3.
   **Gotowe, gdy:** 1 działka = wynik identyczny jak przed zmianą (test regresji); 3 działki < 30 s; PDF pokazuje sumę areału.
@@ -223,6 +223,22 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
 - [ ] **M8.2** `deploy/deploy.sh root@129.121.162.156`, potem `deploy/e2e-vps.sh`; publiczny adres sprawdzony dla działki i daty spoza cache.
 - [ ] **M8.3** Macierz zgodności w `claude33.md`: statusy i data; lista tego, co nie weszło, przekazana zespołowi do „znanych ograniczeń” w README.
 - [ ] **M8.4** Po wdrożeniu żadnych zmian w kodzie poza poprawką błędu blokującego demo.
+- [ ] **M8.5 Nowy wygląd wg `../UI/`.** Przebudowa UI na wzór 3 makiet z folderu `UI/` (`*.webp`) + wstawienie logo zespołu
+  (nagłówek strony, favicon, nagłówek PDF). **Plik logo trzeba dołączyć** — nie ma go jeszcze w repo ani w `UI/`.
+- [ ] **M8.6 Poprawka mapy: ciek oznaczony jako strefa powodziowa.** Linia wodna (ciek / rów) na mapie raportu wygląda
+  lub jest opisana jak strefa zagrożenia powodziowego ISOK — rozdzielić warstwy, kolory i legendę
+  (`frontend/src/components/map/ReportMapView.tsx`, mapa w PDF).
+- [ ] **M8.7 Wyszukiwanie działki po adresie** (zgodnie z wymaganiami z treści zadania): adres → współrzędne → działka z ULDK
+  (`StartPage.tsx`, `ParcelPickerMap.tsx`, endpoint w backendzie). Nie mylić z G12 (gmina / obręb, rozdz. 7).
+- [ ] **M8.8 „Najważniejsze wnioski” → „Podsumowanie”** w obu wersjach raportu (Podstawowy i Pełny), na stronie i w PDF:
+  `BasicReport.tsx:52`, `report_basic.html.j2:44`, podpowiedź w `ReportPage.tsx:131`, odpowiedniki w raporcie pełnym.
+- [ ] **M8.9 Suwak ładniejszy i płynniejszy** (`frontend/src/components/report/Simulator.tsx`): wygląd zgodny z nowym UI,
+  płynne przesuwanie bez szarpania (przeliczenie z opóźnieniem / po puszczeniu, bez przerysowania całego raportu).
+
+- [x] **M8.10 Zaznaczanie kilku działek naraz** (zrobione w M7) (klik na mapie i ID) — zakres i kroki jak w **M7.1–M7.3** (G11); robić tamte kroki,
+  nie duplikować. Przeniesione tu jako obowiązkowe po 09:00, jeśli M7 nie weszło przed zamrożeniem.
+
+  **Uwaga:** M8.5–M8.10 kłócą się z M8.4 (po wdrożeniu bez zmian w kodzie) — robić przed M8.1–M8.2, a po nich wdrożyć ponownie.
 
 ### M9. Lista kontrolna zespołu (do 11:00)
 
@@ -250,6 +266,7 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
 | 4 per mille w agrotechnice | G8 | reguła niskiego SOC zostaje |
 | Wyszukiwanie po gminie i obrębie | G12 | opcjonalne |
 | Kontrola krzyżowa z IUNG / EDO | G13 | częściowo zastępuje G1 |
+| Wspólny NMT dla stykających się działek gospodarstwa; gleba, teren i satelita dla działek dodatkowych | G11, M7.4 | m³ i opłacalność liczone dla sumy areału, reszta z działki głównej (raport mówi to wprost) |
 | Działki skrajne (bardzo małe, duże, wieloczęściowe) | T5 | ostrzeżenie o użytkowaniu jest; rozmiary nietestowane |
 
 ## 8. Ryzyka

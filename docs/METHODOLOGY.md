@@ -332,3 +332,12 @@ bilansie z nawadnianiem i bez), a wpływ próchnicy na zapas wody jest mały (Mi
 Linia przez środek działki wzdłuż średniego kierunku spadku (na płaskim terenie: wzdłuż dłuższego boku), przycięta do
 działki, wysokości interpolowane dwuliniowo z siatki NMT (5 m) lub Copernicus (30 m). Obniżenia: miejsca, gdzie
 powierzchnia po wypełnieniu zagłębień (priority-flood) jest ≥ 0,2 m wyżej niż teren.
+
+## 14. Gospodarstwo — kilka działek (`analysis/farm.py`, G11)
+
+Do działki głównej można dodać do 5 działek tego samego gospodarstwa, leżących najwyżej 2 km od niej (najkrótsza
+odległość między granicami z ULDK, EPSG:2180). Analizujemy tylko działkę główną (pogoda, gleba, satelita, teren,
+otoczenie) i przyjmujemy jej wynik dla pozostałych, z tą samą uprawą. Suma powierzchni z ULDK wchodzi do wszystkich ilości
+wody w m³ (dawka nawadniania, plan wody na sezon, symulator, pokrycie potrzeb przez zagłębienie, próg poboru 5 m³/dobę)
+oraz do opłacalności nawadniania. Dobór maszyny zostaje dla kształtu i powierzchni działki głównej. Raport mówi wprost,
+które wyniki są sumą, a które dotyczą tylko działki głównej. Wspólny model terenu stykających się działek nie jest liczony.

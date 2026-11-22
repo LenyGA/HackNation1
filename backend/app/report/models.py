@@ -485,6 +485,28 @@ class ReportMap(BaseModel):
     legend_pl: dict[str, str] = Field(description="Feature kind → plain-language legend entry.")
 
 
+class FarmParcel(BaseModel):
+    """An extra parcel of the farm (G11); the main one is `Report.parcel`."""
+
+    id: str
+    number: str | None = None
+    precinct: str | None = None
+    commune: str | None = None
+    area_ha: float
+    distance_m: float | None = Field(description="Shortest distance to the main parcel, m (0 = touching).")
+    geometry: dict[str, Any] = Field(description="GeoJSON geometry in EPSG:4326.")
+
+
+class Farm(BaseModel):
+    """Farm mode (G11, plan33 M7): only volumes in m³ and the economics are sums over all parcels."""
+
+    count: int = Field(description="All parcels, the main one included.")
+    total_area_ha: float
+    parcels: list[FarmParcel] = Field(description="Extra parcels only.")
+    text_pl: list[str]
+    source: str
+
+
 class SourceEntry(BaseModel):
     name: str
     label_pl: str
@@ -503,6 +525,7 @@ class Report(BaseModel):
     app: str
     version: str
     parcel: Parcel
+    farm: Farm | None = Field(default=None, description="Set only when more than one parcel was analysed.")
     crop: ReportCrop
     analysis_date: date
     complete: bool = Field(description="False when the water assessment could not be made (no advice).")

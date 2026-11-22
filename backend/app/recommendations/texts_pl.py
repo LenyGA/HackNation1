@@ -441,6 +441,15 @@ def doses_pl(n: int) -> str:
     return "dawek"
 
 
+def farm_where_pl(parcels: int, single: str = "na działkę") -> str:
+    """Whom an m³ volume is for (G11): "na działkę" or "na 3 działki gospodarstwa" in farm mode."""
+    if parcels <= 1:
+        return single
+    if 2 <= parcels % 10 <= 4 and not 12 <= parcels % 100 <= 14:
+        return f"na {parcels} działki gospodarstwa"
+    return f"na {parcels} działek gospodarstwa"
+
+
 def irrigation_title(status: str) -> str:
     return IRRIGATION_TITLES[status]
 
@@ -482,9 +491,10 @@ def _when_now(params: dict[str, ParamValue], out: dict[str, str]) -> str:
 
 def _dose(params: dict[str, ParamValue], out: dict[str, str]) -> str:
     n = int(params.get("applications", 1))
+    where = farm_where_pl(int(params.get("farm_parcels", 1)), "na całą działkę")
     dose = (
         f"Do pełnego uzupełnienia wody w glebie brakuje ok. {out['dose_mm']} mm "
-        f"(ok. {out['volume_m3']} m³ wody na całą działkę)."
+        f"(ok. {out['volume_m3']} m³ wody {where})."
     )
     if n > 1:
         light = int(params.get("light_soil", 0))

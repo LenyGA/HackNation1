@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from datetime import date
 
+from app.analysis.farm import farm_area_ha
 from app.analysis.history import HistoryResult, analyse_history
 from app.analysis.series import Weather
 from app.analysis.soil import SoilProperties, soil_properties
@@ -39,6 +40,17 @@ class AnalysisInputs:
     # Context sources (do not change the water assessment); None in tests and old callers.
     flood: SourceResult[FloodData] | None = None
     groundwater: SourceResult[GroundwaterData] | None = None
+    # Farm mode (G11): more parcels of the same farm, same crop; they only add area to the m³ volumes.
+    extra_parcels: tuple[Parcel, ...] = ()
+
+    @property
+    def farm_parcels(self) -> int:
+        return 1 + len(self.extra_parcels)
+
+    @property
+    def water_area_ha(self) -> float:
+        """Area every m³ volume is computed for: the main parcel alone, or the whole farm (G11)."""
+        return farm_area_ha(self.parcel, self.extra_parcels)
 
     def statuses(self) -> dict[str, SourceStatus]:
         return {
