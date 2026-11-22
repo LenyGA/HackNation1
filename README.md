@@ -301,31 +301,50 @@ GPL ani AGPL, więc autorskie prawa majątkowe do kodu zespołu można przenieś
 
 ## 10. Koszty i usługi płatne
 
-- **Dla rolnika: 0 zł.** Bez konta, instalacji, licencji i sprzętu; wystarczy przeglądarka.
-- **Usługi płatne: brak.** Wszystkie źródła danych są bezpłatne, a żadne API nie wymaga klucza.
-- **Infrastruktura prototypu:** 1 VPS (1 vCPU, 2 GB RAM, 48 GB dysku) z Dockerem i Caddy.
-  Koszt: **[ZESPÓŁ: wpisać miesięczny koszt VPS]**.
-- **Przy wdrożeniu produkcyjnym:** jedyny wymagany wydatek na dane to Open-Meteo (licencja komercyjna wg cennika Open-Meteo albo
-  własna instancja na serwerze KOWR). Alternatywa bez kosztu licencji: zapasowe NASA POWER, które już obsługujemy.
+- **Dla rolnika:** **0 zł.** Bez konta, instalacji, płatnych licencji, znajomości GIS i specjalistycznego sprzętu — wystarczy przeglądarka internetowa.
+- **Usługi płatne w prototypie:** **brak.** Wszystkie źródła danych są bezpłatne i nie wymagają kluczy API.
+- **Infrastruktura demonstracyjna prototypu:** 1 VPS (1 vCPU, 2 GB RAM, 48 GB NVMe, Docker + Caddy) do oceny przez Jury — orientacyjnie **40–60 zł netto/mies.** Darmowa alternatywa (**0 zł**): uruchomienie lokalne w Dockerze (`docker compose up -d --build`).
+- **Ograniczenie prototypu:** pojedynczy VPS (SPOF) oraz darmowe warstwy API (niekomercyjny plan Open-Meteo z limitem 10 000 wywołań/dobę, publiczny Overpass, limitowany ULDK, anonimowe tokeny Planetary Computer) nie spełniają wymogów KRI (Dz.U. 2024 poz. 773) ani SLA dla wdrożenia krajowego.
+- **Docelowy dostęp do danych w produkcji (dla operatora — KOWR):**
+  - **Rejestry publiczne (0 zł licencji):** GUGiK EGiB/NMT/BDOT10k (art. 40a ust. 2 PGiK — bez danych osobowych), PGW Wody Polskie (MPHP/ISOK), PIG-PIB (PSH), GUS, Dz.U. 2019 poz. 739 oraz cyfrowa Mapa Glebowo-Rolnicza IUNG-PIB i dane IMGW-PIB (w ramach porozumień międzyinstytucjonalnych).
+  - **Usługi wymagające opłat SLA lub własnego hostingu:** meteorologia — plan komercyjny Open-Meteo (szac. 1–3 tys. zł/mies.) albo własny import IMGW-PIB/ERA5 (0 zł licencji; uwaga: ewentualny własny serwer Open-Meteo na AGPL-3.0 wyłącznie jako odrębny mikroserwis, nielinkowany z kodem GeoSatel; bezpłatny fallback NASA POWER już działa); satelita Sentinel-2 — gwarantowane przetwarzanie wsadowe CDSE / Sentinel Hub (1,5–4,5 tys. zł/mies.); podkład mapowy — własny serwer kafli lub komercyjny CDN zamiast darmowych serwerów OSMF (1–2,5 tys. zł/mies.; warstwa OSM ODbL 1.0 w osobnym schemacie *Collective Database*, bez mieszania z BDOT10k/MPHP).
 
 ## 11. Skalowalność
 
-- **Cache na dysku:** dane historyczne (pogoda, profil satelitarny, gleba, teren, WorldCover) nie wygasają, bo nie zmieniają się
-  wstecz. Ponowna analiza tej samej działki i daty (a dla pogody: tej samej okolicy i daty) trwa < 1 s na źródło i nie zużywa
-  limitów usług. Po wdrożeniu `scripts/warm_cache.py` otwiera połączenia ze źródłami i rozgrzewa cache dla 2 działek
-  referencyjnych. Cache i baza raportów nie są dziś czyszczone automatycznie; przy dużym ruchu potrzebne jest okresowe
-  usuwanie starych wpisów (dysk prototypu: 48 GB).
-- **Zapis wyników:** każdy raport jest w SQLite pod stałym ID, więc jego ponowne otwarcie, PDF i druk nie wywołują nowych zapytań.
-- **Ograniczanie zapytań:** maks. 4 analizy jednocześnie, kolejka do 50 analiz (dalej odpowiedź „serwer zajęty”, HTTP 429), limity na klienta (10 analiz/min, 30/10 min, 120 zapytań
-  o działkę/min), timeout każdego źródła, rastry czytane tylko oknem działki (COG), nigdy całe sceny.
-- **Wydajność:** 8–18 s na działkę na zimno na 1 vCPU (E2E), większość czasu to oczekiwanie na usługi zewnętrzne, a nie obliczenia.
-- **Większy ruch:** dziś działa 1 proces, bo stan trwających analiz jest w jego pamięci. Do skalowania poziomego (kilka
-  kontenerów za Caddy) trzeba przenieść kolejkę analiz do wspólnego magazynu (np. Redis), SQLite do PostgreSQL i cache na
-  wspólny wolumen; obliczenia są lekkie (8–18 s na działkę to głównie oczekiwanie na usługi zewnętrzne). Wąskim gardłem są limity darmowych usług (Open-Meteo na IP, ULDK, Overpass);
-  przy dużej skali: Open-Meteo komercyjnie lub we własnej instancji, własna instancja Overpass z wyciągiem OSM dla Polski
-  (ok. 2 GB), BDOT10k dla hydrologii.
-- **Aktualizacja danych:** źródła na żywo aktualizują się same. Progi IUNG i dane GUS wymagają ręcznej aktualizacji plików YAML
-  po zmianie rozporządzenia lub nowej publikacji (instrukcja w komentarzach plików).
+### Mechanizmy już wdrożone w prototypie
+- **Cache dyskowy (TTL):** dane historyczne niezmienne wstecz (pogoda > 10 dni, historia satelitarna, gleba, NMT) nie wygasają; bieżąca pogoda 1 h; ULDK i OSM 24 h; adresy 7 dni; ISOK i ortofotomapa 30 dni. Powtórna analiza tej samej działki lub komórki siatki pogodowej (10 km) trwa < 1 s/źródło i nie zużywa limitów API. Po wdrożeniu `scripts/warm_cache.py` rozgrzewa cache dla 2 działek referencyjnych.
+- **Zapis wyników:** każdy raport trafia do SQLite pod stałym ID — ponowne otwarcie, PDF i druk nie wykonują zapytań zewnętrznych.
+- **Ograniczanie zapytań i izolacja błędów:** maks. 4 analizy jednocześnie, kolejka do 50 zadań (dalej HTTP 429), limity na klienta (10 analiz/min, 30/10 min, 120 zapytań o działkę/min), indywidualne timeouty, automatyczne fallbacki (NASA POWER, Copernicus DEM, WorldCover) i odczyt rastrów wyłącznie oknem działki (COG).
+- **Zmierzona wydajność prototypu:** **8–18 s** na zimno na 1 vCPU (E2E) — czas zdominowany przez oczekiwanie na zewnętrzne HTTP, a nie obliczenia.
+
+### Model obciążenia i architektura ogólnopolska
+Ruch w polskim rolnictwie (~1,25 mln gospodarstw) jest silnie sezonowy (~75% zapytań w IV–VIII) i impulsowy (4–5× skok w dniach alertów suszowych IUNG-PIB; 45–50% ruchu wieczorem 18:00–22:00):
+- **Etap 1 — Pilotaż (Rok 1, SLA 99,5%):** 30–50 tys. rolników/rok, ~250 tys. analiz/rok (~1 225/dobę w sezonie; szczyt alertowy 550–750/godz.).
+- **Etap 2 — Skala kraju (SLA 99,9%):** 250–400 tys. rolników/rok, ~2,5 mln analiz/rok (~12 250/dobę typowo; **50–60 tys./dobę** w alertach IUNG, tj. 5,5–7,7 tys./godz., $\lambda \approx 1{,}5\text{–}2{,}1\text{/s}$, impulsy *burst* do ~4,2/s).
+- **Skalowanie poziome i hurtownia danych:** zamiast odpytywać limitowane API per działka, cykliczne potoki ETL zasilają lokalną hurtownię (PostgreSQL + PostGIS HA, Redis Cluster na kolejkę i limity, Object Storage S3/MinIO z automatycznym TTL): krajowe paczki EGiB, BDOT10k/MPHP/ISOK, NMT w COG, dekadowe mozaiki Sentinel-2 oraz całą siatkę pogodową Polski (**zaledwie ~3 500–4 000 oczek 10 km** pobieranych nocą — spadek liczby zapytań API o 3 rzędy wielkości). Z prawa Little’a ($W \approx 2\text{–}4\text{ s}$) klaster Etapu 2 wymaga **32–48 vCPU / 64–96 GB RAM** w szczycie IV–VIII (autoskalowanie zimą do 8–12 vCPU), **5–8 TB** magazynu (z 12-mies. retencją PDF i HA) oraz **1,5–6 TB/mies.** transferu w sezonie.
+- **Szybkość odpowiedzi przy dużym ruchu:** lokalna hurtownia skraca czas analizy przy 50–60 tys. analiz/dobę do **2–5 s (p95)** — znacznie poniżej progu 30 s z kryteriów oceny.
+- **Aktualizacja danych:** w prototypie źródła na żywo odświeżają się automatycznie, a pliki YAML (progi IUNG, ceny GUS) ręcznie. W produkcji: pogoda 1×/dobę o 04:00 (prognoza co 6 h), mozaiki Sentinel-2 co 5 dni, PSH 1×/dobę, EGiB miesięcznie, BDOT10k/MPHP/ISOK kwartalnie/rocznie, tabele IUNG/GUS rocznie w panelu administracyjnym.
+
+### Szacunkowe koszty rozwoju i utrzymania (operator — ceny netto)
+*Inżynierskie szacunki rynkowe (chmura EOG: widełki dolne = IaaS / RChO, górne = zarządzana chmura HA przez ZUCH); wiążący budżet wymaga wyceny ofertowej (RFI/PZP).*
+
+| Pozycja (netto / mies.) | Etap 1: Pilotaż (250 tys. analiz/rok) | Etap 2: Skala kraju (2,5 mln analiz/rok) |
+| :--- | :---: | :---: |
+| Klaster obliczeniowy (autoskalowanie IV–VIII) + LB + WAF/CDN + transfer | 2 000 – 4 000 zł | 8 000 – 16 000 zł |
+| Bazy HA (PostGIS, Redis) + Object Storage S3 (1,5–8 TB) + backupy | 1 500 – 3 000 zł | 6 000 – 12 000 zł |
+| Bezpieczeństwo, monitoring i zgodność (KRI / KSC / NIS2 / SIEM) | 1 000 – 2 000 zł | 3 000 – 6 000 zł |
+| Profesjonalny dostęp do danych i serwer kafli mapowych (SLA) | 1 000 – 3 000 zł | 3 500 – 10 000 zł |
+| **Podsuma: infrastruktura i dane (miesięcznie / rocznie)** | **5,5–12 tys. zł / 66–144 tys. zł** | **20,5–44 tys. zł / 246–528 tys. zł** |
+| Utrzymanie techniczne, DevOps, SLA, aktualizacje (0,5–1 / 1,5–2,5 FTE) | 15 000 – 30 000 zł | 40 000 – 70 000 zł |
+| **Razem całkowity OPEX / TCO (miesięcznie / rocznie)** | **20,5–42 tys. zł / 246–504 tys. zł** | **60,5–114 tys. zł / 726 tys.–1,37 mln zł** |
+
+- **Koszt jednostkowy (Etap 2):** **0,10–0,21 zł** samej infrastruktury i danych za raport (**0,29–0,55 zł** z zespołem SLA), czyli **2,42–4,56 zł rocznie na aktywne gospodarstwo**.
+- **Jednorazowy CAPEX „produktyzacji” (3–6 mies.):** szacunkowo **250–500 tys. zł netto** (migracja na PostGIS/Redis/S3, potoki ETL, audyt WCAG 2.1 AA, testy obciążeniowe na 50–60 tys. analiz/dobę, testy penetracyjne i zgodność z KRI/NIS2; niższy przy zaangażowaniu własnego zespołu IT KOWR).
+- **Opcjonalne dane premium (poza zakresem bazowym):** komercyjne zobrazowania wysokiej rozdzielczości (np. PlanetScope 3 m dla działek < 1 ha) stanowią odrębną pozycję licencyjną (rząd kilkuset tys. zł/rok) i nie są wymagane w wersji bazowej.
+
+
+
+
 
 ## 12. Bezpieczeństwo i dane osobowe
 
