@@ -10,8 +10,17 @@
 #   [CRIT]      Water-critical periods: Dzieżyc J. (red.) (1988) "Rolnictwo w warunkach nawadniania", PWN;
 #               Kuchar L., Iwański S. et al. (IUNG-PIB) crop drought sensitivity periods used in the Agricultural Drought
 #               Monitoring System (susza.iung.pulawy.pl).
+#   [FRUIT-CRIT] Water-critical periods of fruit trees and bushes: ASSUMPTION of the team. Sources consulted
+#               (Treder W., Instytut Ogrodnictwa – PIB, Skierniewice, orchard water management; Wójcik K., Treder W.,
+#               Zbudniewek P. on apple irrigation requirements, May–September seasons) name flowering, fruit set and
+#               June drop, then fruit growth and flower-bud formation for next year as the water-sensitive phases,
+#               but no exact calendar dates for Poland were confirmed within the plan's 20 min limit. The dates are
+#               mean dates for central Poland and are listed in the report's limitations.
+#   [FRUIT-SEASON] Season start = bud break, end = leaf fall, central Poland; stage lengths from [FAO56-T11]
+#               (apples, cherries, pears 20/70/90/30) shortened to the Polish vegetation period.
 #
 # Fields:
+#   kind: arable (default) | grassland | fruit (orchards and fruit bushes: perennial, no tillage, dormant in winter).
 #   sowing: MM-DD start of the initial stage (for perennial grassland: start of spring regrowth).
 #   stages_days: [initial, development, mid-season, late-season] lengths in days; the season ends after their sum.
 #   kc_ini / kc_mid / kc_end: FAO-56 single crop coefficients; Kc is linear between stages as in FAO-56 Fig. 25.
@@ -120,6 +129,7 @@ crops:
 
   - id: grassland
     name_pl: Użytki zielone
+    kind: grassland
     winter: false
     sowing: "04-01"          # spring regrowth [PL-CAL]
     stages_days: [10, 20, 150, 30]  # [FAO56-T11] pasture/hay, season limited to Polish vegetation period
@@ -145,3 +155,68 @@ crops:
     p: 0.3                   # [FAO56-T22]
     critical_periods:        # [CRIT]
       - {start: "06-01", end: "08-10", name_pl: "wzrost i plonowanie"}  # ends before harvest (08-12)
+
+  # Fruit crops (plan2 L2). Kc for orchards with active ground cover (grass sward in the inter-rows) and killing
+  # frost, the usual Polish orchard [FAO56-T12]. Outside the season (dormancy, leaves fallen) Kc = 0 as for an empty
+  # field; the bare-soil evaporation of the water balance stands in for the dormant orchard floor.
+  - id: orchard_pome
+    name_pl: Sad – jabłonie, grusze
+    kind: fruit
+    winter: false
+    sowing: "04-10"          # bud break [FRUIT-SEASON]
+    stages_days: [20, 70, 90, 30]   # [FAO56-T11] apples, cherries, pears; ends with leaf fall ~6 Nov
+    kc_ini: 0.50             # [FAO56-T12] apples, cherries, pears — active ground cover, killing frost
+    kc_mid: 1.20             # [FAO56-T12]
+    kc_end: 0.95             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 1.0        # [FAO56-T22] 1.0–2.0 (dwarf rootstocks such as M.9 root shallower: limitations)
+    p: 0.5                   # [FAO56-T22]
+    critical_periods:        # [FRUIT-CRIT]
+      - {start: "05-10", end: "06-30", name_pl: "kwitnienie, zawiązywanie owoców i opad czerwcowy"}
+      - {start: "07-01", end: "08-31", name_pl: "wzrost owoców i zawiązywanie pąków na przyszły rok"}
+
+  - id: orchard_cherry
+    name_pl: Sad – wiśnie, czereśnie
+    kind: fruit
+    winter: false
+    sowing: "04-01"          # bud break [FRUIT-SEASON]
+    stages_days: [20, 70, 90, 30]   # [FAO56-T11] apples, cherries, pears; ends with leaf fall ~28 Oct
+    kc_ini: 0.50             # [FAO56-T12] apples, cherries, pears — active ground cover, killing frost
+    kc_mid: 1.20             # [FAO56-T12]
+    kc_end: 0.95             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 1.0        # [FAO56-T22] 1.0–2.0
+    p: 0.5                   # [FAO56-T22]
+    critical_periods:        # [FRUIT-CRIT]
+      - {start: "05-01", end: "07-10", name_pl: "wzrost i dojrzewanie owoców do zbioru"}
+      - {start: "07-11", end: "08-31", name_pl: "zawiązywanie pąków na przyszły rok"}
+
+  - id: orchard_plum
+    name_pl: Sad – śliwy
+    kind: fruit
+    winter: false
+    sowing: "04-05"          # bud break [FRUIT-SEASON]
+    stages_days: [20, 70, 90, 30]   # [FAO56-T11] stone fruit 20/70/120/60 shortened to leaf fall ~1 Nov
+    kc_ini: 0.50             # [FAO56-T12] apricots, peaches, stone fruit — active ground cover, killing frost
+    kc_mid: 1.15             # [FAO56-T12]
+    kc_end: 0.90             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 1.0        # [FAO56-T22] 1.0–2.0
+    p: 0.5                   # [FAO56-T22]
+    critical_periods:        # [FRUIT-CRIT]
+      - {start: "05-10", end: "08-31", name_pl: "zawiązywanie i wzrost owoców"}
+
+  - id: berry_bushes
+    name_pl: Krzewy owocowe – porzeczki, agrest, maliny, aronia
+    kind: fruit
+    winter: false
+    sowing: "04-01"          # bud break [FRUIT-SEASON]
+    stages_days: [20, 50, 75, 50]   # [FAO56-T11] berries (bush) 20/50/75/75, late stage shortened to leaf fall ~13 Oct
+    kc_ini: 0.30             # [FAO56-T12] berries (bush)
+    kc_mid: 1.05             # [FAO56-T12]
+    kc_end: 0.50             # [FAO56-T12]
+    kc_off_season: 0.0
+    root_depth_m: 0.6        # [FAO56-T22] 0.6–1.2
+    p: 0.5                   # [FAO56-T22]
+    critical_periods:        # [FRUIT-CRIT]
+      - {start: "05-01", end: "07-31", name_pl: "kwitnienie, zawiązywanie i dojrzewanie owoców"}

@@ -13,12 +13,16 @@
 {% set c = current %}
 {% if not c.in_vegetation %}
 Dzień analizy ({{ day|date_pl }}) wypada poza okresem wegetacji ({{ season_start|day_month_pl }} – {{ season_end|day_month_pl }}). Oceniamy więc, jak gleba odbudowuje zapas wody od jesieni, oraz jak przebiegł ostatni sezon.
+{% elif not c.crop_on_field and fruit %}
+Na dzień {{ day|date_dmy }} drzewa i krzewy ({{ crop }}) są {% if phase == 'after_harvest' %}już po opadaniu liści (typowo ok. {{ harvest_day|day_month_pl }}){% else %}jeszcze w spoczynku zimowym (pąki ruszają zwykle ok. {{ sowing_day|day_month_pl }}){% endif %}, więc oceniamy przede wszystkim opady, parowanie i zapas wody w glebie na następny sezon.
 {% elif not c.crop_on_field and phase == 'after_harvest' %}
 Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) jest zwykle już po zbiorze (wg typowego kalendarza upraw koniec sezonu ok. {{ harvest_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i wodę w glebie dla międzyplonu lub następnej uprawy.
 {% elif not c.crop_on_field and grassland %}
 Na dzień {{ day|date_dmy }} użytki zielone jeszcze nie ruszyły z wegetacją po zimie (zwykle ok. {{ sowing_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i zapas wody w glebie.
 {% elif not c.crop_on_field %}
 Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) nie jest jeszcze wysiana albo dopiero wschodzi (typowy siew ok. {{ sowing_day|day_month_pl }}), więc oceniamy przede wszystkim opady, parowanie i zapas wody w glebie przed siewem.
+{% elif phase == 'ripening' and fruit %}
+Na dzień {{ day|date_dmy }} drzewa i krzewy ({{ crop }}) kończą sezon — owoce są zwykle zebrane, a liście opadają ok. {{ harvest_day|day_month_pl }}; woda nie zwiększa już plonu tak jak wcześniej w sezonie.
 {% elif phase == 'ripening' and not grassland %}
 Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) dojrzewa — zbliżają się zbiory (typowo ok. {{ harvest_day|day_month_pl }}); woda nie zwiększa już plonu tak jak wcześniej w sezonie.
 {% endif %}
@@ -97,9 +101,9 @@ Zdjęcia satelitarne potwierdzają tę ocenę: kondycja roślin na działce{% if
 {% elif c.satellite == 'disagrees' %}
 Zdjęcia satelitarne nie potwierdzają tej oceny: kondycja roślin{% if c.sat_date %} na zdjęciu z {{ c.sat_date|date_dmy }}{% endif %} jest {{ sat_condition(c, low_ndvi) }} w porównaniu z tym samym terminem w poprzednich latach. Dlatego pewność wyniku jest niższa — może to wynikać z innej uprawy w poprzednich latach.
 {% elif c.satellite == 'not_applicable' and phase in ('ripening', 'after_harvest') %}
-Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'ripening' %}uprawa dojrzewa i naturalnie traci zieleń{% else %}pole jest po zbiorze{% endif %}, więc spadek zieleni nie oznacza braku wody.
+Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'ripening' and fruit %}drzewa i krzewy kończą sezon i naturalnie tracą zieleń{% elif phase == 'ripening' %}uprawa dojrzewa i naturalnie traci zieleń{% elif fruit %}drzewa i krzewy zrzuciły liście{% else %}pole jest po zbiorze{% endif %}, więc spadek zieleni nie oznacza braku wody.
 {% elif c.satellite == 'not_applicable' and phase in ('before_sowing', 'establishment') %}
-Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'before_sowing' and grassland %}ruń jeszcze nie odrosła po zimie{% elif phase == 'before_sowing' %}uprawy nie ma jeszcze na polu{% else %}rośliny są jeszcze małe i nie zakrywają pola{% endif %}, więc niska zieleń jest normalna.
+Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'before_sowing' and grassland %}ruń jeszcze nie odrosła po zimie{% elif phase == 'before_sowing' and fruit %}drzewa i krzewy nie mają jeszcze liści{% elif phase == 'before_sowing' %}uprawy nie ma jeszcze na polu{% elif fruit %}liście dopiero się rozwijają{% else %}rośliny są jeszcze małe i nie zakrywają pola{% endif %}, więc niska zieleń jest normalna.
 {% elif c.satellite == 'not_applicable' %}
 Zdjęć satelitarnych nie używamy w tym terminie do oceny — brakuje bezchmurnych zdjęć z poprzednich lat do porównania.
 {% else %}
@@ -107,7 +111,7 @@ Nie ma aktualnych bezchmurnych zdjęć satelitarnych działki, więc kondycji ro
 {% endif %}
 
 {% if landcover and not landcover.looks_agricultural %}
-Uwaga: według mapy użytkowania terenu ({{ landcover.map_year }}) działka nie wygląda na pole ani łąkę (pola {{ landcover.cropland_pct|num }} %, łąki {{ landcover.grassland_pct|num }} %, drzewa {{ landcover.trees_pct|num }} %, zabudowa {{ landcover.built_up_pct|num }} %). Sprawdź, czy wybrano właściwą działkę.
+Uwaga: według mapy użytkowania terenu ({{ landcover.map_year }}) działka nie wygląda na pole, łąkę ani sad (pola {{ landcover.cropland_pct|num }} %, łąki {{ landcover.grassland_pct|num }} %, drzewa {{ landcover.trees_pct|num }} %, zabudowa {{ landcover.built_up_pct|num }} %). Sprawdź, czy wybrano właściwą działkę.
 {% endif %}
 
 Pewność oceny stanu bieżącego: {{ current_confidence_level_pl }}. {{ current_confidence }}

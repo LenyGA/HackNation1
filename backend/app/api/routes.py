@@ -40,7 +40,7 @@ async def health() -> Health:
 
 @router.get("/crops", response_model=list[CropOut])
 async def crops() -> list[CropOut]:
-    return [CropOut(id=c.id, name_pl=c.name_pl) for c in load_crops().values()]
+    return [CropOut(id=c.id, name_pl=c.name_pl, kind=c.kind) for c in load_crops().values()]
 
 
 @router.get(

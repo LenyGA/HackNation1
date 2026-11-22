@@ -50,4 +50,10 @@ SCENARIOS = {
     "no_weather": no_weather_report,
     "off_season": off_season_report,
     "tilted_no_hydro": lambda: report_for(hydro_data=False),
+    # Fruit crops (plan33 M6): summer, dormancy before bud break, end of season after the fruit harvest.
+    "orchard_summer": lambda: report_for(
+        crop_id="orchard_pome", surface=basin, hydro_data=lambda p: hydro(p, ditch_m=200.0)
+    ),
+    "orchard_dormant": lambda: report_for(crop_id="orchard_cherry", day=date(2024, 3, 25)),
+    "berry_late": lambda: report_for(crop_id="berry_bushes", day=date(2024, 9, 20)),
 }

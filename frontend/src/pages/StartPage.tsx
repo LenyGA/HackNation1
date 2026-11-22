@@ -2,12 +2,20 @@ import { Loader2, MapPin, Search } from 'lucide-react'
 import { type FormEvent, lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiRequestError } from '@/api/client'
-import type { Crop, Parcel } from '@/api/types'
+import type { Crop, CropKind, Parcel } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   analysisDateError,
   formatAreaHa,
@@ -20,6 +28,12 @@ import {
 
 // The map library is large; the form renders first and the map follows.
 const ParcelPickerMap = lazy(() => import('@/components/map/ParcelPickerMap'))
+
+// Crop list grouped by kind; the backend catalogue decides which crop belongs where.
+const CROP_GROUPS: { label: string; kinds: CropKind[] }[] = [
+  { label: 'Uprawy polowe i łąki', kinds: ['arable', 'grassland'] },
+  { label: 'Sady i krzewy owocowe', kinds: ['fruit'] },
+]
 
 function MapPlaceholder() {
   return (
@@ -240,11 +254,20 @@ export function StartPage() {
                 <SelectValue placeholder={cropsError ? 'Lista upraw niedostępna' : 'Wybierz uprawę'} />
               </SelectTrigger>
               <SelectContent>
-                {crops.map((c) => (
-                  <SelectItem key={c.id} value={c.id} className="py-2.5 text-base">
-                    {c.name_pl}
-                  </SelectItem>
-                ))}
+                {CROP_GROUPS.map((g) => {
+                  const items = crops.filter((c) => g.kinds.includes(c.kind))
+                  if (items.length === 0) return null
+                  return (
+                    <SelectGroup key={g.label}>
+                      <SelectLabel>{g.label}</SelectLabel>
+                      {items.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="py-2.5 text-base">
+                          {c.name_pl}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )
+                })}
               </SelectContent>
             </Select>
             {(cropError || cropsError) && (

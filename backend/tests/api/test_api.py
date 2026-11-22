@@ -16,8 +16,12 @@ def test_crops_list() -> None:
     r = client.get("/api/crops")
     assert r.status_code == 200
     ids = {c["id"] for c in r.json()}
-    assert len(ids) == 9
+    assert len(ids) == 13
     assert "maize" in ids
+    kinds = {c["id"]: c["kind"] for c in r.json()}
+    assert kinds["maize"] == "arable"
+    assert kinds["grassland"] == "grassland"
+    assert kinds["orchard_pome"] == "fruit"
 
 
 def test_openapi_lists_all_endpoints() -> None:

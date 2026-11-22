@@ -9,7 +9,8 @@
 # "x" (period not assessed for the crop) and "-" (soil category not assessed) in the annex are null here.
 #
 # Only crops of our catalogue are listed. Grassland has no value in the regulation (no threshold, said in the report).
-# Hop, tobacco, fruit shrubs and trees, strawberries, pulses and silage maize are also in the annex; add them here
+# Fruit trees ("Drzewa owocowe") and fruit shrubs ("Krzewy owocowe") were extracted by the same script on 2026-11-22
+# (plan33 M6). Hop, tobacco, strawberries, pulses and silage maize are also in the annex; add them here
 # together with the crop in catalog.yaml.
 source: "Rozporządzenie Ministra Rolnictwa i Rozwoju Wsi z dnia 11 kwietnia 2019 r. w sprawie wartości klimatycznego bilansu wodnego dla poszczególnych gatunków roślin uprawnych i gleb (Dz. U. 2019 poz. 739), załącznik; metodyka: System Monitoringu Suszy Rolniczej IUNG-PIB"
 url: "https://api.sejm.gov.pl/eli/acts/DU/2019/739/text.html"
@@ -66,3 +67,17 @@ groups:
       II: [null, null, null, -207, -205, -203, -202, -202, -202, -203, -205, -206, null, null]
       III: [null, null, null, -243, -241, -239, -238, -238, -238, -239, -241, -242, null, null]
       IV: [null, null, null, -263, -261, -259, -258, -258, -258, -259, -261, -262, null, null]
+  - name_pl: "Drzewa owocowe"
+    crops: [orchard_pome, orchard_cherry, orchard_plum]
+    kbw_critical_mm:  # per soil category, one value per period above
+      I: [-168, -171, -175, -180, -187, -193, -199, -205, -210, -215, -220, -223, null, null]
+      II: [-190, -193, -197, -202, -209, -215, -221, -227, -232, -237, -242, -245, null, null]
+      III: [-229, -232, -236, -241, -248, -254, -260, -266, -271, -276, -281, -284, null, null]
+      IV: [-249, -252, -256, -261, -268, -274, -280, -286, -291, -296, -301, -304, null, null]
+  - name_pl: "Krzewy owocowe"
+    crops: [berry_bushes]
+    kbw_critical_mm:  # per soil category, one value per period above
+      I: [-149, -148, -147, -147, -149, -154, -159, -162, -163, -162, -160, -157, null, null]
+      II: [-166, -165, -164, -164, -166, -171, -176, -179, -180, -179, -177, -174, null, null]
+      III: [-200, -199, -198, -198, -200, -205, -210, -213, -214, -213, -211, -208, null, null]
+      IV: [-217, -216, -215, -215, -217, -222, -227, -230, -231, -230, -228, -225, null, null]

@@ -648,6 +648,8 @@ def _vulnerability(ctx: Context) -> StructuralVulnerability:
 def _limitations(ctx: Context, current: CurrentState | None) -> list[str]:
     inp = ctx.inputs
     out: list[str] = ["weather_grid", "crop_calendar_typical", "balance_simplifications"]
+    if inp.crop.is_fruit:
+        out += ["fruit_root_depth", "fruit_critical_periods"]
     if current is not None and not current.iung_threshold_used:
         out.append("iung_thresholds_missing")
     elif current is not None:

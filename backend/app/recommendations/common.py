@@ -113,4 +113,14 @@ def month_indicators(ctx: RuleContext, freqs: dict[int, float]) -> list[Indicato
 
 
 def is_grassland(ctx: RuleContext) -> bool:
-    return ctx.crop.id == "grassland"
+    return ctx.crop.is_grassland
+
+
+def is_fruit(ctx: RuleContext) -> bool:
+    """Orchards and fruit bushes: perennial, no ploughing, sowing or harvest residues (plan2 L2.2)."""
+    return ctx.crop.is_fruit
+
+
+def is_field_crop(ctx: RuleContext) -> bool:
+    """Arable crops only: the tillage, sowing and residue rules apply to them, not to meadows or orchards."""
+    return ctx.crop.kind == "arable"

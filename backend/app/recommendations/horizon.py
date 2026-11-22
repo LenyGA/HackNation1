@@ -57,6 +57,6 @@ def horizon(rule_id: str, ctx: RuleContext) -> Horizon:
         return Horizon.NOW if day.month in CATCH_CROP_MONTHS and _after_harvest(ctx, day) else Horizon.SEASON
     if rule_id == "crop_residues":
         return Horizon.NOW if day.month in RESIDUE_MONTHS and _after_harvest(ctx, day) else Horizon.SEASON
-    if rule_id in ("grassland_cutting", "irrigation"):
+    if rule_id in ("grassland_cutting", "orchard_mulch_sward", "irrigation"):
         return Horizon.NOW if in_season_on_field else Horizon.SEASON
     return Horizon.SEASON

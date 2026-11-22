@@ -12,10 +12,19 @@ późniejsze niż ta data są pomijane. Seria pogodowa zaczyna się 1 październ
 
 ## 2. Katalog upraw (`crops/catalog.yaml`)
 
-Dla 9 upraw: współczynniki Kc (ini/mid/end, FAO-56 tab. 12), długości faz (FAO-56 tab. 11, przesunięte do typowych
+Dla 13 upraw (9 polowych i użytki zielone oraz sady i krzewy owocowe): współczynniki Kc (ini/mid/end, FAO-56 tab. 12), długości faz (FAO-56 tab. 11, przesunięte do typowych
 terminów w Polsce), głębokość korzeni Zr i współczynnik `p` (FAO-56 tab. 22), okresy krytyczne dla wody.
 Krzywa Kc jest odcinkowo liniowa (FAO-56 rys. 25). Poza sezonem Kc = 0 (pole bez uprawy).
 Dla ozimin Kc_ini = 0,4 (przypis FAO-56 tab. 12, gleba zamarznięta).
+
+**Sady i krzewy owocowe** (`kind: fruit`, plan33 M6): jabłonie i grusze, wiśnie i czereśnie, śliwy, krzewy owocowe. Kc z FAO-56
+tab. 12 w wariancie „z murawą w międzyrzędziach, z przymrozkami” (typowy sad w Polsce), korzenie 1,0 m (krzewy 0,6 m) i `p` = 0,5
+(tab. 22). Sezon trwa od ruszania pąków do opadania liści; w spoczynku Kc = 0 jak dla pola bez uprawy. Okresy krytyczne
+(kwitnienie, zawiązywanie i opad czerwcowy, wzrost owoców i pąki na przyszły rok) to **jawne założenie zespołu** — publikacje
+Instytutu Ogrodnictwa – PIB (Treder i in.) wskazują te fazy, ale nie znaleźliśmy kalendarza z datami; raport mówi to w ograniczeniach
+razem z uwagą o płytszych korzeniach drzew na podkładkach karłowych (M.9). Progi suszy rolniczej: grupy „Drzewa owocowe” i „Krzewy
+owocowe” z Dz.U. 2019 poz. 739. Dla sadów nie stosujemy reguł polowych (orka, siew, międzyplon, resztki pożniwne, uprawa w poprzek
+stoku); ESA WorldCover zwykle klasyfikuje sad jako „drzewa”, więc dla sadu drzewa liczą się jako użytkowanie rolnicze.
 
 ## 3. Bilans wodny (`water_balance.py`)
 
@@ -166,6 +175,12 @@ dołączamy tylko wskaźniki, które ustaliły poziom (`CurrentState.basis`).
 | `winter_cover_crop` — międzyplon ozimy | agrotechnika | uprawa jara + (potrzeba wody lub gleba lekka) | — |
 | `crop_residues` — resztki pożniwne, płytka uprawa | agrotechnika | niedobór w czerwcu–sierpniu w ≥ 30 % lat | — |
 | `grassland_cutting` — wyższe koszenie | agrotechnika | użytek zielony + (niedobór teraz lub w maju–sierpniu w ≥ 30 % lat) | — |
+| `orchard_mulch_sward` — ściółka w rzędach, niska murawa | agrotechnika | sad lub krzewy owocowe + (gleba lekka lub niedobór w maju–sierpniu w ≥ 30 % lat) | — |
+
+Reguły `reduced_tillage_mulch`, `contour_tillage`, `crop_timing_variety`, `winter_cover_crop` i `crop_residues` dotyczą tylko
+upraw polowych (nie łąk ani sadów). `organic_matter` ma dla sadu własny tekst (kompost pod rzędy, ściółka, zwarta murawa).
+Dla sadów dobór technologii nawadniania (rozdz. 9) wskazuje nawadnianie kroplowe, a zalecenie nawadniania ma uwagę, że kroplówka
+zwilża tylko pas rzędów (FAO-56, udział zwilżonej powierzchni).
 
 Teksty zależą od uprawy: resztki pożniwne ze słomą tylko dla zbóż, rzepaku i kukurydzy (dla okopowych i warzyw
 — szybki międzyplon); dla użytków zielonych próchnica bez orki i międzyplonów; dla ozimin odmiana zamiast

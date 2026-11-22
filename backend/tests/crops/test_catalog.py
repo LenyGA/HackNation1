@@ -14,11 +14,33 @@ CROP_IDS = [
     "sugar_beet",
     "grassland",
     "field_vegetables",
+    "orchard_pome",
+    "orchard_cherry",
+    "orchard_plum",
+    "berry_bushes",
 ]
+FRUIT_IDS = ["orchard_pome", "orchard_cherry", "orchard_plum", "berry_bushes"]
 
 
-def test_catalog_has_the_nine_crops() -> None:
+def test_catalog_has_the_thirteen_crops() -> None:
     assert sorted(load_crops()) == sorted(CROP_IDS)
+
+
+def test_crop_kinds() -> None:
+    crops = load_crops()
+    assert {c.id for c in crops.values() if c.kind == "fruit"} == set(FRUIT_IDS)
+    assert crops["grassland"].kind == "grassland"
+    assert all(c.kind == "arable" for c in crops.values() if c.id not in [*FRUIT_IDS, "grassland"])
+
+
+@pytest.mark.parametrize("crop_id", FRUIT_IDS)
+def test_fruit_dormant_in_winter_and_leafed_in_summer(crop_id: str) -> None:
+    crop = load_crops()[crop_id]
+    assert crop.kc(date(2024, 1, 15)) == 0.0  # dormancy
+    assert not crop.in_season(date(2024, 12, 1))  # leaves fallen
+    assert crop.kc(date(2024, 7, 15)) == crop.kc_mid
+    assert not crop.winter
+    assert crop.critical_period_at(date(2024, 6, 15)) is not None
 
 
 @pytest.mark.parametrize("crop_id", CROP_IDS)

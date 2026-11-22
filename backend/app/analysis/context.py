@@ -15,7 +15,7 @@ from app.sources.dem import ElevationGrid
 from app.sources.flood import FloodData
 from app.sources.groundwater import GroundwaterData
 from app.sources.hydro import HydroData
-from app.sources.landcover import LandCoverData, Surroundings
+from app.sources.landcover import MIN_AGRI_SHARE_PCT, LandCoverData, Surroundings, not_agricultural_pl
 from app.sources.open_meteo import WeatherData
 from app.sources.sentinel2 import Sentinel2Data
 from app.sources.soilgrids import SoilData
@@ -45,6 +45,25 @@ class AnalysisInputs:
             r.name: r.status
             for r in (self.weather, self.soil, self.sentinel2, self.dem, self.hydro, self.landcover)
         }
+
+
+def landcover_for_crop(r: SourceResult[LandCoverData], crop: Crop) -> SourceResult[LandCoverData]:
+    """Land cover as it fits the chosen crop (plan2 L2.5).
+
+    ESA WorldCover maps most orchards and fruit plantations as "trees", so for a fruit crop trees count as
+    agricultural use together with cropland and grassland. The source itself stays crop-agnostic; only the
+    "does not look agricultural" flag and its source note are taken back here, once, before the assessment.
+    """
+    d = r.data
+    if d is None or d.looks_agricultural or not crop.is_fruit:
+        return r
+    if d.cropland_pct + d.grassland_pct + d.trees_pct < MIN_AGRI_SHARE_PCT:
+        return r
+    note = not_agricultural_pl(d)
+    message = " ".join((r.message_pl or "").replace(note, "").split()) or None
+    status = SourceStatus.OK if r.status is SourceStatus.DEGRADED else r.status
+    data = d.model_copy(update={"looks_agricultural": True})
+    return r.model_copy(update={"data": data, "status": status, "message_pl": message})
 
 
 def in_vegetation_period(day: date) -> bool:

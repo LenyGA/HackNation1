@@ -531,6 +531,7 @@ def _satellite(inputs: AnalysisInputs, a: Assessment) -> SatelliteSeries | None:
         crop=inputs.crop.name_pl.lower(),
         level=a.current.level.value if a.current is not None else None,
         phase=inputs.crop.field_phase(day),
+        fruit=inputs.crop.is_fruit,
         last_day=last.date if last is not None else None,
         last_ndvi=last.ndvi_mean if last is not None else None,
         days_since_last=(day - last.date).days if last is not None else None,

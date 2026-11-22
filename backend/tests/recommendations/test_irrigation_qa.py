@@ -64,7 +64,13 @@ def run(inputs: AnalysisInputs, today: date | None = None) -> tuple[Assessment, 
     return a, irrigation_advice(a, inputs, today=today or inputs.analysis_date)
 
 
+FIELD_WORDS = re.compile(r"\b(pol[aeu]|polem|siew\w*|wysian\w*)\b", re.IGNORECASE)
+
+
 def check_text(adv: IrrigationAdvice) -> None:
+    if adv.params.get("fruit"):
+        # orchards and fruit bushes are not "fields" and are not sown (plan2 L2.4)
+        assert not FIELD_WORDS.search(adv.text_pl), adv.text_pl
     for t in [adv.text_pl, adv.title_pl, *adv.caveats_pl]:
         assert t and "{" not in t and "}" not in t, t
         assert not FORBIDDEN.search(t), t
@@ -85,7 +91,8 @@ def check_consistency(adv: IrrigationAdvice) -> None:
         assert abs(single * adv.applications - adv.dose_mm) <= 0.5 * adv.applications + 1e-9
         assert adv.volume_m3 is not None
         assert "ostatni krok" in adv.text_pl
-        assert len(adv.caveats_pl) == 3
+        # access + permit + dose; fruit crops add the drip / wetted-strip note (plan2 L2.4)
+        assert len(adv.caveats_pl) == (4 if adv.params.get("fruit") else 3)
     else:
         assert adv.dose_mm is None and adv.applications is None and adv.volume_m3 is None
     if adv.status is IrrigationStatus.IRRIGATE_SOON:

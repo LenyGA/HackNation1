@@ -18,4 +18,4 @@ Ograniczenia analizy:
 {{ line }}
 
 {% endfor %}
-Analiza nie uwzględnia: dostępu do wody i pozwoleń wodnoprawnych, stanu drenażu i melioracji, rzeczywistych terminów siewu i odmiany na tym polu, zabiegów wykonanych w poprzednich latach ani lokalnych różnic w glebie mniejszych niż kilkaset metrów. Raport nie zastępuje oględzin pola ani porady doradcy rolniczego.
+Analiza nie uwzględnia: dostępu do wody i pozwoleń wodnoprawnych, stanu drenażu i melioracji, {% if fruit %}rzeczywistego wieku, podkładki i odmiany drzew lub krzewów,{% else %}rzeczywistych terminów siewu i odmiany na tym polu,{% endif %} zabiegów wykonanych w poprzednich latach ani lokalnych różnic w glebie mniejszych niż kilkaset metrów. Raport nie zastępuje oględzin pola ani porady doradcy rolniczego.

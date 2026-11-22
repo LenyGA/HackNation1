@@ -17,7 +17,7 @@ from datetime import date
 from typing import Any
 
 from app.analysis.assessment import assess
-from app.analysis.context import AnalysisInputs
+from app.analysis.context import AnalysisInputs, landcover_for_crop
 from app.api.schemas import AnalysisState, AnalysisStatus, SourceProgress, SourceProgressState
 from app.core.config import get_settings
 from app.core.models import AnalysisRequest, Parcel, SourceResult
@@ -171,7 +171,7 @@ def _compute(job: Job, parcel: Parcel, parcel_source: ParcelSource, results: dic
         sentinel2=results[sentinel2.NAME],
         dem=results[dem.NAME],
         hydro=results[hydro.NAME],
-        landcover=results[landcover.NAME],
+        landcover=landcover_for_crop(results[landcover.NAME], job.crop),
         flood=results.get(flood.NAME),
         groundwater=results.get(groundwater.NAME),
     )

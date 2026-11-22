@@ -1,7 +1,9 @@
 {#- One limitation per code from Assessment.limitations (analysis/assessment.py::_limitations). -#}
 {% set T = {
   'weather_grid': 'Dane pogodowe pochodzą z modelu pogody w siatce ok. ' ~ ('50 km (zapasowe źródło NASA POWER)' if weather_from_power else '10 km') ~ ', a nie z deszczomierza na polu — lokalna burza może nie być widoczna.',
-  'crop_calendar_typical': 'Terminy siewu i fazy rozwoju uprawy są typowe dla Polski; na Twoim polu mogą się przesunąć o 1–3 tygodnie.',
+  'crop_calendar_typical': ('Terminy ruszania wegetacji, kwitnienia i opadania liści są typowe dla środkowej Polski; w Twoim sadzie mogą się przesunąć o 1–3 tygodnie.' if fruit else 'Terminy siewu i fazy rozwoju uprawy są typowe dla Polski; na Twoim polu mogą się przesunąć o 1–3 tygodnie.'),
+  'fruit_root_depth': 'Dla sadu przyjęto korzenie do ok. ' ~ (root_depth_m|num(0.1)) ~ ' m. Drzewa na podkładkach karłowych (np. M.9) i młode nasadzenia mają płytsze korzenie, więc woda w glebie wystarcza im na krócej, niż podaje raport.',
+  'fruit_critical_periods': 'Okresy, w których drzewa i krzewy najbardziej potrzebują wody, to średnie terminy dla środkowej Polski przyjęte przez zespół — zależą od gatunku, odmiany i regionu (nie znaleźliśmy oficjalnego kalendarza z datami).',
   'balance_simplifications': 'Bilans wody w glebie nie uwzględnia wody gruntowej, nawadniania w przeszłości ani spływu z sąsiednich pól.',
   'iung_thresholds_missing': 'Nie użyto oficjalnych progów suszy rolniczej IUNG-PIB dla tej uprawy, gleby lub terminu (powód podano w ocenie stanu bieżącego).',
   'iung_etp_method': 'Próg suszy rolniczej pochodzi z rozporządzenia (Dz.U. 2019 poz. 739, metodyka IUNG-PIB), ale opad i parowanie liczymy z modelu pogody, a nie ze stacji pomiarowych i wzoru na parowanie używanego przez IUNG-PIB — nasz bilans może się różnić od wartości na mapie susza.iung.pulawy.pl.',
@@ -16,7 +18,7 @@
   'osm_incomplete': 'Mapa rowów, oczek i zadrzewień (OpenStreetMap) bywa niepełna, zwłaszcza dla małych rowów i oczek wodnych.',
   'maps_current_state': 'Mapy rowów, oczek i zadrzewień pokazują stan obecny, a nie stan z dnia analizy.',
   'landcover_single_year': 'Mapa użytkowania terenu pokazuje stan z jednego roku i nie musi odpowiadać obecnemu użytkowaniu działki.',
-  'landcover_not_agricultural': 'Według mapy użytkowania terenu działka nie wygląda na pole ani łąkę — wyniki mogą jej nie dotyczyć.',
+  'landcover_not_agricultural': 'Według mapy użytkowania terenu działka nie wygląda na pole, łąkę ani sad — wyniki mogą jej nie dotyczyć.',
   'water_availability_and_permits': 'Analiza nie sprawdza, czy masz dostęp do wody do nawadniania. Wymogi Prawa wodnego (zgłoszenie lub pozwolenie wodnoprawne) podajemy orientacyjnie, z progów w ustawie — o tym, czego wymaga konkretna budowa lub pobór wody, decydują Wody Polskie.',
 } %}
 {{ T.get(code, '') }}

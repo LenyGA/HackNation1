@@ -5,7 +5,8 @@ the dry-year irrigation need (seasonal water plan, 80th percentile of 10 seasons
 
 Choice (first matching row):
 1. dry-year need below NO_INSTALLATION_NEED_MM → no fixed installation (one or two doses a year at most);
-2. field vegetables → drip / micro-sprinklers (row crops; least water lost, FAO Training Manual 4);
+2. field vegetables, orchards and fruit bushes → drip / micro-sprinklers (row crops; least water lost, FAO
+   Training Manual 4; drip is the usual orchard system in Poland, plan2 L2.4);
 3. at least PIVOT_MIN_AREA_HA and at least PIVOT_MIN_WIDTH_M wide → centre pivot (long fields: linear move);
 4. otherwise → hose-reel travelling sprinkler (the common machine on Polish farms, any shape it can be pulled
    along).
@@ -22,7 +23,7 @@ from app.crops.catalog import Crop
 from app.crops.economics import load_economics
 
 TechChoiceId = Literal["reel", "pivot", "drip", "none"]
-TechReason = Literal["low_need", "row_crop", "large_compact", "large_long", "reel"]
+TechReason = Literal["low_need", "row_crop", "fruit_rows", "large_compact", "large_long", "reel"]
 TechNote = Literal["narrow", "long", "irregular", "small", "multipart", "no_shape", "no_plan"]
 
 # ASSUMPTIONS (stated in the report): below one sprinkler dose on loam (25 mm, irrigation.MAX_SINGLE_DOSE_MM)
@@ -72,10 +73,10 @@ def choose_technology(
 
     if dry_year_need_mm is not None and dry_year_need_mm < NO_INSTALLATION_NEED_MM:
         return choice("none", "low_need")
-    if crop.id in DRIP_CROPS:
+    if crop.id in DRIP_CROPS or crop.is_fruit:
         if area_ha < SMALL_AREA_HA:
             notes.append("small")
-        return choice("drip", "row_crop")
+        return choice("drip", "fruit_rows" if crop.is_fruit else "row_crop")
     if shape is not None and area_ha >= PIVOT_MIN_AREA_HA and shape.width_m >= PIVOT_MIN_WIDTH_M:
         reason: TechReason = "large_long" if shape.elongation >= LINEAR_MIN_ELONGATION else "large_compact"
         if shape.compactness < IRREGULAR_COMPACTNESS:

@@ -233,7 +233,8 @@ def _advice(
         "forecast": forecast.value,
         "season_start": f"{inputs.analysis_date.year}-{VEGETATION_START}",
         "season_end": f"{inputs.analysis_date.year}-{VEGETATION_END}",
-        "grassland": int(inputs.crop.id == "grassland"),
+        "grassland": int(inputs.crop.is_grassland),
+        "fruit": int(inputs.crop.is_fruit),
         **(params or {}),
     }
     applicable = status not in (
@@ -247,7 +248,7 @@ def _advice(
         applicable=applicable,
         title_pl=irrigation_title(status.value),
         text_pl=irrigation_text(p),
-        caveats_pl=irrigation_caveats(status.value),
+        caveats_pl=irrigation_caveats(status.value, inputs.crop.is_fruit),
         params=p,
         forecast=forecast,
         **fields,

@@ -9,9 +9,12 @@ export interface Health {
   version: string
 }
 
+export type CropKind = 'arable' | 'grassland' | 'fruit'
+
 export interface Crop {
   id: string
   name_pl: string
+  kind: CropKind
 }
 
 export interface GeoJsonGeometry {

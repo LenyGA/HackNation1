@@ -83,7 +83,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 |---|---|---|---|
 | P1 | Przeglądarka bez instalacji (Chrome, Firefox, Edge, Safari, Opera); mobile jako atut | ✅ | VPS + Caddy; Tailwind `sm:` |
 | P2 | Działka po ID **i** kliknięciem na mapie | ✅ | `api/routes.py`, `components/map/ParcelPickerMap.tsx` |
-| P3 | Wybór uprawy | ✅ | `crops/catalog.yaml` (9 upraw) |
+| P3 | Wybór uprawy | ✅ | `crops/catalog.yaml` (13 upraw: 9 polowych i łąki + 22.11 M6: 3 rodzaje sadów i krzewy owocowe, `kind: arable \| grassland \| fruit`; okresy krytyczne sadów = jawne założenie w ograniczeniach) |
 | P4 | Data analizy (dziś…−10 lat) bez przecieku przyszłych danych | ✅ | `core/models.py`, `open_meteo.py`, `sentinel2.py`; WorldCover 2020 dla dat < 2021 ujawniony |
 | P5 | Ocena bieżąca + podatność 10-letnia, liczona z danych | ✅ | `analysis/assessment.py`, `analysis/history.py` |
 | P6 | Raport: stan i przyczyny, retencja, agrotechnika, nawadnianie, data i źródła, ograniczenia, jawne braki | ✅ | `report/templates/{sections,missing}/`, `limitations.j2` |

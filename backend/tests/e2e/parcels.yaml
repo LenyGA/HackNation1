@@ -28,6 +28,5 @@ parcels:
     purpose: groundwater lowered by the lignite mine (plan2 L6.2)
   - key: orchard
     id: 140605_5.0028.4/4          # Pabierowice, Grójec (mazowieckie), 3.6 ha, trees 72% (orchard)
-    # spring_barley until the fruit crops exist; plan2 L2 switches it to orchard_pome and rewrites the baseline
-    crop: spring_barley
+    crop: orchard_pome             # plan33 M6 (plan2 L2); was spring_barley until the fruit crops existed
     purpose: apple orchard of the Grójec fruit region (plan2 L2)

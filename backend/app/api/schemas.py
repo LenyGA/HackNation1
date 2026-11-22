@@ -6,6 +6,7 @@ from enum import StrEnum
 from pydantic import BaseModel
 
 from app.core.models import Parcel, SourceStatus
+from app.crops.catalog import CropKind
 from app.report.models import Report
 
 
@@ -18,6 +19,7 @@ class Health(BaseModel):
 class CropOut(BaseModel):
     id: str
     name_pl: str
+    kind: CropKind
 
 
 class ParcelOut(Parcel):

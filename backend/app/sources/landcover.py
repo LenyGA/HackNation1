@@ -120,6 +120,18 @@ def shares(counts: dict[int, int], map_year: int) -> LandCoverData | None:
     )
 
 
+def not_agricultural_pl(data: LandCoverData) -> str:
+    """Source note when the parcel does not look like a field or meadow.
+
+    Taken back for orchards by `analysis.context.landcover_for_crop` (plan2 L2.5).
+    """
+    return (
+        f"Według mapy z {data.map_year} r. tylko {data.cropland_pct + data.grassland_pct:.0f}% działki "
+        "to pole lub łąka "
+        "— działka może nie być użytkowana rolniczo, co obniża wiarygodność oceny."
+    )
+
+
 @dataclass
 class _Counts:
     parcel: dict[int, int]
@@ -274,11 +286,7 @@ async def fetch(parcel: Parcel, analysis_date: date) -> SourceResult[LandCoverDa
     status = SourceStatus.OK
     if not data.looks_agricultural:
         status = SourceStatus.DEGRADED
-        messages.append(
-            f"Według mapy z {year} r. tylko {data.cropland_pct + data.grassland_pct:.0f}% działki "
-            "to pole lub łąka "
-            "— działka może nie być użytkowana rolniczo, co obniża wiarygodność oceny."
-        )
+        messages.append(not_agricultural_pl(data))
     return result(
         NAME,
         status,

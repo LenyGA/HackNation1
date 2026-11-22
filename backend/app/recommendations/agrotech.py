@@ -8,6 +8,8 @@ from app.core.models import Indicator
 from app.recommendations.common import (
     deficit_now,
     found,
+    is_field_crop,
+    is_fruit,
     is_grassland,
     light_soil,
     month_indicators,
@@ -23,6 +25,9 @@ PLANTED_CROPS = {"potato"}
 SPRING_MONTHS = (4, 5)
 SUMMER_MONTHS = (6, 7, 8)
 GRASSLAND_MONTHS = (5, 6, 7, 8)
+# Fruit growth months (plan2 L2.3): a month counts when it had a deficit in ≥ 30 % of the 10 previous years
+# (RISK_FREQUENCY, via recurring_months), the same share as for the other monthly rules.
+ORCHARD_MONTHS = (5, 6, 7, 8)
 
 
 def _months_param(months: list[int]) -> str:
@@ -52,6 +57,7 @@ def _om_params(ctx: RuleContext) -> dict[str, ParamValue]:
         "soc_g_per_kg": _soc(ctx) or 0.0,
         "threshold_g_per_kg": LOW_SOC_G_PER_KG,
         "grassland": int(is_grassland(ctx)),
+        "fruit": int(is_fruit(ctx)),
     }
 
 
@@ -59,7 +65,7 @@ def _om_params(ctx: RuleContext) -> dict[str, ParamValue]:
 
 
 def _mulch_condition(ctx: RuleContext) -> bool:
-    return not is_grassland(ctx) and bool(light_soil(ctx)) and bool(recurring_months(ctx, SPRING_MONTHS))
+    return is_field_crop(ctx) and bool(light_soil(ctx)) and bool(recurring_months(ctx, SPRING_MONTHS))
 
 
 def _mulch_evidence(ctx: RuleContext) -> list[Indicator]:
@@ -75,7 +81,7 @@ def _mulch_params(ctx: RuleContext) -> dict[str, ParamValue]:
 
 def _contour_condition(ctx: RuleContext) -> bool:
     t = ctx.terrain
-    return not is_grassland(ctx) and t is not None and t.slope_mean_pct >= CONTOUR_SLOPE_PCT
+    return is_field_crop(ctx) and t is not None and t.slope_mean_pct >= CONTOUR_SLOPE_PCT
 
 
 def _contour_evidence(ctx: RuleContext) -> list[Indicator]:
@@ -95,7 +101,7 @@ def _critical_risk(ctx: RuleContext) -> list[int]:
 
 
 def _timing_condition(ctx: RuleContext) -> bool:
-    return not is_grassland(ctx) and bool(_critical_risk(ctx))
+    return is_field_crop(ctx) and bool(_critical_risk(ctx))
 
 
 def _timing_evidence(ctx: RuleContext) -> list[Indicator]:
@@ -130,7 +136,7 @@ def _timing_params(ctx: RuleContext) -> dict[str, ParamValue]:
 
 
 def _cover_condition(ctx: RuleContext) -> bool:
-    if ctx.crop.winter or is_grassland(ctx):
+    if ctx.crop.winter or not is_field_crop(ctx):
         return False
     return bool(water_need(ctx)) or bool(light_soil(ctx))
 
@@ -147,7 +153,7 @@ def _cover_params(ctx: RuleContext) -> dict[str, ParamValue]:
 
 
 def _residue_condition(ctx: RuleContext) -> bool:
-    return not is_grassland(ctx) and bool(recurring_months(ctx, SUMMER_MONTHS))
+    return is_field_crop(ctx) and bool(recurring_months(ctx, SUMMER_MONTHS))
 
 
 def _residue_evidence(ctx: RuleContext) -> list[Indicator]:
@@ -185,6 +191,29 @@ def _grass_params(ctx: RuleContext) -> dict[str, ParamValue]:
     }
 
 
+# --- 8. orchard or fruit bushes on light soil or with dry summers: mulch the rows, keep the sward short ---
+
+
+def _orchard_months(ctx: RuleContext) -> dict[int, float]:
+    return recurring_months(ctx, ORCHARD_MONTHS)
+
+
+def _orchard_condition(ctx: RuleContext) -> bool:
+    return is_fruit(ctx) and (bool(light_soil(ctx)) or bool(_orchard_months(ctx)))
+
+
+def _orchard_evidence(ctx: RuleContext) -> list[Indicator]:
+    return light_soil(ctx) + month_indicators(ctx, _orchard_months(ctx))
+
+
+def _orchard_params(ctx: RuleContext) -> dict[str, ParamValue]:
+    return {
+        "months": _months_param(list(_orchard_months(ctx))),
+        "light_soil": int(bool(light_soil(ctx))),
+        "bushes": int(ctx.crop.id == "berry_bushes"),
+    }
+
+
 AGROTECH_RULES: list[Rule] = [
     Rule("organic_matter", Category.AGROTECH, 1, _om_condition, _om_evidence, _om_params),
     Rule("reduced_tillage_mulch", Category.AGROTECH, 2, _mulch_condition, _mulch_evidence, _mulch_params),
@@ -193,4 +222,5 @@ AGROTECH_RULES: list[Rule] = [
     Rule("winter_cover_crop", Category.AGROTECH, 5, _cover_condition, _cover_evidence, _cover_params),
     Rule("crop_residues", Category.AGROTECH, 6, _residue_condition, _residue_evidence, _residue_params),
     Rule("grassland_cutting", Category.AGROTECH, 7, _grass_condition, _grass_evidence, _grass_params),
+    Rule("orchard_mulch_sward", Category.AGROTECH, 8, _orchard_condition, _orchard_evidence, _orchard_params),
 ]

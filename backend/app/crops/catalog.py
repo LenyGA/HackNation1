@@ -14,6 +14,9 @@ Stage = Literal["initial", "development", "mid", "late"]
 STAGES: tuple[Stage, ...] = ("initial", "development", "mid", "late")
 # Field state on a calendar day in farmer terms (satellite and "no crop" texts, Q3).
 FieldPhase = Literal["before_sowing", "establishment", "canopy", "ripening", "after_harvest"]
+# arable = field crops sown every year; grassland = perennial meadows and pastures; fruit = orchards and fruit
+# bushes (perennial, no tillage or sowing, dormant in winter). Rules and texts switch on it (plan2 L2).
+CropKind = Literal["arable", "grassland", "fruit"]
 
 
 def month_day(value: str, year: int) -> date:
@@ -51,6 +54,7 @@ class CriticalPeriod(BaseModel):
 class Crop(BaseModel):
     id: str
     name_pl: str
+    kind: CropKind = "arable"
     winter: bool
     sowing: str
     stages_days: list[int] = Field(min_length=4, max_length=4)
@@ -69,6 +73,14 @@ class Crop(BaseModel):
         if any(d <= 0 for d in self.stages_days) or self.season_days >= 365:
             raise ValueError(f"{self.id}: stage lengths must be positive and sum to less than a year")
         return self
+
+    @property
+    def is_fruit(self) -> bool:
+        return self.kind == "fruit"
+
+    @property
+    def is_grassland(self) -> bool:
+        return self.kind == "grassland"
 
     @property
     def season_days(self) -> int:

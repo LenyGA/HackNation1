@@ -8,9 +8,9 @@ Ostatnie bezchmurne zdjęcie satelitarne działki jest z {{ last_day|date_dmy }}
 {% endif %}
 {% if check == 'not_applicable' and now is not none %}
 {% if phase in ('ripening', 'after_harvest') %}
-Tego zdjęcia nie używamy do oceny suszy: {% if phase == 'ripening' %}uprawa ({{ crop }}) dojrzewa i naturalnie traci zieleń{% else %}uprawa ({{ crop }}) jest w tym terminie zwykle już zebrana{% endif %}, więc spadek zieleni nie oznacza braku wody{% if band == 'above' %}, a wysoki wynik pokazuje raczej stan łanu sprzed dojrzewania{% endif %}.
+Tego zdjęcia nie używamy do oceny suszy: {% if fruit and phase == 'ripening' %}drzewa i krzewy ({{ crop }}) kończą sezon i naturalnie tracą zieleń{% elif fruit %}drzewa i krzewy ({{ crop }}) zrzuciły już liście{% elif phase == 'ripening' %}uprawa ({{ crop }}) dojrzewa i naturalnie traci zieleń{% else %}uprawa ({{ crop }}) jest w tym terminie zwykle już zebrana{% endif %}, więc spadek zieleni nie oznacza braku wody{% if band == 'above' and not fruit %}, a wysoki wynik pokazuje raczej stan łanu sprzed dojrzewania{% endif %}.
 {% elif phase in ('before_sowing', 'establishment') %}
-Tego zdjęcia nie używamy do oceny suszy: {% if phase == 'before_sowing' %}uprawy ({{ crop }}) nie ma jeszcze na polu{% if band == 'above' %}, więc zieleń na zdjęciu to raczej międzyplon, chwasty lub samosiewy{% else %}, więc niska zieleń jest normalna{% endif %}{% else %}rośliny ({{ crop }}) są jeszcze małe i nie zakrywają pola, więc niska zieleń jest normalna{% endif %}.
+Tego zdjęcia nie używamy do oceny suszy: {% if fruit and phase == 'before_sowing' %}drzewa i krzewy ({{ crop }}) nie mają jeszcze liści{% if band == 'above' %}, więc zieleń na zdjęciu to raczej trawa w międzyrzędziach{% else %}, więc niska zieleń jest normalna{% endif %}{% elif fruit %}liście drzew i krzewów ({{ crop }}) dopiero się rozwijają, więc niska zieleń jest normalna{% elif phase == 'before_sowing' %}uprawy ({{ crop }}) nie ma jeszcze na polu{% if band == 'above' %}, więc zieleń na zdjęciu to raczej międzyplon, chwasty lub samosiewy{% else %}, więc niska zieleń jest normalna{% endif %}{% else %}rośliny ({{ crop }}) są jeszcze małe i nie zakrywają pola, więc niska zieleń jest normalna{% endif %}.
 {% else %}
 Kondycji roślin nie porównujemy z poprzednimi latami: brakuje dość bezchmurnych zdjęć z tych samych tygodni w poprzednich latach.
 {% endif %}

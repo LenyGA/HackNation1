@@ -22,6 +22,7 @@ TITLES: dict[str, str] = {
     "winter_cover_crop": "Nie zostawiaj pola gołego na zimę",
     "crop_residues": "Chroń wilgoć w glebie po zbiorze",
     "grassland_cutting": "Koś wyżej i nie koś w czasie suszy",
+    "orchard_mulch_sward": "Ściółkuj rzędy i ogranicz konkurencję trawy o wodę",
 }
 
 TEXTS: dict[str, str] = {
@@ -80,6 +81,11 @@ TEXTS: dict[str, str] = {
         "{grass_pl} Koś na wysokości 7–10 cm, nie koś w czasie suszy i nie wypasaj zbyt intensywnie — "
         "wyższa darń osłania glebę i szybciej odrasta po deszczu."
     ),
+    "orchard_mulch_sward": (
+        "{orchard_pl} Wyłóż w pasie rzędów ściółkę grubości 5–10 cm (kora, zrębki lub słoma) — ogranicza "
+        "parowanie wody z gleby i chwasty. W czasie suszy koś murawę w międzyrzędziach często i nisko, "
+        "żeby trawa nie zabierała wody {plants_pl}, i nie spulchniaj wtedy gleby w rzędach."
+    ),
 }
 
 MONTHS_PL = {
@@ -128,6 +134,10 @@ OM_ACTIONS_PL = {
     "arable": "Obornik, pocięta i wymieszana z glebą słoma oraz międzyplony zwiększą próchnicę.",
     "grassland": (
         "Nawożenie obornikiem lub gnojowicą i utrzymanie zwartej darni (bez zaorywania) zwiększą próchnicę."
+    ),
+    "fruit": (
+        "Kompost lub obornik pod rzędy, ściółka z kory lub zrębków w pasie rzędów i zwarta murawa "
+        "w międzyrzędziach zwiększą próchnicę."
     ),
 }
 
@@ -207,7 +217,9 @@ def derived(template: str, params: dict[str, ParamValue]) -> dict[str, str]:
             "Tuż przy działce lub na niej" if dist < NEAR_M else f"W odległości ok. {fmt(dist)} m od działki"
         )
     if template == "organic_matter":
-        out["om_actions_pl"] = OM_ACTIONS_PL["grassland" if params.get("grassland") else "arable"]
+        out["om_actions_pl"] = OM_ACTIONS_PL[
+            "fruit" if params.get("fruit") else "grassland" if params.get("grassland") else "arable"
+        ]
     if template == "crop_timing_variety":
         out["timing_pl"] = TIMING_PL[str(params.get("timing", "sown"))]
     if template == "crop_residues":
@@ -226,6 +238,14 @@ def derived(template: str, params: dict[str, ParamValue]) -> dict[str, str]:
         if params.get("months"):
             parts.append(f"W ostatnich 10 latach wody często brakowało w miesiącach: {out['months_pl']}.")
         out["grass_pl"] = " ".join(parts)
+    if template == "orchard_mulch_sward":
+        parts = []
+        if params.get("light_soil"):
+            parts.append("Gleba jest lekka i słabo trzyma wodę.")
+        if params.get("months"):
+            parts.append(f"W ostatnich 10 latach wody często brakowało w miesiącach: {out['months_pl']}.")
+        out["orchard_pl"] = " ".join(parts)
+        out["plants_pl"] = "krzewom" if params.get("bushes") else "drzewom"
     if template == "irrigation":
         out["irrigation_pl"] = irrigation_text(params)
     return out
@@ -266,6 +286,10 @@ NO_CROP_PL: dict[str, str] = {
         "W dniu analizy ({date}) uprawa ({crop}) nie jest jeszcze wysiana albo dopiero wschodzi, "
         "więc nawadnianie nie dotyczy."
     ),
+    "fruit_dormant": (
+        "W dniu analizy ({date}) drzewa i krzewy ({crop}) są jeszcze w spoczynku zimowym "
+        "albo już zrzuciły liście, więc nawadnianie nie dotyczy."
+    ),
 }
 
 IRRIGATION_PL: dict[str, str] = {
@@ -298,6 +322,11 @@ LATE_PL = {
         "W dniu analizy ({date}) łąka kończy już sezon wzrostu. Podlewanie na tym etapie "
         "nie zwiększy już plonu."
     ),
+    "fruit": (
+        "W dniu analizy ({date}) owoce są już zebrane, a drzewa i krzewy ({crop}) kończą sezon "
+        "przed opadaniem liści. Podlewanie na tym etapie nie zwiększy już plonu — wystarczy, "
+        "że gleba nie przeschnie przed zimą."
+    ),
 }
 
 NO_BALANCE_PL = {
@@ -313,7 +342,7 @@ NO_BALANCE_PL = {
 
 IRRIGATION_ORDER_PL = (
     "Nawadnianie to ostatni krok — ratuje bieżący sezon, ale na dłuższą metę ważniejsze jest zatrzymywanie "
-    "wody na polu i w glebie (pozostałe zalecenia w tym raporcie)."
+    "wody na działce i w glebie (pozostałe zalecenia w tym raporcie)."
 )
 
 FORECAST_NOTE_PL = {
@@ -348,6 +377,12 @@ IRRIGATION_CAVEATS_PL = [
     "Nawadnianie deszczownią wodą podziemną, a także pobór wody ponad 5 m³ na dobę, zwykle wymaga pozwolenia "
     "wodnoprawnego Wód Polskich. Sprawdź to przed rozpoczęciem nawadniania — analiza tego nie uwzględnia.",
 ]
+# FAO-56 ch. 7 / ch. 8: under drip only the wetted fraction fw of the surface loses water by evaporation and
+# gets water; the dose here is for the whole area, so the real volume of a drip system is lower.
+FRUIT_CAVEAT_PL = (
+    "W sadach i na plantacjach krzewów zwykle nawadnia się kroplowo — woda trafia tylko do pasa rzędów, "
+    "więc rzeczywista ilość wody jest mniejsza niż dawka podana dla całej powierzchni."
+)
 DOSE_CAVEAT_PL = (
     "Podana dawka to woda, która ma wsiąknąć w glebę. Deszczownia traci część wody na parowanie i znoszenie "
     "przez wiatr, więc trzeba wylać jej nieco więcej."
@@ -407,9 +442,9 @@ def irrigation_title(status: str) -> str:
     return IRRIGATION_TITLES[status]
 
 
-def irrigation_caveats(status: str) -> list[str]:
+def irrigation_caveats(status: str, fruit: bool = False) -> list[str]:
     if status in ("irrigate", "irrigate_soon"):
-        return [*IRRIGATION_CAVEATS_PL, DOSE_CAVEAT_PL]
+        return [*IRRIGATION_CAVEATS_PL, DOSE_CAVEAT_PL, *([FRUIT_CAVEAT_PL] if fruit else [])]
     if status in ("not_needed", "wait_for_rain", "no_balance"):
         return list(IRRIGATION_CAVEATS_PL)
     return []
@@ -498,10 +533,14 @@ def irrigation_text(params: dict[str, ParamValue]) -> str:
     phase = params.get("phase")
     out["phase_pl"] = f" To okres, w którym uprawa najbardziej potrzebuje wody ({phase})." if phase else ""
     if status == "late_stage":
-        out["late_pl"] = LATE_PL["grassland" if params.get("grassland") else "crop"].format(**out)
+        out["late_pl"] = LATE_PL[
+            "fruit" if params.get("fruit") else "grassland" if params.get("grassland") else "crop"
+        ].format(**out)
     if status == "no_crop":
         out["no_crop_pl"] = NO_CROP_PL[
-            "after_harvest"
+            "fruit_dormant"
+            if params.get("fruit")
+            else "after_harvest"
             if params.get("after_harvest")
             else "before_regrowth"
             if params.get("grassland")
