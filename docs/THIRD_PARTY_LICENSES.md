@@ -2,7 +2,7 @@
 
 Lista wygenerowana automatycznie 22.11.2026 z zainstalowanych pakietów backendu (`backend/.venv`, wersje z
 `backend/requirements*.txt`) i z `frontend/package-lock.json` (licencja z `package.json` pakietu). Obejmuje zależności
-pośrednie. Źródłem każdej biblioteki jest publiczny rejestr PyPI lub npm (link w tabeli). Kod aplikacji: MIT (`LICENSE`).
+pośrednie. Źródłem każdej biblioteki jest publiczny rejestr PyPI lub npm (link w tabeli). Kod aplikacji: © 2026 GeoSatel, wszelkie prawa zastrzeżone (`LICENSE`).
 Opis licencji danych, usług i narzędzi AI: `README.md`, rozdz. 6–7.
 
 ## Podsumowanie

@@ -1,21 +1,22 @@
-MIT License
+Copyright (c) 2026 GeoSatel. Wszelkie prawa zastrzeżone. / All rights reserved.
 
-Copyright (c) 2026 GeoSatel
+Kod źródłowy, dokumentacja i materiały w tym repozytorium są chronione prawem autorskim zespołu GeoSatel.
+Kopiowanie, modyfikowanie, rozpowszechnianie i udostępnianie osobom trzecim bez pisemnej zgody zespołu
+jest zabronione. Organizator i Jury HackNation 2026 mogą uruchamiać, testować i oceniać rozwiązanie w zakresie
+potrzebnym do oceny zgłoszenia.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Rozwiązanie powstało na HackNation 2026 w ramach zadania Krajowego Ośrodka Wsparcia Rolnictwa (KOWR)
+„Zatrzymaj wodę, chroń plony”. Autorskie prawa majątkowe przechodzą na KOWR na zasadach i w przypadkach
+określonych w regulaminie wydarzenia (§ 5).
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Komponenty zewnętrzne (biblioteki, dane, usługi) zachowują swoje licencje; ich wykaz jest w
+docs/THIRD_PARTY_LICENSES.md oraz w README.md (rozdz. 6–7).
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+---
+
+The source code, documentation and materials in this repository are copyrighted by the GeoSatel team.
+Copying, modifying, distributing or making them available to third parties without the team's written
+permission is prohibited. The organiser and the jury of HackNation 2026 may run, test and evaluate the
+solution as needed to assess the submission. The economic rights pass to KOWR on the terms and in the
+cases set out in the event rules (§ 5). Third-party components keep their own licences, listed in
+docs/THIRD_PARTY_LICENSES.md and README.md.

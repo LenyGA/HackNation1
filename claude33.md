@@ -154,7 +154,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 ### Inne formalne
 | ID | Wymaganie | Status | Luka |
 |---|---|---|---|
-| Z8 | `LICENSE`: „Copyright … Łukasz Dębski”. Regulamin § 6 ust. 2 każe identyfikować rozwiązanie nazwą zespołu, a § 5 przewiduje przeniesienie praw na KOWR | ✅ | 22.11 — właściciel „GeoSatel” |
+| Z8 | `LICENSE`: „Copyright … Łukasz Dębski”. Regulamin § 6 ust. 2 każe identyfikować rozwiązanie nazwą zespołu, a § 5 przewiduje przeniesienie praw na KOWR | ✅ | 22.11 — „© 2026 GeoSatel, wszelkie prawa zastrzeżone” (zamiast MIT), wyjątek na ocenę przez Jury, prawa majątkowe na KOWR wg § 5 |
 | Z9 | Finał: demo na żywo dla 1–3 działek i dat jury w 2–3 min | ⚠️ 22.11 | Scenariusz `docs/submission/demo.md`, zapasowe PDF-y z Z6; próba generalna — zespół |
 
 **Priorytet (od największego wpływu na punkty):** T1 → **Q1–Q7** → G3 → G1 → G7 → Z6 → **G9 → G10** → R1–R12 →

@@ -21,7 +21,7 @@ potem uprawa i nawadnianie.
 | Źródła danych, licencje, daty pobrania | [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) |
 | Wszystkie biblioteki z wersją, licencją i źródłem | [`docs/THIRD_PARTY_LICENSES.md`](docs/THIRD_PARTY_LICENSES.md) |
 | Wymagania zadania (skrót z PDF) | [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) |
-| Licencja kodu | [`LICENSE`](LICENSE) (MIT, © GeoSatel) |
+| Licencja kodu | [`LICENSE`](LICENSE) (© 2026 GeoSatel, wszelkie prawa zastrzeżone) |
 
 ---
 
@@ -259,7 +259,8 @@ i pypdfium2 (Apache-2.0 / BSD-3-Clause). Muzyka w filmie jest syntetyzowana w sk
 
 ## 7. Licencje
 
-**Kod aplikacji:** MIT, © 2026 GeoSatel ([`LICENSE`](LICENSE)). Pełna lista komponentów z licencjami:
+**Kod aplikacji:** © 2026 GeoSatel, wszelkie prawa zastrzeżone ([`LICENSE`](LICENSE)); autorskie prawa majątkowe przechodzą
+na KOWR na zasadach i w przypadkach określonych w regulaminie (§ 5). Pełna lista komponentów z licencjami:
 [`docs/THIRD_PARTY_LICENSES.md`](docs/THIRD_PARTY_LICENSES.md). Zależności mają licencje permisywne (MIT, BSD, Apache-2.0,
 ISC) albo licencje słabego copyleftu, które nie wymagają otwarcia naszego kodu: MPL-2.0 (certifi; lightningcss tylko przy
 budowaniu frontu), LGPL-2.1 (biblioteka GEOS w kole Shapely, Pango w obrazie Docker, obie linkowane dynamicznie). pyphen
