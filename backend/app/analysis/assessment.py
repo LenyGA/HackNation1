@@ -58,6 +58,7 @@ MIN_RECHARGE_DAYS = 30
 NDVI_LOW_PCT = 25.0
 RETENTION_RADIUS_M = 500.0
 RETENTION_KINDS = ("water_body", "wetland", "trees")
+IUNG_REGULATION_IN_FORCE = date(2019, 5, 1)  # Dz.U. 2019 poz. 739, § 3 (7 days after 23.04.2019)
 IUNG_SOURCE = (
     "Rozporządzenie MRiRW z 11.04.2019 (Dz.U. 2019 poz. 739), System Monitoringu Suszy Rolniczej IUNG-PIB"
 )
@@ -359,7 +360,11 @@ def _current(ctx: Context) -> CurrentState | None:
     iung: IungThreshold | None = None
     iung_below: bool | None = None
     category = ctx.soil.category.value if ctx.soil is not None and ctx.soil.category is not None else None
-    found = iung_lookup(ctx.crop.id, category, day)
+    found: IungThreshold | IungMissing = (
+        iung_lookup(ctx.crop.id, category, day)
+        if ctx.in_vegetation and ctx.crop_on_field
+        else IungMissing.CROP_NOT_ON_FIELD
+    )
     iung_missing: IungMissing | None = found if isinstance(found, IungMissing) else None
     if isinstance(found, IungThreshold):
         kbw_period = ctx.weather.kbw_sum(found.period_start, found.period_end)
@@ -371,7 +376,8 @@ def _current(ctx: Context) -> CurrentState | None:
             iung_used = True
             iung = found
             iung_below = kbw_rounded <= found.kbw_critical_mm
-            basis.append("iung")
+            if iung_below:
+                basis.append("iung")
             indicators.append(
                 indicator(
                     "kbw_iung_period_mm",
@@ -433,8 +439,6 @@ def _current_confidence(ctx: Context, root_zone: bool, sat: SatelliteCheck, iung
     if ctx.history is None or ctx.history.current.kbw_60d_pct is None:
         points -= 1
         reasons.append(CONFIDENCE_REASONS["few_years"])
-    if not iung_used:
-        reasons.append(CONFIDENCE_REASONS["iung_missing"])
     if sat.status == "disagrees":
         points -= 1
         reasons.append(CONFIDENCE_REASONS["satellite_disagrees"])
@@ -648,6 +652,8 @@ def _limitations(ctx: Context, current: CurrentState | None) -> list[str]:
         out.append("iung_thresholds_missing")
     elif current is not None:
         out.append("iung_etp_method")
+        if ctx.inputs.analysis_date < IUNG_REGULATION_IN_FORCE:
+            out.append("iung_backdated")
     if inp.weather.data is not None and inp.weather.data.provisional_from is not None:
         out.append("weather_provisional")
     if inp.weather.status is SourceStatus.DEGRADED:

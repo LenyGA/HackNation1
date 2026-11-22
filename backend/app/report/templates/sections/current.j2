@@ -67,14 +67,15 @@ Uprawa ozima ({{ crop }}) jest na polu — dobry zapas wody w glebie przed wiosn
 {% if iung %}
 {% set kp = v.get('kbw_iung_period_mm') %}
 {% if kp is not none %}
-Oficjalny wskaźnik suszy rolniczej (IUNG-PIB): od {{ iung.period_start|date_pl }} do {{ iung.period_end|date_pl }} {% if kp < 0 %}parowanie przewyższyło opady o {{ (-kp)|num }} mm{% else %}opady przewyższyły parowanie o {{ kp|num }} mm{% endif %}. Próg suszy dla grupy „{{ iung.group_pl }}” na glebie kategorii {{ iung.category }} to {{ (-iung.critical_mm)|num }} mm niedoboru — {% if iung.below %}został przekroczony, czyli według oficjalnej metodyki jest susza rolnicza (spadek plonu o co najmniej 20%){% else %}nie został przekroczony, czyli według oficjalnej metodyki suszy rolniczej nie ma{% endif %}.
+Porównanie z oficjalnym progiem suszy rolniczej (rozporządzenie ministra rolnictwa, metodyka IUNG-PIB): według naszego wyliczenia od {{ iung.period_start|date_pl }} do {{ iung.period_end|date_pl }} {% if kp < 0 %}parowanie przewyższyło opady o {{ (-kp)|num }} mm{% elif kp > 0 %}opady przewyższyły parowanie o {{ kp|num }} mm{% else %}opady i parowanie były w równowadze{% endif %}. Próg suszy dla grupy „{{ iung.group_pl }}” na glebie kategorii {{ iung.category }} to {{ (-iung.critical_mm)|num }} mm niedoboru — {% if iung.below %}niedobór osiągnął ten próg lub go przekroczył, co według tego kryterium oznacza suszę rolniczą (spadek plonu o co najmniej 20%){% else %}niedobór jest mniejszy od progu, więc według tego kryterium suszy rolniczej nie ma{% endif %}.
 {% endif %}
 {% elif iung_missing %}
 {{ {'crop_not_covered': 'Dla tej uprawy nie ma oficjalnego progu suszy rolniczej IUNG-PIB',
     'soil_not_covered': 'Dla tej uprawy na tak lekkiej glebie oficjalny próg suszy rolniczej IUNG-PIB nie jest określony',
     'outside_periods': 'System monitoringu suszy IUNG-PIB nie ocenia tej uprawy w tym terminie',
+    'crop_not_on_field': 'Uprawy nie ma teraz na polu albo jest poza okresem wzrostu, dlatego oficjalnego progu suszy rolniczej IUNG-PIB nie stosujemy',
     'no_soil_category': 'Bez danych o glebie nie da się porównać z oficjalnym progiem suszy rolniczej IUNG-PIB',
-    'no_weather': 'Brakuje danych pogodowych z okresu, dla którego liczony jest oficjalny próg suszy rolniczej IUNG-PIB'}[iung_missing] }}, więc ocenę opieramy na porównaniu z poprzednimi latami i zapasie wody w glebie.
+    'no_weather': 'Brakuje danych pogodowych z okresu, dla którego liczony jest oficjalny próg suszy rolniczej IUNG-PIB'}[iung_missing] }}. Ocena opiera się na porównaniu z poprzednimi latami{% if c.root_zone %} i na bilansie wody w glebie{% endif %}.
 {% endif %}
 
 {% set npct = c.sat.get('ndvi_pct') %}

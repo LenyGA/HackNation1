@@ -3,9 +3,10 @@
 from datetime import date
 
 import pytest
+from pydantic import ValidationError
 
 from app.crops.catalog import load_crops
-from app.crops.iung import IungMissing, IungThreshold, iung_lookup, iung_threshold, load_iung_table
+from app.crops.iung import IungMissing, IungTable, IungThreshold, iung_lookup, load_iung_table
 
 
 def _found(crop: str, cat: str | None, day: date) -> IungThreshold:
@@ -63,4 +64,24 @@ def test_missing_reasons() -> None:
     assert iung_lookup("grassland", "II", day) is IungMissing.CROP_NOT_COVERED
     assert iung_lookup("sugar_beet", "I", day) is IungMissing.SOIL_NOT_COVERED
     assert iung_lookup("maize", None, day) is IungMissing.NO_SOIL_CATEGORY
-    assert iung_threshold("grassland", "II", day) is None
+
+
+def _table_dict() -> dict:
+    return load_iung_table().model_dump()
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda d: d["groups"][0]["kbw_critical_mm"]["I"].__setitem__(0, 12.0),  # positive value
+        lambda d: d["periods"].__setitem__(1, "03-01/03-10"),  # not six dekads
+        lambda d: d["periods"].reverse(),  # out of order
+        lambda d: d["groups"][0]["kbw_critical_mm"]["I"].pop(),  # wrong length
+        lambda d: d.update(extra_key=1),  # unknown key
+    ],
+)
+def test_table_validation_rejects_broken_tables(mutate) -> None:  # type: ignore[no-untyped-def]
+    d = _table_dict()
+    mutate(d)
+    with pytest.raises(ValidationError):
+        IungTable.model_validate(d)

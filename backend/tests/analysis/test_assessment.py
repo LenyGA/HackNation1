@@ -377,7 +377,8 @@ def test_iung_above_threshold_is_not_drought_and_does_not_change_level() -> None
 
     a = assess(make_inputs(SUMMER, precip=precip))
     assert a.current is not None
-    assert a.current.iung_below is False and "iung" in a.current.basis
+    assert a.current.iung_below is False and a.current.iung_threshold_used
+    assert "iung" not in a.current.basis  # the threshold did not set the level
     assert a.current.level is DeficitLevel.NONE
 
 
@@ -408,5 +409,37 @@ def test_iung_missing_reason_without_soil() -> None:
     from app.crops.iung import IungMissing
 
     a = assess(make_inputs(SUMMER, soil=False))
-    if a.current is not None:
-        assert a.current.iung_missing is IungMissing.NO_SOIL_CATEGORY
+    assert a.current is not None
+    assert a.current.iung_missing is IungMissing.NO_SOIL_CATEGORY
+
+
+@pytest.mark.parametrize(
+    ("crop_id", "day"),
+    [("field_vegetables", date(2024, 9, 5)), ("maize", date(2024, 10, 5)), ("rye", date(2024, 8, 5))],
+)
+def test_iung_does_not_fire_after_harvest_or_after_vegetation(crop_id: str, day: date) -> None:
+    from app.crops.iung import IungMissing
+
+    rp = random_precip()
+    a = assess(make_inputs(day, crop_id, precip=lambda d: 0.0 if 0 <= (day - d).days < 120 else rp(d) + 1.0))
+    assert a.current is not None
+    assert not (a.current.in_vegetation and a.current.crop_on_field)
+    assert a.current.iung is None and a.current.iung_missing is IungMissing.CROP_NOT_ON_FIELD
+    assert "iung" not in a.current.basis
+    assert "kbw_iung_period_mm" not in {i.key for i in a.current.indicators}
+
+
+def test_iung_no_weather_in_the_period() -> None:
+    from app.crops.iung import IungMissing
+
+    rp = random_precip()
+    # 8 missing days at the start of the 61-day period (> 10 % gap) but only 2 inside the 60-day window.
+    gap = (date(2024, 5, 11), date(2024, 5, 18))
+
+    def precip(d: date) -> float | None:
+        return None if gap[0] <= d <= gap[1] else rp(d)
+
+    a = assess(make_inputs(SUMMER, precip=precip))  # type: ignore[arg-type]
+    assert a.complete and a.current is not None
+    assert a.current.iung is None and a.current.iung_missing is IungMissing.NO_WEATHER
+    assert "iung" not in a.current.basis

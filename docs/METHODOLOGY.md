@@ -88,13 +88,19 @@ gminy wobec średnich warunków (ekspertyza, s. 5).
   który skończył się nie później niż data analizy i nie dawniej niż 11 dni (`MAX_PERIOD_AGE_DAYS`, IUNG publikuje KBW
   po każdej dekadzie). KBW = suma (opad − ET0) dokładnie w tym okresie, zaokrąglona do 1 mm przed porównaniem
   (tekst i werdykt zawsze zgodne). `KBW ≤ próg` → susza rolnicza wg IUNG i poziom co najmniej „umiarkowany”;
-  powyżej progu poziom się nie zmienia.
+  powyżej progu poziom się nie zmienia (wtedy `iung` nie trafia do `basis`). Próg stosujemy tylko w okresie wegetacji
+  i gdy uprawa jest na polu (`in_vegetation` i `crop_on_field`): okresy z rozporządzenia sięgają dalej niż nasz
+  kalendarz upraw, a po zbiorze werdykt dotyczyłby uprawy, której już nie ma (`IungMissing.CROP_NOT_ON_FIELD`).
 - Uprawy: pszenica ozima i żyto → „zboża ozime”, jęczmień jary → „zboża jare”, kukurydza → „kukurydza na ziarno”,
   rzepak ozimy → „rzepak i rzepik”, ziemniaki, burak cukrowy, warzywa polowe → „warzywa gruntowe”. Użytki zielone nie
   mają progu w rozporządzeniu, a burak cukrowy nie ma wartości dla kategorii I — raport mówi to wprost (`IungMissing`).
 - Różnice wobec SMSR (w „Ograniczeniach analizy”): IUNG liczy ETP wzorem Doroszewskiego z danych stacji i interpoluje
   na gminy; my używamy ET0 FAO-56 z modelu pogody dla punktu działki. Progi z 2019 r. stosujemy także do dat sprzed
-  1.05.2019 (wcześniej obowiązywały tabele z 2016 i 2017 r.). Kategorię gleby wyznaczamy z SoilGrids, a nie z mapy
+  1.05.2019 (wcześniej obowiązywały tabele z 2016 i 2017 r.) — wtedy raport dodaje ograniczenie `iung_backdated`.
+  Obserwacja z E2E (22.11.2026): na działkach referencyjnych, także latem 2018 i 2019, nasz KBW okresu był 50–100 mm
+  powyżej progu, więc próg nie zmienił żadnego poziomu. Możliwe przyczyny: ET0 FAO-56 niższe od ETP wg wzoru
+  Doroszewskiego oraz kategoria gleby z SoilGrids cięższa od mapy glebowo-rolniczej. Próg jest więc sygnałem
+  ostrożnym (rzadko alarmuje), a główną rolę pełnią bilans w strefie korzeni i percentyle z 10 lat. Kategorię gleby wyznaczamy z SoilGrids, a nie z mapy
   glebowo-rolniczej 1:25 000.
 
 **Satelita** porównuje kondycję roślin (mediana bieżących scen) z historią tej działki w tym samym oknie roku

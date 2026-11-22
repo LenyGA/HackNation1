@@ -19,22 +19,24 @@ def test_dry_maize_says_official_drought_with_numbers_and_source() -> None:
     r = report_for()  # dry summer, maize, loamy sand (category II), 15 VII 2024
     current = _section(r, "current")
     assert "Dz. U." not in _main(r, "current")  # the legal citation stays in the details
-    assert "Oficjalny wskaźnik suszy rolniczej (IUNG-PIB)" in current
+    assert "Porównanie z oficjalnym progiem suszy rolniczej" in current
+    assert "według naszego wyliczenia" in current
     assert "188 mm niedoboru" in current and "kategorii II" in current
-    assert "jest susza rolnicza" in current
+    assert "oznacza suszę rolniczą" in current
     assert "Dz. U. 2019 poz. 739" in current  # citation in the details
     sources = _section(r, "sources")
     assert "Dz. U. 2019 poz. 739" in sources and "wbudowana w aplikację" in sources
     limitations = _section(r, "limitations")
     assert "Nie użyto oficjalnych progów" not in limitations
     assert "susza.iung.pulawy.pl" in limitations
+    assert "z 2016 lub 2017" not in limitations  # 2024 is after the regulation entered into force
 
 
 def test_wet_maize_says_no_official_drought() -> None:
     r = report_for(precip=lambda d: 12.0)
     current = _section(r, "current")
     assert "suszy rolniczej nie ma" in current
-    assert "jest susza rolnicza" not in current
+    assert "oznacza suszę rolniczą" not in current
 
 
 def test_grassland_says_there_is_no_official_threshold() -> None:
@@ -47,4 +49,22 @@ def test_grassland_says_there_is_no_official_threshold() -> None:
 
 def test_off_season_says_iung_does_not_assess_now() -> None:
     r = report_for(crop_id="winter_wheat", day=date(2024, 11, 21))
-    assert "nie ocenia tej uprawy w tym terminie" in _section(r, "current")
+    assert "oficjalnego progu suszy rolniczej IUNG-PIB nie stosujemy" in _section(r, "current")
+
+
+def test_missing_soil_does_not_claim_a_soil_water_balance() -> None:
+    main = _main(report_for(soil=False), "current")
+    assert "Bez danych o glebie nie da się porównać z oficjalnym progiem" in main
+    assert "bilansie wody w glebie" not in main
+
+
+def test_after_harvest_threshold_is_not_applied() -> None:
+    r = report_for(crop_id="field_vegetables", day=date(2024, 9, 5))
+    main = _main(r, "current")
+    assert "oficjalnego progu suszy rolniczej IUNG-PIB nie stosujemy" in main
+    assert "oznacza suszę rolniczą" not in main
+
+
+def test_historical_date_before_2019_mentions_older_thresholds() -> None:
+    r = report_for(day=date(2018, 7, 15))
+    assert "z 2016 lub 2017" in _section(r, "limitations")

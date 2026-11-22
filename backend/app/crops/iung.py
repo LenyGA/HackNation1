@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.crops.catalog import month_day
 
@@ -20,12 +20,16 @@ MAX_PERIOD_AGE_DAYS = 11
 
 
 class IungGroup(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name_pl: str
     crops: list[str]
     kbw_critical_mm: dict[str, list[float | None]]
 
 
 class IungTable(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     source: str
     url: str
     accessed: str
@@ -35,10 +39,15 @@ class IungTable(BaseModel):
     @field_validator("periods")
     @classmethod
     def _check_periods(cls, value: list[str]) -> list[str]:
+        previous_end: date | None = None
         for p in value:
-            start, end = p.split("/")
-            month_day(start, 2024)
-            month_day(end, 2024)
+            start_s, end_s = p.split("/")
+            start, end = month_day(start_s, 2023), month_day(end_s, 2023)
+            if not 60 <= (end - start).days + 1 <= 62:  # six dekads
+                raise ValueError(f"period {p} is not six dekads long")
+            if previous_end is not None and end <= previous_end:
+                raise ValueError(f"period {p} is out of order")
+            previous_end = end
         return value
 
     @model_validator(mode="after")
@@ -47,6 +56,8 @@ class IungTable(BaseModel):
             if set(g.kbw_critical_mm) != set(SOIL_CATEGORIES):
                 raise ValueError(f"{g.name_pl}: soil categories must be exactly I–IV")
             for cat, values in g.kbw_critical_mm.items():
+                if any(v is not None and v >= 0 for v in values):
+                    raise ValueError(f"{g.name_pl} {cat}: critical KBW values must be negative")
                 if len(values) != len(self.periods):
                     n = len(self.periods)
                     raise ValueError(f"{g.name_pl} {cat}: {len(values)} values for {n} periods")
@@ -60,6 +71,7 @@ class IungMissing(StrEnum):
     CROP_NOT_COVERED = "crop_not_covered"  # crop absent from the regulation (e.g. grassland)
     SOIL_NOT_COVERED = "soil_not_covered"  # crop has no value for this soil category (sugar beet on cat. I)
     OUTSIDE_PERIODS = "outside_periods"  # no assessed period ended within the last dekad
+    CROP_NOT_ON_FIELD = "crop_not_on_field"  # before sowing, after harvest or outside the vegetation period
     NO_WEATHER = "no_weather"  # threshold exists, but the period's weather is incomplete
 
 
@@ -118,8 +130,3 @@ def iung_lookup(crop_id: str, soil_category: str | None, day: date) -> IungThres
                 accessed=date.fromisoformat(table.accessed),
             )
     return best if best is not None else IungMissing.OUTSIDE_PERIODS
-
-
-def iung_threshold(crop_id: str, soil_category: str | None, day: date) -> IungThreshold | None:
-    found = iung_lookup(crop_id, soil_category, day)
-    return found if isinstance(found, IungThreshold) else None
