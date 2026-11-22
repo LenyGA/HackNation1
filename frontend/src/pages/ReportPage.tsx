@@ -1,8 +1,8 @@
 import { Check, Download, Link2, Loader2, Printer, RotateCcw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiRequestError } from '@/api/client'
-import type { Report, ReportSection } from '@/api/types'
+import type { Report, ReportSection, ReportVariant } from '@/api/types'
 import { ReportMapView } from '@/components/map/ReportMapView'
 import {
   Disclosure,
@@ -16,6 +16,7 @@ import {
 } from '@/components/report/ReportParts'
 import { ProfileChart, SatelliteChart, StressHeatmapView, TrendsView, WaterPlanChart } from '@/components/report/Charts'
 import { FloodBlock, GroundwaterBlock } from '@/components/report/HydroBlocks'
+import { BasicReport } from '@/components/report/BasicReport'
 import { SeasonChartView } from '@/components/report/SeasonChartView'
 import { Simulator } from '@/components/report/Simulator'
 import { SummaryTiles } from '@/components/report/SummaryTiles'
@@ -47,7 +48,7 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-function Actions({ report }: { report: Report }) {
+function Actions({ report, variant }: { report: Report; variant: ReportVariant }) {
   const [copied, setCopied] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -56,7 +57,7 @@ function Actions({ report }: { report: Report }) {
   useEffect(() => () => frameRef.current?.remove(), [])
 
   function print() {
-    const url = api.reportPrintUrl(report.id)
+    const url = api.reportPrintUrl(report.id, variant)
     // iOS Safari ignores print() inside a frame and prints the parent page: open the print view instead.
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
     if (ios) {
@@ -89,7 +90,7 @@ function Actions({ report }: { report: Report }) {
   }
 
   async function copy() {
-    const link = `${window.location.origin}${window.location.pathname}`
+    const link = `${window.location.origin}${window.location.pathname}${window.location.search}`
     if (await copyText(link)) {
       setActionError(null)
       setCopied(true)
@@ -103,8 +104,8 @@ function Actions({ report }: { report: Report }) {
     <div className="space-y-2">
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
       <Button asChild size="lg" className="h-12">
-        <a href={api.reportPdfUrl(report.id)} download>
-          <Download /> Pobierz PDF
+        <a href={api.reportPdfUrl(report.id, variant)} download>
+          <Download /> Pobierz PDF {variant === 'basic' ? '(podstawowy)' : '(pełny)'}
         </a>
       </Button>
       <Button type="button" variant="outline" size="lg" className="h-12" onClick={print} disabled={printing}>
@@ -119,6 +120,32 @@ function Actions({ report }: { report: Report }) {
         {actionError}
       </p>
     )}
+    </div>
+  )
+}
+
+function VariantSwitch({ variant, onChange }: { variant: ReportVariant; onChange: (v: ReportVariant) => void }) {
+  const options: { value: ReportVariant; label: string; hint: string }[] = [
+    { value: 'basic', label: 'Podstawowy', hint: 'najważniejsze wnioski i działania, 1–2 strony' },
+    { value: 'full', label: 'Pełny', hint: 'wszystkie sekcje z wykresami, mapą i liczbami' },
+  ]
+  return (
+    <div role="radiogroup" aria-label="Wariant raportu" className="grid grid-cols-2 gap-1 rounded-lg border bg-muted/50 p-1">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={variant === o.value}
+          onClick={() => onChange(o.value)}
+          className={`min-h-11 rounded-md px-3 py-1.5 text-left transition-colors ${
+            variant === o.value ? 'bg-background font-semibold shadow-sm' : 'text-muted-foreground hover:bg-background/60'
+          }`}
+        >
+          <span className="block">Raport {o.label.toLowerCase()}</span>
+          <span className="block text-xs font-normal text-muted-foreground">{o.hint}</span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -218,6 +245,18 @@ function SectionCard({ section, report }: { section: ReportSection; report: Repo
 
 export function ReportPage() {
   const { id = '' } = useParams()
+  // The variant lives in the URL (?variant=full), so a shared link opens the same view; basic is the default.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const variant: ReportVariant = new URLSearchParams(location.search).get('variant') === 'full' ? 'full' : 'basic'
+  const setVariant = (v: ReportVariant) => {
+    const next = new URLSearchParams(location.search)
+    if (v === 'basic') next.delete('variant')
+    else next.set('variant', v)
+    const search = next.toString()
+    // Keep the #sekcja-N hash, so a deep link still scrolls after the switch.
+    navigate({ search: search ? `?${search}` : '', hash: window.location.hash }, { replace: true })
+  }
   // Result tagged with the id it belongs to, so a stale report is never shown after navigating to another one.
   const [loaded, setLoaded] = useState<{ id: string; report?: Report; error?: string } | null>(null)
   const report = loaded?.id === id ? (loaded.report ?? null) : null
@@ -261,12 +300,24 @@ export function ReportPage() {
     if (!report) return
     const previous = document.title
     document.title = `Raport: działka ${report.parcel.number ?? report.parcel.id} · ${report.app}`
-    // A shared link to one section (#sekcja-N) scrolls there once the report is rendered.
-    if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
     return () => {
       document.title = previous
     }
   }, [report])
+
+  // Sections and recommendation cards exist only in the full view: a link to one of them (a summary tile or a
+  // shared #sekcja-N link) switches to the full report, then scrolls there once it is rendered.
+  useEffect(() => {
+    const isDeepLink = () => /^#(sekcja|zalecenie)-\d+$/.test(window.location.hash)
+    const onHash = () => {
+      if (isDeepLink() && variant === 'basic') setVariant('full')
+      else if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
+    }
+    if (report) onHash()
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setVariant is recreated each render
+  }, [report, variant])
 
   if (error) {
     return (
@@ -317,23 +368,31 @@ export function ReportPage() {
           analizy i braki danych”.
         </p>
       )}
-      <Actions report={report} />
+      <VariantSwitch variant={variant} onChange={setVariant} />
+      <Actions report={report} variant={variant} />
 
-      <nav aria-label="Spis treści" className="rounded-md border bg-card px-3 py-2 text-sm">
-        <ol className="flex flex-wrap gap-x-4 gap-y-1">
+      {variant === 'basic' ? (
+        <BasicReport report={report} />
+      ) : (
+        <>
+          <nav aria-label="Spis treści" className="rounded-md border bg-card px-4 py-3 text-sm">
+            <p className="mb-1.5 font-semibold">Spis treści</p>
+            <ol className="space-y-1">
+              {report.sections.map((s) => (
+                <li key={s.id}>
+                  <a className="text-primary underline-offset-2 hover:underline" href={`#sekcja-${s.number}`}>
+                    {s.number}. {s.title_pl}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+
           {report.sections.map((s) => (
-            <li key={s.id}>
-              <a className="text-primary underline-offset-2 hover:underline" href={`#sekcja-${s.number}`}>
-                {s.number}. {s.title_pl}
-              </a>
-            </li>
+            <SectionCard key={s.id} section={s} report={report} />
           ))}
-        </ol>
-      </nav>
-
-      {report.sections.map((s) => (
-        <SectionCard key={s.id} section={s} report={report} />
-      ))}
+        </>
+      )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button asChild variant="secondary" size="lg" className="h-12">

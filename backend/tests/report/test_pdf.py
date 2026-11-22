@@ -97,3 +97,32 @@ def test_main_depression_is_one_definition_for_text_map_and_profile() -> None:
     assert all(f.recommendation_numbers == [] for f in r.map.features if f.kind == "depression_minor")
     if r.profile is not None and "obniż" in r.profile.text_pl:
         assert "zagłębieni" in r.profile.text_pl
+
+
+@pytest.mark.parametrize("name", list(SCENARIOS))
+def test_basic_variant_fits_on_2_pages_with_mandatory_parts(name: str) -> None:
+    """Requirement 3.3 pt 5 in the basic report: missing data, limitations and sources with dates."""
+    r = SCENARIOS[name]()
+    html = render_html(r, variant="basic")
+    assert len(HTML(string=html).render().pages) <= 2
+    assert "Braki danych i ograniczenia" in html and "Źródła danych" in html
+    for line in r.missing_data_pl:
+        assert line in html
+    for line in r.limitations_pl:
+        assert line in html
+    assert not JARGON.search(re.sub(r"<style>.*?</style>", "", html, flags=re.S))
+
+
+def test_basic_variant_splits_recommendations_by_horizon() -> None:
+    r = rich_report()
+    html = render_html(r, variant="basic")
+    assert "Co zrobić teraz" in html and "Przed następnym sezonem" in html
+    for rec in r.recommendations:
+        assert f"{rec.number}. {rec.title_pl}" in html
+
+
+def test_basic_pdf_is_cached_separately_from_full() -> None:
+    r = rich_report()
+    basic = asyncio.run(render_pdf(r, "basic"))
+    full = asyncio.run(render_pdf(r, "full"))
+    assert basic.startswith(b"%PDF") and full.startswith(b"%PDF") and basic != full

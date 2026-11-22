@@ -68,6 +68,24 @@ def date_pl(value: date | datetime | str | None) -> str:
     return f"{value.day} {MONTHS_GENITIVE_PL[value.month]} {value.year}"
 
 
+# Abbreviations that end with a dot inside a Polish sentence (never a sentence end).
+_ABBREVIATIONS = ("ok", "np", "tj", "m.in", "tzw", "r", "godz", "pow", "ul", "nr", "ust", "pkt", "poz", "str")
+
+
+def first_sentence(text: str) -> str:
+    """First sentence of a Polish text; abbreviations such as 'ok.' or 'np.' and decimals do not end it."""
+    for i, ch in enumerate(text):
+        if ch not in ".!?" or i + 2 > len(text) or i + 1 == len(text):
+            continue
+        if text[i + 1] != " " or not (i + 2 < len(text) and text[i + 2].isupper()):
+            continue
+        word = text[:i].rsplit(" ", 1)[-1].lower().lstrip("(")
+        if ch == "." and word in _ABBREVIATIONS:
+            continue
+        return text[: i + 1]
+    return text
+
+
 def date_dmy(value: date | datetime | str | None) -> str:
     """'2019-07-15' → '15.07.2019' (headers "na dzień …": the analysis date, never "today")."""
     if value is None:
@@ -215,6 +233,7 @@ def _env(autoescape: bool) -> Environment:
         num=num,
         date_pl=date_pl,
         date_dmy=date_dmy,
+        first_sentence=first_sentence,
         day_month_pl=day_month_pl,
         month_pl=month_pl,
         month_in_pl=month_in_pl,

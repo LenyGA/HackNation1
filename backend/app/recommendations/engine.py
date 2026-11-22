@@ -13,6 +13,7 @@ from app.analysis.assessment import Assessment
 from app.analysis.context import AnalysisInputs
 from app.core.models import Indicator
 from app.recommendations.agrotech import AGROTECH_RULES
+from app.recommendations.horizon import horizon
 from app.recommendations.irrigation import IRRIGATION_RULES
 from app.recommendations.models import CATEGORY_ORDER, Recommendation, Rule, RuleContext
 from app.recommendations.retention import RETENTION_RULES
@@ -60,6 +61,7 @@ def recommend(
                     params=params,
                     evidence=evidence,
                     locations=rule.locations(ctx),
+                    horizon=horizon(rule.id, ctx),
                 ),
             )
         )

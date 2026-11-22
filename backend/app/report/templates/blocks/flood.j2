@@ -10,11 +10,13 @@ W {{ d.points_checked }} z {{ d.points_total }} sprawdzanych punktów działki n
 {% elif level == 'low' %}
 Działka nie leży w strefach zagrożenia powodziowego od rzek (sprawdzono {{ d.points_checked }} {{ d.points_checked|plural('punkt', 'punkty', 'punktów') }}), ale w obszarze zagrożonym podtopieniami od wód gruntowych.
 {% else %}
-W {{ d.points_checked }} sprawdzonych {{ d.points_checked|plural('punkcie', 'punktach', 'punktach') }} działki (środek i brzeg) nie stwierdzono stref zagrożenia powodziowego od rzek.
+{% set calm = not d.historical and d.historical is not none and not d.groundwater_flooding %}
+W {{ d.points_checked }} sprawdzonych {{ d.points_checked|plural('punkcie', 'punktach', 'punktach') }} działki (środek i brzeg) nie stwierdzono stref zagrożenia powodziowego od rzek{% if calm %} ani powodzi w przeszłości (mapy Wód Polskich 2020–2022, bez małych cieków i podtopień po ulewach){% endif %}.
 {% endif %}
 {% if level in ('high', 'medium', 'low') and partial %}
 Część punktów działki nie została sprawdzona — strefa może obejmować większą część działki.
 {% endif %}
+{% set calm = level == 'none' and not d.historical and d.historical is not none and not d.groundwater_flooding %}
 {% if d.historical %}
 W tym miejscu odnotowano powódź w przeszłości (mapa powodzi historycznych).
 {% elif d.historical is none %}
@@ -23,6 +25,6 @@ Mapa powodzi historycznych Wód Polskich nie odpowiedziała, więc nie sprawdzil
 {% if d.groundwater_flooding %}
 Okolica jest na mapie PIG-PIB obszarem zagrożonym podtopieniami od wód gruntowych — po mokrych zimach woda może stać na polu.
 {% endif %}
-{% if level != 'unknown' or d.points_checked %}
+{% if (level != 'unknown' or d.points_checked) and not calm %}
 Mapy zagrożenia powodziowego pochodzą z II cyklu planistycznego (2020–2022) i opisują zagrożenie dziś, niezależnie od daty analizy; nie obejmują małych cieków ani podtopień po ulewach.
 {% endif %}

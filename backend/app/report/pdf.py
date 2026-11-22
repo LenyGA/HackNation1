@@ -6,7 +6,7 @@ background is fetched by the server and embedded as a data URI.
 import asyncio
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal
 
 from app.report.charts_svg import profile_svg, satellite_svg, trends_svgs, water_plan_svg
 from app.report.labels_pl import CONFIDENCE_LABELS
@@ -40,12 +40,21 @@ def _charts(report: Report) -> dict[str, object]:
     }
 
 
-def render_html(report: Report, basemap_uri: str | None = None, basemap_requested: bool = False) -> str:
+Variant = Literal["basic", "full"]
+TEMPLATES: dict[Variant, str] = {"basic": "report_basic.html.j2", "full": "report.html.j2"}
+
+
+def render_html(
+    report: Report,
+    basemap_uri: str | None = None,
+    basemap_requested: bool = False,
+    variant: Variant = "full",
+) -> str:
     """`basemap_requested`: the server asked Geoportal for the orthophoto (PDF). The print view does not,
-    so it never claims that the service failed."""
+    so it never claims that the service failed. The basic variant has no map, charts or tables."""
     return (
         html_env()
-        .get_template("report.html.j2")
+        .get_template(TEMPLATES[variant])
         .render(
             r=report,
             css=_css(),
@@ -80,34 +89,36 @@ _pdf_slots: asyncio.Semaphore | None = None
 PDF_CONCURRENCY = 2
 
 
-def _render(report: Report, basemap_uri: str | None = None) -> bytes:
-    return _write_pdf(render_html(report, basemap_uri, basemap_requested=True))
+def _render(report: Report, basemap_uri: str | None, variant: Variant) -> bytes:
+    return _write_pdf(render_html(report, basemap_uri, basemap_requested=variant == "full", variant=variant))
 
 
 # Saved reports never change, so a rendered PDF is reused: repeated downloads (or a client hammering one
 # link) cost no WeasyPrint work. Bounded LRU of ~300 KB files.
 PDF_CACHE_SIZE = 32
-_pdf_cache: OrderedDict[str, bytes] = OrderedDict()
+_pdf_cache: OrderedDict[tuple[str, Variant], bytes] = OrderedDict()
 
 
-async def render_pdf(report: Report) -> bytes:
+async def render_pdf(report: Report, variant: Variant = "full") -> bytes:
     global _pdf_slots
-    cached = _pdf_cache.get(report.id)
+    key = (report.id, variant)
+    cached = _pdf_cache.get(key)
     if cached is not None:
-        _pdf_cache.move_to_end(report.id)
+        _pdf_cache.move_to_end(key)
         return cached
     if _pdf_slots is None:
         _pdf_slots = asyncio.Semaphore(PDF_CONCURRENCY)
     # The WMS call runs before taking a render slot, so a slow Geoportal never blocks other PDFs.
-    basemap = await orthophoto.fetch_data_uri(map_frame(report))
+    # The basic variant has no map, so it never asks for the orthophoto.
+    basemap = await orthophoto.fetch_data_uri(map_frame(report)) if variant == "full" else None
     async with _pdf_slots:
-        cached = _pdf_cache.get(report.id)  # rendered by another request while this one waited
+        cached = _pdf_cache.get(key)  # rendered by another request while this one waited
         if cached is not None:
             return cached
-        pdf = await asyncio.to_thread(_render, report, basemap)
-    if basemap is None:
+        pdf = await asyncio.to_thread(_render, report, basemap, variant)
+    if variant == "full" and basemap is None:
         return pdf  # not cached: the next download tries the orthophoto again
-    _pdf_cache[report.id] = pdf
+    _pdf_cache[key] = pdf
     while len(_pdf_cache) > PDF_CACHE_SIZE:
         _pdf_cache.popitem(last=False)
     return pdf

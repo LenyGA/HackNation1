@@ -21,7 +21,7 @@ from app.core.config import APP_TITLE, APP_VERSION
 from app.core.models import AnalysisRequest
 from app.crops.catalog import get_crop, load_crops
 from app.report.models import Report
-from app.report.pdf import render_html, render_pdf
+from app.report.pdf import Variant, render_html, render_pdf
 from app.report.storage import load_report
 from app.sources import uldk
 
@@ -119,9 +119,10 @@ async def _report_or_404(report_id: str) -> Report:
     return report
 
 
-def _pdf_filename(report: Report) -> str:
+def _pdf_filename(report: Report, variant: Variant) -> str:
     safe = re.sub(r"[^0-9A-Za-z_.-]+", "-", report.parcel.id)
-    return f"raport-{safe}-{report.analysis_date.isoformat()}.pdf"
+    suffix = "-podstawowy" if variant == "basic" else "-pelny"
+    return f"raport-{safe}-{report.analysis_date.isoformat()}{suffix}.pdf"
 
 
 @router.get(
@@ -129,13 +130,14 @@ def _pdf_filename(report: Report) -> str:
     response_class=Response,
     responses={404: {"model": ErrorOut}, 200: {"content": {"application/pdf": {}}}},
 )
-async def report_pdf(report_id: str) -> Response:
+async def report_pdf(report_id: str, variant: Variant = "basic") -> Response:
+    """`variant`: basic (1–2 pages, default) or full (every section with charts, map and tables)."""
     report = await _report_or_404(report_id)
-    pdf = await render_pdf(report)
+    pdf = await render_pdf(report, variant)
     return Response(
         content=pdf,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{_pdf_filename(report)}"'},
+        headers={"Content-Disposition": f'attachment; filename="{_pdf_filename(report, variant)}"'},
     )
 
 
@@ -144,10 +146,10 @@ async def report_pdf(report_id: str) -> Response:
     response_class=HTMLResponse,
     responses={404: {"model": ErrorOut}},
 )
-async def report_print(report_id: str) -> HTMLResponse:
+async def report_print(report_id: str, variant: Variant = "basic") -> HTMLResponse:
     """Print view: the same HTML and stylesheet as the PDF, for printing from the browser."""
     report = await _report_or_404(report_id)
-    return HTMLResponse(await asyncio.to_thread(render_html, report))
+    return HTMLResponse(await asyncio.to_thread(render_html, report, variant=variant))
 
 
 @router.get("/reports/{report_id}", response_model=ReportOut, responses={404: {"model": ErrorOut}})

@@ -23,7 +23,7 @@ from app.analysis.trends import Direction, RecentChange, TrendResult, analyse_tr
 from app.analysis.water_plan import WaterPlanResult, water_plan
 from app.core.models import Period, SourceResult
 from app.recommendations.irrigation import IrrigationAdvice, single_dose_max_mm
-from app.recommendations.models import Category, Recommendation
+from app.recommendations.models import Category, Horizon, Recommendation
 from app.report import labels_pl as L
 from app.report.models import (
     ClimateTrends,
@@ -681,7 +681,9 @@ def _action_tile(
             link_section="irrigation",
         )
     if recs:
-        first = recs[0]
+        # The first action to take now (M3.5); else the first in the mandatory order (retention first).
+        first = next((r for r in recs if r.horizon is Horizon.NOW), recs[0])
+        when = "teraz" if first.horizon is Horizon.NOW else "przed następnym sezonem"
         section = {
             Category.RETENTION: "retention",
             Category.AGROTECH: "agrotech",
@@ -691,7 +693,7 @@ def _action_tile(
             id="action",
             label_pl=label,
             value_pl=first.title_pl,
-            detail_pl=f"Zalecenie nr {first.number}"
+            detail_pl=f"Zalecenie nr {first.number} ({when})"
             + (
                 f" — w sumie {len(recs)} {plural(len(recs), 'zalecenie', 'zalecenia', 'zaleceń')} w raporcie."
                 if len(recs) > 1

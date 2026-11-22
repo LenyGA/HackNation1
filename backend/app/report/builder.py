@@ -51,7 +51,7 @@ from app.report.models import (
     SourceEntry,
 )
 from app.report.outlook import build_outlook, flood_info, groundwater_info
-from app.report.texts import date_dmy, num, render_line, render_text, years_pl
+from app.report.texts import date_dmy, first_sentence, num, render_line, render_text, years_pl
 from app.sources import open_meteo, uldk
 from app.sources.landcover import SURROUNDINGS_RADIUS_M
 
@@ -201,6 +201,7 @@ def _cause_view(c: Cause) -> dict[str, Any]:
 def _current_view(cur: CurrentState) -> dict[str, Any]:
     sat = cur.satellite
     sat_values = {i.key: i.value for i in sat.indicators if i.value is not None}
+    scene = next((i for i in sat.indicators if i.key == "ndvi_current" and i.period is not None), None)
     last = cur.last_season
     recharge = next((i for i in cur.indicators if i.key == "recharge_kbw_mm" and i.period is not None), None)
     return {
@@ -213,6 +214,7 @@ def _current_view(cur: CurrentState) -> dict[str, Any]:
         "iung_used": cur.iung_threshold_used,
         "satellite": sat.status,
         "sat": sat_values,
+        "sat_date": scene.period.end if scene is not None and scene.period is not None else None,
         "last_season": None
         if last is None
         else {
@@ -395,6 +397,10 @@ def _section_indicators(a: Assessment, section: SectionId) -> list[EvidenceItem]
     return out
 
 
+# Sections whose first sentence is the verdict shown in the basic report (plan M3.2).
+VERDICT_SECTIONS = ("current", "vulnerability", "causes")
+
+
 def _sections(
     ctx: dict[str, Any],
     a: Assessment,
@@ -424,6 +430,9 @@ def _sections(
                 number=n,
                 title_pl=L.SECTION_TITLES[sid].format(date=date_dmy(ctx["day"])),
                 paragraphs_pl=main,
+                verdict_pl=first_sentence(main[0])
+                if sid in VERDICT_SECTIONS and main and ctx["complete"]
+                else None,
                 details_pl=details,
                 indicators=_section_indicators(a, sid),
                 recommendation_numbers=numbers.get(sid, []),
@@ -671,8 +680,10 @@ def _report_recommendation(r: Recommendation) -> ReportRecommendation:
         category=r.category,
         title_pl=r.title_pl,
         text_pl=r.text_pl,
+        summary_pl=first_sentence(r.text_pl),
         evidence=[evidence_item(i) for i in r.evidence],
         locations=r.locations,
+        horizon=r.horizon,
     )
 
 

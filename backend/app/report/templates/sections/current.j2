@@ -1,4 +1,11 @@
 {#- Section 2: water situation on analysis_date. -#}
+{% macro diff_vs_typical(value, typical) -%}
+{% if typical is not none and ((value|round(0)) - (typical|round(0)))|abs >= 1 %}{% set d = (value|round(0)) - (typical|round(0)) %} ({% if d >= 1 %}o {{ d|num }} mm więcej niż zwykle{% else %}o {{ (-d)|num }} mm mniej niż zwykle{% endif %}){% endif %}
+{%- endmacro %}
+{% macro sat_condition(c, low_ndvi) -%}
+{% set now_v = c.sat.get('ndvi_current') %}{% set med = c.sat.get('ndvi_history_median') %}
+{% if now_v is not none and med %}{% set diff = ((now_v - med) / med * 100)|round(0) %}{% if low_ndvi %}słabsza niż zwykle o ok. {{ (-diff)|num }}%{% elif diff <= -5 %}nieco słabsza niż zwykle (o ok. {{ (-diff)|num }}%), ale w granicach spotykanych w poprzednich latach{% else %}dobra — {% if diff >= 5 %}lepsza niż zwykle o ok. {{ diff|num }}%{% else %}podobna jak zwykle{% endif %}{% endif %}{% elif low_ndvi %}słabsza niż zwykle{% else %}dobra — podobna jak zwykle{% endif %}
+{%- endmacro %}
 {% if not complete or not current %}
 {{ incomplete_reason }}
 {% else %}
@@ -17,9 +24,13 @@ Na dzień {{ day|date_dmy }} uprawa ({{ crop }}) dojrzewa — zbliżają się zb
 
 {% set avail = v.get('root_zone_available_mm') %}
 {% if c.root_zone and avail is not none %}
-W dniu analizy w strefie korzeni (ok. {{ root_depth_m|num(0.1) }} m) zostało ok. {{ avail|num }} mm wody dostępnej dla roślin z {{ v.get('taw_mm')|num }} mm, które gleba mieści po pełnym nasyceniu.
 {% set dr = v.get('root_zone_depletion_mm') %}
 {% set raw = v.get('raw_mm') %}
+{% set taw = v.get('taw_mm') %}
+Na dzień {{ day|date_dmy }} w strefie korzeni (ok. {{ root_depth_m|num(0.1) }} m) jest ok. {{ avail|num }} mm wody dostępnej dla roślin z {{ taw|num }} mm, które gleba tu mieści — {% if dr is not none and raw is not none and dr > raw %}to mało{% elif taw and avail >= 0.75 * taw %}to dużo, zapas jest prawie pełny{% else %}to zapas w normie{% endif %}.
+{% if soil and soil.taw_per_m_mm is not none and root_depth_m < 1.0 %}
+Sama gleba mieści ok. {{ soil.taw_per_m_mm|num }} mm wody na metr głębokości, ale korzenie uprawy ({{ crop }}) sięgają tylko ok. {{ root_depth_m|num(0.1) }} m, więc korzystają z mniejszej części tego zapasu.
+{% endif %}
 {% if dr is not none and raw is not none %}
 {% if dr > raw %}
 Rośliny odczuwają już brak wody — zużyły więcej niż zapas, który pobierają bez wysiłku (ok. {{ raw|num }} mm).
@@ -32,10 +43,10 @@ Rośliny mają jeszcze wodę, którą pobierają bez wysiłku — brak wody zacz
 {% set p30 = v.get('precip_30d_mm') %}
 {% set p90 = v.get('precip_90d_mm') %}
 {% if p30 is not none %}
-W ostatnich 30 dniach spadło {{ p30|num }} mm deszczu — {{ v.get('precip_30d_pct')|wetness_pl }}{% if typical_p30 is not none %} (zwykle w tym okresie ok. {{ typical_p30|num }} mm){% endif %}.
+W ostatnich 30 dniach spadło {{ p30|num }} mm deszczu{{ diff_vs_typical(p30, typical_p30) }} — {{ v.get('precip_30d_pct')|wetness_pl }}.
 {% endif %}
 {% if p90 is not none %}
-W ostatnich 90 dniach spadło {{ p90|num }} mm — {{ v.get('precip_90d_pct')|wetness_pl }}{% if typical_p90 is not none %} (zwykle ok. {{ typical_p90|num }} mm){% endif %}.
+W ostatnich 90 dniach spadło {{ p90|num }} mm{{ diff_vs_typical(p90, typical_p90) }} — {{ v.get('precip_90d_pct')|wetness_pl }}.
 {% endif %}
 
 {% set k60 = v.get('kbw_60d_mm') %}
@@ -73,7 +84,7 @@ Porównanie z oficjalnym progiem suszy rolniczej (rozporządzenie ministra rolni
 {{ {'crop_not_covered': 'Dla tej uprawy nie ma oficjalnego progu suszy rolniczej IUNG-PIB',
     'soil_not_covered': 'Dla tej uprawy na tak lekkiej glebie oficjalny próg suszy rolniczej IUNG-PIB nie jest określony',
     'outside_periods': 'System monitoringu suszy IUNG-PIB nie ocenia tej uprawy w tym terminie',
-    'crop_not_on_field': 'Uprawy nie ma teraz na polu albo jest poza okresem wzrostu, dlatego oficjalnego progu suszy rolniczej IUNG-PIB nie stosujemy',
+    'crop_not_on_field': ('Poza okresem wegetacji' if not c.in_vegetation else 'Gdy uprawa nie rośnie na polu,') ~ ' oficjalnego progu suszy rolniczej IUNG-PIB nie stosujemy',
     'no_soil_category': 'Bez danych o glebie nie da się porównać z oficjalnym progiem suszy rolniczej IUNG-PIB',
     'no_weather': 'Brakuje danych pogodowych z okresu, dla którego liczony jest oficjalny próg suszy rolniczej IUNG-PIB'}[iung_missing] }}. Ocena opiera się na porównaniu z poprzednimi latami{% if c.root_zone %} i na bilansie wody w glebie{% endif %}.
 {% endif %}
@@ -81,9 +92,9 @@ Porównanie z oficjalnym progiem suszy rolniczej (rozporządzenie ministra rolni
 {% set npct = c.sat.get('ndvi_pct') %}
 {% set low_ndvi = npct is not none and npct <= 25 %}
 {% if c.satellite == 'agrees' %}
-Zdjęcia satelitarne potwierdzają tę ocenę: kondycja roślin na działce jest {% if low_ndvi %}słabsza niż zwykle{% else %}typowa{% endif %} w porównaniu z tym samym terminem w poprzednich latach.
+Zdjęcia satelitarne potwierdzają tę ocenę: kondycja roślin na działce{% if c.sat_date %} na zdjęciu z {{ c.sat_date|date_dmy }}{% endif %} jest {{ sat_condition(c, low_ndvi) }} w porównaniu z tym samym terminem w poprzednich latach.
 {% elif c.satellite == 'disagrees' %}
-Zdjęcia satelitarne nie potwierdzają tej oceny: kondycja roślin jest {% if low_ndvi %}słabsza niż zwykle{% else %}typowa{% endif %} w porównaniu z tym samym terminem w poprzednich latach. Dlatego pewność wyniku jest niższa — może to wynikać z innej uprawy w poprzednich latach.
+Zdjęcia satelitarne nie potwierdzają tej oceny: kondycja roślin{% if c.sat_date %} na zdjęciu z {{ c.sat_date|date_dmy }}{% endif %} jest {{ sat_condition(c, low_ndvi) }} w porównaniu z tym samym terminem w poprzednich latach. Dlatego pewność wyniku jest niższa — może to wynikać z innej uprawy w poprzednich latach.
 {% elif c.satellite == 'not_applicable' and phase in ('ripening', 'after_harvest') %}
 Zdjęć satelitarnych nie używamy w tym terminie do oceny suszy — {% if phase == 'ripening' %}uprawa dojrzewa i naturalnie traci zieleń{% else %}pole jest po zbiorze{% endif %}, więc spadek zieleni nie oznacza braku wody.
 {% elif c.satellite == 'not_applicable' and phase in ('before_sowing', 'establishment') %}

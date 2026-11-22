@@ -27,6 +27,13 @@ class Category(StrEnum):
     IRRIGATION = "irrigation"
 
 
+class Horizon(StrEnum):
+    """When to act: from the analysis date, or while preparing the next growing season."""
+
+    NOW = "now"
+    SEASON = "season"
+
+
 # Mandatory order of actions (CLAUDE.md rule 2): retention → agrotechnics → irrigation.
 CATEGORY_ORDER = [Category.RETENTION, Category.AGROTECH, Category.IRRIGATION]
 
@@ -52,6 +59,7 @@ class Recommendation(BaseModel):
     params: dict[str, ParamValue] = Field(description="Computed values filled into the template.")
     evidence: list[Indicator] = Field(min_length=1, description="Numbers that triggered the rule.")
     locations: list[Location] = Field(default_factory=list)
+    horizon: Horizon = Horizon.SEASON
 
 
 @dataclass(frozen=True)

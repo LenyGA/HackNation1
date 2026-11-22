@@ -106,6 +106,7 @@ export interface ReportSection {
   number: number
   title_pl: string
   paragraphs_pl: string[]
+  verdict_pl: string | null // one-sentence verdict for the basic report (null = not shown there)
   details_pl: string[] // "Szczegóły dla zainteresowanych" (technical terms allowed)
   indicators: EvidenceItem[]
   recommendation_numbers: number[]
@@ -119,14 +120,21 @@ export interface RecommendationLocation {
   geometry: GeoJsonGeometry
 }
 
+/** now = act from the analysis date; season = before the next growing season (plan M3.5). */
+export type Horizon = 'now' | 'season'
+/** Basic = 1–2 pages (verdicts, actions, missing data, limitations, sources); full = every section. */
+export type ReportVariant = 'basic' | 'full'
+
 export interface ReportRecommendation {
   number: number
   id: string
   category: RecommendationCategory
   title_pl: string
   text_pl: string
+  summary_pl: string // first sentence of text_pl (basic report)
   evidence: EvidenceItem[] // "Dlaczego?"
   locations: RecommendationLocation[]
+  horizon: Horizon
 }
 
 export type IrrigationStatus =

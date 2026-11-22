@@ -118,13 +118,20 @@ def test_full_flow_json_pdf_html(client: TestClient) -> None:
     assert pdf.status_code == 200
     assert pdf.headers["content-type"] == "application/pdf"
     assert pdf.content.startswith(b"%PDF")
-    assert f"raport-{PARCEL_ID}-{DAY.isoformat()}.pdf" in pdf.headers["content-disposition"]
+    assert f"raport-{PARCEL_ID}-{DAY.isoformat()}-podstawowy.pdf" in pdf.headers["content-disposition"]
+    full = client.get(f"/api/reports/{report_id}.pdf?variant=full")
+    assert full.status_code == 200 and full.content.startswith(b"%PDF")
+    assert f"raport-{PARCEL_ID}-{DAY.isoformat()}-pelny.pdf" in full.headers["content-disposition"]
+    assert client.get(f"/api/reports/{report_id}.pdf?variant=xyz").status_code == 400
 
     html = client.get(f"/api/reports/{report_id}.html")
     assert html.status_code == 200
     assert html.headers["content-type"].startswith("text/html")
     assert "<!doctype html>" in html.text
     assert "Testowo" in html.text
+    assert "wariant podstawowy" in html.text
+    html_full = client.get(f"/api/reports/{report_id}.html?variant=full")
+    assert "wariant podstawowy" not in html_full.text and "Testowo" in html_full.text
 
 
 def test_two_analyses_give_two_reports(client: TestClient) -> None:

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from app.core.models import Confidence, Parcel, Period, SourceStatus, Uncertainty
 from app.recommendations.irrigation import ForecastUse, IrrigationStatus, ProjectedDay
-from app.recommendations.models import Category, Location
+from app.recommendations.models import Category, Horizon, Location
 
 SectionId = Literal[
     "summary",
@@ -73,6 +73,9 @@ class ReportSection(BaseModel):
     number: int = Field(description="1-based position in the mandatory section order.")
     title_pl: str
     paragraphs_pl: list[str]
+    verdict_pl: str | None = Field(
+        None, description="One-sentence verdict of the section for the basic report (None = not shown there)."
+    )
     details_pl: list[str] = Field(
         default_factory=list, description="'Szczegóły dla zainteresowanych': technical terms allowed here."
     )
@@ -86,8 +89,12 @@ class ReportRecommendation(BaseModel):
     category: Category
     title_pl: str
     text_pl: str
+    summary_pl: str = Field("", description="First sentence of text_pl, for the basic report.")
     evidence: list[EvidenceItem] = Field(min_length=1)
     locations: list[Location] = Field(default_factory=list)
+    horizon: Horizon = Field(
+        Horizon.SEASON, description="now: act from the analysis date; season: before the next growing season."
+    )
 
 
 class ReportIrrigation(BaseModel):

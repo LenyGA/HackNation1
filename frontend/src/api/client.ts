@@ -1,4 +1,4 @@
-import type { AnalysisCreate, AnalysisCreated, AnalysisStatus, Crop, Parcel, Report } from './types'
+import type { AnalysisCreate, AnalysisCreated, AnalysisStatus, Crop, Parcel, Report, ReportVariant } from './types'
 
 export class ApiRequestError extends Error {
   readonly status: number
@@ -38,6 +38,7 @@ export const api = {
     request<AnalysisCreated>('/analyses', { method: 'POST', body: JSON.stringify(body) }),
   analysis: (id: string) => request<AnalysisStatus>(`/analyses/${encodeURIComponent(id)}`),
   report: (id: string) => request<Report>(`/reports/${encodeURIComponent(id)}`),
-  reportPdfUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}.pdf`,
-  reportPrintUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}.html`,
+  reportPdfUrl: (id: string, variant: ReportVariant) => `/api/reports/${encodeURIComponent(id)}.pdf?variant=${variant}`,
+  reportPrintUrl: (id: string, variant: ReportVariant) =>
+    `/api/reports/${encodeURIComponent(id)}.html?variant=${variant}`,
 }

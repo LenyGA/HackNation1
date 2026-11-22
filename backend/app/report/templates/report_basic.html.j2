@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ r.app }} — raport podstawowy dla działki {{ r.parcel.id }} ({{ r.analysis_date|date_pl }})</title>
+<style>{{ css|safe }}</style>
+</head>
+<body class="basic">
+{#- Basic variant (plan M3.2): 1–2 A4 pages. Same data as the full report, only the verdict of each section,
+    the recommendations split into "now" and "before the next season", explicit missing data, limitations
+    and sources (requirement 3.3 pt 5). Nothing here is computed: all values come from the saved Report. -#}
+<span class="report-id">{{ r.id }}</span>
+<h1>{{ r.app }}: raport o wodzie na działce <span class="variant">wariant podstawowy</span></h1>
+<div class="meta">
+  <span>Działka: <b>{{ r.parcel.id }}</b></span>
+  {% if r.parcel.commune %}<span>{{ r.parcel.commune|with_prefix('gmina')|capitalize_first }}{% if r.parcel.county %}, {{ r.parcel.county|with_prefix('powiat') }}{% endif %}</span>{% endif %}
+  <span>{{ r.parcel.area_ha|num(0.01) }} ha</span>
+  <span>Uprawa: {{ r.crop.name_pl }}</span>
+  <span>Stan na: <b>{{ r.analysis_date|date_dmy }}</b></span>
+</div>
+
+<div class="headline level-{{ r.headline.level }}">
+  <div class="label">{{ r.headline.label_pl }}</div>
+  <div>{{ r.headline.sentence_pl }}</div>
+  <div class="confidence">{{ r.headline.confidence_pl }}</div>
+</div>
+
+{% if r.summary_tiles %}
+<div class="tiles">
+{% for t in r.summary_tiles %}
+  <div class="tile {{ t.status }}">
+    <div class="tl">{{ t.label_pl }}</div>
+    <div class="tv">{{ t.value_pl }}</div>
+    {% if t.gauge %}<div class="gauge"><div class="fill" style="width: {{ (100 * t.gauge.value / t.gauge.max)|round(1) if t.gauge.max else 0 }}%"></div>{% if t.gauge.threshold is not none and t.gauge.max %}<div class="thr" style="left: {{ (100 * t.gauge.threshold / t.gauge.max)|round(1) }}%"></div>{% endif %}</div>{% endif %}
+    <div class="td">{{ t.detail_pl }}</div>
+  </div>
+{% endfor %}
+</div>
+{% endif %}
+
+<h2>Najważniejsze wnioski</h2>
+<ul class="verdicts">
+{% for s in r.sections if s.verdict_pl %}
+  <li><b>{{ s.title_pl }}:</b> {{ s.verdict_pl }}</li>
+{% endfor %}
+</ul>
+
+{% if r.complete %}
+{% set now = r.recommendations|selectattr('horizon', 'equalto', 'now')|list %}
+{% set season = r.recommendations|selectattr('horizon', 'equalto', 'season')|list %}
+<h2>Co zrobić teraz</h2>
+{% if now %}
+{% for rec in now %}
+<div class="rec {{ rec.category.value }}">
+  <h3>{{ rec.number }}. {{ rec.title_pl }}</h3>
+  {% if rec.category.value == 'irrigation' %}<p>{{ r.irrigation.text_pl }}</p>{% else %}<p>{{ rec.text_pl }}</p>{% endif %}
+  <p class="why">Na podstawie: {% for e in rec.evidence[:3] %}{{ e.label_pl|lower }} {{ e.value_pl }}{% if not loop.last %}; {% endif %}{% endfor %}{% if rec.evidence|length > 3 %} i {{ rec.evidence|length - 3 }} {{ (rec.evidence|length - 3)|plural('inna wartość', 'inne wartości', 'innych wartości') }} w wariancie pełnym{% endif %}.</p>
+</div>
+{% endfor %}
+{% else %}
+<p>Na dzień analizy dane nie wskazują pilnych działań na polu — skorzystaj z zaleceń na następny sezon.</p>
+{% endif %}
+
+{% if season %}
+<h2>Przed następnym sezonem</h2>
+<ul class="season">
+{% for rec in season %}
+  <li><b>{{ rec.number }}. {{ rec.title_pl }}.</b> {{ rec.summary_pl }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endif %}
+
+<div class="limits-box">
+  <h2>Braki danych i ograniczenia</h2>
+  {% if r.missing_data_pl %}
+  {% for line in r.missing_data_pl %}<p class="missing-line">{{ line }}</p>{% endfor %}
+  {% else %}
+  <p>Wszystkie źródła danych odpowiedziały w pełni.</p>
+  {% endif %}
+  <div class="cols">{% for line in r.limitations_pl %}<p>{{ line }}</p>{% endfor %}</div>
+</div>
+
+<div class="sources-foot">
+  <b>Źródła danych</b> (pobrane na żywo, ograniczone do dnia analizy):
+  {% for s in r.sources %}{{ s.label_pl }} — {{ {'ok': 'pobrano', 'degraded': 'z ograniczeniami', 'missing': 'brak'}[s.status.value] }} {{ s.fetched_at|date_dmy }}{% if not loop.last %} · {% endif %}{% endfor %}.
+  Pełna lista źródeł, licencji i liczb, na których opiera się ocena, jest w wariancie pełnym raportu.
+</div>
+
+<p class="small">Raport wygenerowała aplikacja {{ r.app }} {{ r.version }} (zespół GeoSatel, HackNation 2026) wyłącznie z publicznych danych, bez modeli AI. Link do raportu: /raport/{{ r.id }}</p>
+</body>
+</html>
