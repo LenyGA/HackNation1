@@ -146,7 +146,10 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
       fitBoundsOptions: { padding: 40, maxZoom: 18 },
       maxZoom: 19,
       cooperativeGestures: !fullRef.current,
-      attributionControl: { compact: true },
+      attributionControl: {
+        compact: true,
+        ...(floodUrl ? { customAttribution: 'Mapy zagrożenia powodziowego © Wody Polskie (ISOK)' } : {}),
+      },
       locale: MAP_LOCALE,
     })
     mapRef.current = map
@@ -223,20 +226,23 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
           </li>
         ))}
       </ul>
-      {floodUrl && loadedFloodUrl === floodUrl && <FloodLegend />}
+      {floodUrl && loadedFloodUrl === floodUrl && <FloodLegend inZone={RIVER_ZONES.some((id) => flood?.zones.some((z) => z.id === id && z.hit === true))} />}
     </div>
   )
 }
 
 // Line colours of the ISOK flood-hazard WMS (GetLegendGraphic of NZ.Fluvial): the layer draws zone outlines,
 // not blue areas, so the legend shows outlines too and never looks like a river or ditch.
+// River flood scenarios (not the groundwater-flooding area, which this layer does not draw).
+const RIVER_ZONES = ['q10', 'q1', 'q02']
+
 const FLOOD_SCENARIOS: { color: string; label: string }[] = [
   { color: '#04b834', label: 'raz na 10 lat' },
   { color: '#f79902', label: 'raz na 100 lat' },
   { color: '#db0902', label: 'raz na 500 lat' },
 ]
 
-function FloodLegend() {
+function FloodLegend({ inZone }: { inZone: boolean }) {
   return (
     <div className="rounded-md border px-3 py-2 text-sm">
       <p className="font-medium">Strefy zagrożenia powodziowego (mapy Wód Polskich, ISOK)</p>
@@ -244,6 +250,12 @@ function FloodLegend() {
         Kolorowe obrysy pokazują, jak daleko może sięgnąć woda przy wezbraniu rzeki. To nie są cieki ani rowy — te są
         narysowane niebieskimi liniami.
       </p>
+      {inZone && (
+        <p className="mt-1 text-xs font-medium">
+          Twoja działka leży wewnątrz strefy, więc jej obrys może biec daleko od działki, nawet poza kadrem mapy —
+          oddal mapę, aby go zobaczyć.
+        </p>
+      )}
       <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
         {FLOOD_SCENARIOS.map((f) => (
           <li key={f.color} className="flex items-center gap-2">

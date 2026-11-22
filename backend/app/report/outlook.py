@@ -871,9 +871,10 @@ ZONE_LABELS = {
 }
 
 
-# Flood overlay image for the web map: margin around the parcel and ground size of one pixel. The service
+# Flood overlay image for the web map: margin around the parcel (2 km also covers farm parcels, G11) and
+# ground size of one pixel. The service
 # draws nothing below 1:50 000; 2.5 m per pixel is about 1:9 000.
-FLOOD_OVERLAY_MARGIN_M = 1000.0
+FLOOD_OVERLAY_MARGIN_M = 2000.0
 FLOOD_OVERLAY_M_PER_PX = 2.5
 FLOOD_OVERLAY_MAX_PX = 2048
 

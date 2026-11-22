@@ -102,8 +102,8 @@ Sprawdzone i odrzucone: BDOT10k / MPHP jako WFS z cieków po bbox — publicznej
 
 | Moduł | Źródło | Co pobieramy | Czas / limit | Cache | Brak danych |
 |---|---|---|---|---|---|
-| `flood.py` → `report/outlook.py` | Wody Polskie, ten sam WMS `NZ.Fluvial`, GetMap w **EPSG:2180** (22.11.2026) | warstwa stref na mapie raportu w przeglądarce: jeden obraz PNG działka + 1 km, 2,5 m/piksel, narożniki w WGS84 (usługa w EPSG:3857 zwraca puste kafle) | pobiera przeglądarka | — | brak obrazu → mapa bez warstwy i bez legendy stref |
-| `geocode.py` | GUGiK, Usługa Uniwersalnego Geokodowania (UUG), `https://services.gugik.gov.pl/uug/?request=GetAddress` — punkty adresowe PRG (22.11.2026) | wyszukiwanie działki po adresie: adres / miejscowość / ulica → punkt (EPSG:2180 → WGS84); przy adresie z numerem aplikacja wskazuje działkę w tym punkcie (ULDK `GetParcelByXY`) | 5 s na zapytanie, bez ponowień; najgorzej ok. 10 s (2 warianty zapisu) | 7 dni, pusty wynik 1 h | brak wyniku → komunikat; brak odpowiedzi → 503 z prośbą o numer działki lub mapę |
+| `flood.py` → `report/outlook.py` | Wody Polskie, ten sam WMS `NZ.Fluvial`, GetMap w **EPSG:2180** (22.11.2026) | warstwa stref na mapie raportu w przeglądarce: jeden obraz PNG działka + 2 km, 2,5 m/piksel, narożniki w WGS84 (usługa w EPSG:3857 zwraca puste kafle) | pobiera przeglądarka | — | brak obrazu → mapa bez warstwy i bez legendy stref |
+| `geocode.py` | GUGiK, Usługa Uniwersalnego Geokodowania (UUG), `https://services.gugik.gov.pl/uug/?request=GetAddress` — punkty adresowe PRG (22.11.2026) | wyszukiwanie działki po adresie: adres / miejscowość / ulica → punkt (EPSG:2180 → WGS84); przy adresie z numerem aplikacja wskazuje działkę w tym punkcie (ULDK `GetParcelByXY`) | 5 s na zapytanie, bez ponowień; najgorzej ok. 15 s (do 3 wariantów zapisu) | 7 dni, pusty wynik 1 h | brak wyniku → komunikat; brak odpowiedzi → 503 z prośbą o numer działki lub mapę |
 
 Licencje: Usługa Uniwersalnego Geokodowania GUGiK — dane publiczne PZGiK (punkty adresowe PRG), udostępniane bezpłatnie
 (Prawo geodezyjne i kartograficzne, art. 40a ust. 2), bez klucza i konta. Wody Polskie — jak wyżej. Obie usługi pobierane

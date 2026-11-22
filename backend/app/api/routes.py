@@ -31,6 +31,7 @@ MSG_ANALYSIS_NOT_FOUND = "Nie ma takiej analizy albo wygasła. Uruchom analizę 
 MSG_BUSY = "Serwer liczy teraz wiele analiz. Spróbuj ponownie za minutę."
 BUSY_RETRY_AFTER_S = 60
 MSG_REPORT_NOT_FOUND = "Nie znaleziono raportu. Sprawdź link."
+MSG_BAD_PLACE_QUERY = "Wpisz adres od 2 do 120 znaków, np. „Ksawerów 12” albo „Bydgoszcz, Gdańska 10”."
 
 
 @router.get("/health", response_model=Health)
@@ -81,8 +82,12 @@ async def parcel(
     responses={429: {"model": ErrorOut}, 503: {"model": ErrorOut}},
     dependencies=[Depends(limit_parcels)],
 )
-async def places(q: str = Query(min_length=2, max_length=120)) -> list[geocode.Place]:
+async def places(q: str = Query(default="", max_length=500)) -> list[geocode.Place]:
     """Address search (M8.7): an address or village → points to fly the map to or pick a parcel at."""
+    text = q.strip()
+    if not 2 <= len(text) <= 120:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, MSG_BAD_PLACE_QUERY)
+    q = text
     try:
         return await geocode.search(q)
     except geocode.GeocodeServiceError as exc:

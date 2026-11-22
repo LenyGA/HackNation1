@@ -115,14 +115,20 @@ def parse(body: Any) -> list[Place]:
     return places
 
 
+MAX_VARIANTS = 3
+
+
 def _variants(q: str) -> list[str]:
-    """The query as typed; without a comma also "City, Street Number" (the service needs the comma)."""
+    """The query as typed; without a comma also "City, Street Number" (the service needs the comma),
+    with the city taken as the first one or two words ("Nowy Sącz Jagiellońska 1")."""
     q = re.sub(r"\s+", " ", q).strip()
     out = [q]
-    if "," not in q:
-        m = re.match(r"^(\S+)\s+(\D.*\s\d\S*)$", q)
-        if m:
-            out.append(f"{m.group(1)}, {m.group(2)}")
+    words = q.split(" ")
+    if "," not in q and len(words) >= 3 and re.search(r"\d", words[-1]) and not re.search(r"\d", words[0]):
+        for k in range(1, len(words) - 1):
+            if len(out) >= MAX_VARIANTS:
+                break
+            out.append(f"{' '.join(words[:k])}, {' '.join(words[k:])}")
     return out
 
 
@@ -131,6 +137,10 @@ async def _fetch(q: str) -> list[dict[str, Any]]:
         resp = await request(
             "GET", URL, timeout_s=TIMEOUT_S, retries=0, params={"request": "GetAddress", "address": q}
         )
+        # For input it cannot read (a postcode, odd characters) the service answers HTTP 200 with the plain
+        # text "Blad zapytania." — that is "nothing found", not an outage.
+        if resp.text.strip().lower().startswith("blad zapytania"):
+            return []
         body = resp.json()
     except (httpx.HTTPError, ValueError) as exc:
         log.info("uug failed: %s", type(exc).__name__)

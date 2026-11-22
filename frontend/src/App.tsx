@@ -56,11 +56,16 @@ function Header() {
           <Button asChild variant={onStart ? 'navy' : 'default'} className="h-10 px-4">
             {onStart ? (
               <a href="#start">
-                Sprawdź<span className="hidden sm:inline"> działkę</span>
+                {/* One text node for the flex button, so the gap does not double the space. */}
+                <span>
+                  Sprawdź<span className="hidden sm:inline"> działkę</span>
+                </span>
               </a>
             ) : (
               <Link to="/">
-                Nowa<span className="hidden sm:inline"> analiza</span>
+                <span>
+                  Nowa<span className="hidden sm:inline"> analiza</span>
+                </span>
               </Link>
             )}
           </Button>

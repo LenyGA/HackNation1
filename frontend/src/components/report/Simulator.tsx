@@ -35,7 +35,7 @@ const StressLines = memo(function StressLines({
 }) {
   const { ref, width: W } = useMeasuredWidth()
   const H = W < 480 ? 190 : 220
-  const PAD = { top: 22, right: 12, bottom: 28, left: 40 }
+  const PAD = { top: 22, right: 26, bottom: 28, left: 40 }
   const all = sim.strategies.flatMap((s) => s.years.map((y) => y.stress_days_median ?? 0))
   const ticks = niceTicks(0, Math.max(5, ...all))
   const maxV = ticks[ticks.length - 1]

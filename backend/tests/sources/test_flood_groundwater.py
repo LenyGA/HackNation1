@@ -255,7 +255,7 @@ def test_flood_overlay_is_an_epsg2180_image_around_the_parcel() -> None:
     assert len(o.corners) == 4
     lons = [c[0] for c in o.corners]
     lats = [c[1] for c in o.corners]
-    # The image covers the parcel with a margin (about 1 km on each side).
+    # The image covers the parcel with a margin (about 2 km on each side).
     assert min(lons) < 21.03 - 0.01 and max(lons) > 21.035 + 0.01
     assert min(lats) < 52.23 - 0.005 and max(lats) > 52.233 + 0.005
     # Corner order: top-left, top-right, bottom-right, bottom-left.

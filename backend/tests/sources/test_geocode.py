@@ -94,6 +94,12 @@ def test_parse_rejects_nonsense() -> None:
 def test_variants_add_the_comma() -> None:
     assert geocode._variants("Bydgoszcz  Gdańska 10") == ["Bydgoszcz Gdańska 10", "Bydgoszcz, Gdańska 10"]
     assert geocode._variants("Ksawerów 12") == ["Ksawerów 12"]
+    assert geocode._variants("Nowy Sącz Jagiellońska 1") == [
+        "Nowy Sącz Jagiellońska 1",
+        "Nowy, Sącz Jagiellońska 1",
+        "Nowy Sącz, Jagiellońska 1",
+    ]
+    assert geocode._variants("00-001 Warszawa") == ["00-001 Warszawa"]
     assert geocode._variants("Bydgoszcz, Gdańska 10") == ["Bydgoszcz, Gdańska 10"]
 
 
@@ -124,8 +130,17 @@ def test_places_endpoint_service_down_is_503(client: TestClient) -> None:
 
 
 def test_places_endpoint_validates_length(client: TestClient) -> None:
-    assert client.get("/api/places", params={"q": "a"}).status_code == 400
-    assert client.get("/api/places", params={"q": "x" * 121}).status_code == 400
+    for q in ("a", "   ", "x" * 121):
+        r = client.get("/api/places", params={"q": q})
+        assert r.status_code == 400
+        assert "adres" in r.json()["detail"]
+
+
+def test_unreadable_query_is_nothing_found_not_an_outage(client: TestClient) -> None:
+    with respx.mock(assert_all_called=False) as mock:
+        mock.get(geocode.URL).mock(return_value=httpx.Response(200, text="Blad zapytania."))
+        r = client.get("/api/places", params={"q": "00-001"})
+    assert r.status_code == 200 and r.json() == []
 
 
 def test_empty_answer_is_cached_briefly(tmp_cache: DiskCache) -> None:
