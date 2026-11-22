@@ -75,6 +75,24 @@ class TerrainResult:
     notes: list[str] = field(default_factory=list)
 
 
+# "Main depression on the parcel" (Q7): one definition for the recommendation text, the slope profile and
+# the map. At least half of it inside the parcel and fed by at least 0.1 ha.
+DEPRESSION_MIN_INSIDE_SHARE = 0.5
+DEPRESSION_MIN_CONTRIBUTING_M2 = 1_000.0
+
+
+def is_main_depression(site: RetentionSite) -> bool:
+    return (
+        site.inside_parcel_share >= DEPRESSION_MIN_INSIDE_SHARE
+        and site.contributing_area_m2 >= DEPRESSION_MIN_CONTRIBUTING_M2
+    )
+
+
+def main_depressions(t: TerrainResult) -> list[RetentionSite]:
+    """Depressions that count as "on the parcel", largest first (the order of the terrain analysis)."""
+    return [d for d in t.depressions if is_main_depression(d)]
+
+
 def _grid_array(grid: ElevationGrid) -> np.ndarray:
     return np.array(
         [[np.nan if v is None else v for v in row] for row in grid.elevation_m],

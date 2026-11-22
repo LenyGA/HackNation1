@@ -7,18 +7,16 @@ from app.analysis.causes import RETENTION_RADIUS_M
 from app.analysis.common import indicator
 from app.analysis.context import computed_source, landcover_surroundings, surroundings_nearest_m
 from app.analysis.soil import SoilCategory
-from app.analysis.terrain import RetentionSite
+from app.analysis.terrain import RetentionSite, main_depressions
 from app.core.models import Confidence, Indicator
 from app.recommendations.common import found, light_soil, water_need
 from app.recommendations.models import Category, Location, ParamValue, Rule, RuleContext
 from app.sources.hydro import BOUNDARY_BUFFER_M, HydroFeature
 
 DITCH_MIN_LENGTH_M = 20.0
-DEPRESSION_MIN_INSIDE_SHARE = 0.5
 # Q6: on a heavy (category IV) soil or with a flood / groundwater-flooding hazard an uncontrolled pool after a
 # wet winter waterlogs the crop; the advice becomes a controlled pond or a weir with an outlet.
 HEAVY_SOIL_CATEGORIES = (SoilCategory.IV,)
-DEPRESSION_MIN_CONTRIBUTING_M2 = 1_000.0
 FLOW_PATH_MIN_CONTRIBUTING_M2 = 5_000.0
 FLOW_PATH_MIN_SLOPE_PCT = 2.0
 PROTECT_RADIUS_M = 300.0
@@ -84,14 +82,7 @@ def _ditch_locations(ctx: RuleContext) -> list[Location]:
 
 
 def _depressions(ctx: RuleContext) -> list[RetentionSite]:
-    if ctx.terrain is None:
-        return []
-    return [
-        d
-        for d in ctx.terrain.depressions
-        if d.inside_parcel_share >= DEPRESSION_MIN_INSIDE_SHARE
-        and d.contributing_area_m2 >= DEPRESSION_MIN_CONTRIBUTING_M2
-    ]
+    return main_depressions(ctx.terrain) if ctx.terrain is not None else []
 
 
 def _depression_condition(ctx: RuleContext) -> bool:

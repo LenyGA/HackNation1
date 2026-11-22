@@ -388,6 +388,7 @@ export interface SeasonChart {
 
 export type MapFeatureKind =
   | 'depression'
+  | 'depression_minor'
   | 'flow_path'
   | 'outlet'
   | 'ditch'

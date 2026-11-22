@@ -356,7 +356,15 @@ class SeasonChart(BaseModel):
 
 
 MapFeatureKind = Literal[
-    "depression", "flow_path", "outlet", "ditch", "watercourse", "water_body", "wetland", "trees"
+    "depression",
+    "depression_minor",
+    "flow_path",
+    "outlet",
+    "ditch",
+    "watercourse",
+    "water_body",
+    "wetland",
+    "trees",
 ]
 
 

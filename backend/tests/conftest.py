@@ -41,3 +41,14 @@ def _fresh_pdf_cache() -> Iterator[None]:
     pdf_module._pdf_cache.clear()
     yield
     pdf_module._pdf_cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_orthophoto(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unit tests never call the Geoportal WMS; tests that need the background patch it themselves."""
+    from app.sources import orthophoto
+
+    async def _none(_bounds: tuple[float, float, float, float]) -> str | None:
+        return None
+
+    monkeypatch.setattr(orthophoto, "fetch_data_uri", _none)

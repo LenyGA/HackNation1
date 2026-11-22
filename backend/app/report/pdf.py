@@ -1,19 +1,19 @@
 """Report as print HTML and PDF (plan step M6.3). One HTML template + one stylesheet serve both the PDF
-(WeasyPrint) and printing from the browser. No external resources: the map is inline SVG.
+(WeasyPrint) and printing from the browser. No external resources: the map is inline SVG; its orthophoto
+background is fetched by the server and embedded as a data URI.
 """
 
 import asyncio
 from collections import OrderedDict
 from functools import lru_cache
+from typing import Any
 
 from app.report.charts_svg import profile_svg, satellite_svg, trends_svgs, water_plan_svg
 from app.report.labels_pl import CONFIDENCE_LABELS
-from app.report.map_svg import STYLE, parcel_map_svg
+from app.report.map_svg import STYLE, map_frame, parcel_map_svg
 from app.report.models import Report
 from app.report.texts import TEMPLATES_DIR, html_env
-
-# Numbers listed under each recommendation in the PDF (all of them are in the online report).
-MAX_EVIDENCE_PDF = 4
+from app.sources import orthophoto
 
 
 @lru_cache
@@ -40,25 +40,31 @@ def _charts(report: Report) -> dict[str, object]:
     }
 
 
-def render_html(report: Report) -> str:
+def render_html(report: Report, basemap_uri: str | None = None) -> str:
     return (
         html_env()
         .get_template("report.html.j2")
         .render(
             r=report,
             css=_css(),
-            map_svg=parcel_map_svg(report),
+            map_svg=parcel_map_svg(report, basemap_uri),
+            basemap=basemap_uri is not None,
             charts=_charts(report),
             recs={rec.number: rec for rec in report.recommendations},
             legend_colors=_legend_colors(),
             confidence_pl=CONFIDENCE_LABELS,
-            max_evidence=MAX_EVIDENCE_PDF,
         )
     )
 
 
-def _no_fetch(url: str, *args: object, **kwargs: object) -> dict[str, object]:
-    """WeasyPrint URL fetcher that refuses every request: the PDF must not load anything from outside."""
+def _no_fetch(url: str, *args: object, **kwargs: object) -> Any:
+    """WeasyPrint URL fetcher that refuses every request: the PDF must not load anything from outside.
+
+    Embedded data: URIs (the orthophoto fetched by the server) are allowed."""
+    if url.startswith("data:"):
+        from weasyprint import default_url_fetcher
+
+        return default_url_fetcher(url, *args, **kwargs)
     raise ValueError(f"external resource blocked: {url}")
 
 
@@ -74,8 +80,8 @@ _pdf_slots: asyncio.Semaphore | None = None
 PDF_CONCURRENCY = 2
 
 
-def _render(report: Report) -> bytes:
-    return _write_pdf(render_html(report))
+def _render(report: Report, basemap_uri: str | None = None) -> bytes:
+    return _write_pdf(render_html(report, basemap_uri))
 
 
 # Saved reports never change, so a rendered PDF is reused: repeated downloads (or a client hammering one
@@ -96,7 +102,8 @@ async def render_pdf(report: Report) -> bytes:
         cached = _pdf_cache.get(report.id)  # rendered by another request while this one waited
         if cached is not None:
             return cached
-        pdf = await asyncio.to_thread(_render, report)
+        basemap = await orthophoto.fetch_data_uri(map_frame(report)) if report.map is not None else None
+        pdf = await asyncio.to_thread(_render, report, basemap)
     _pdf_cache[report.id] = pdf
     while len(_pdf_cache) > PDF_CACHE_SIZE:
         _pdf_cache.popitem(last=False)

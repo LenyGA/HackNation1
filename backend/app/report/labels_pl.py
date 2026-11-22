@@ -108,7 +108,8 @@ SECTION_TITLES: dict[str, str] = {
 }
 
 MAP_LEGEND: dict[str, str] = {
-    "depression": "Miejsce, w którym zbiera się woda (zagłębienie terenu)",
+    "depression": "Główne zagłębienie terenu na działce — tu zbiera się woda",
+    "depression_minor": "Inne, małe zagłębienia lub leżące głównie poza działką",
     "flow_path": "Linia, którą po deszczu spływa woda",
     "outlet": "Miejsce, którym woda spływa z działki",
     "ditch": "Rów",

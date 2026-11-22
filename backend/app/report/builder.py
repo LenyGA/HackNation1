@@ -24,6 +24,7 @@ from app.analysis.context import (
 )
 from app.analysis.history import RISK_FREQUENCY, HistoryMethod
 from app.analysis.series import Weather, same_day_in_year
+from app.analysis.terrain import is_main_depression, main_depressions
 from app.core.config import APP_TITLE, APP_VERSION, HISTORY_YEARS
 from app.core.models import Confidence, Indicator, SourceResult, SourceStatus, Uncertainty
 from app.crops.catalog import month_day, next_sowing
@@ -302,7 +303,8 @@ def _context(
             "slope_mean_pct": terrain.slope_mean_pct,
             "slope_max_pct": terrain.slope_max_pct,
             "aspect_pl": L.COMPASS_FROM_PL.get(terrain.aspect or ""),
-            "depressions": len(terrain.depressions),
+            "depressions": len(main_depressions(terrain)),
+            "depressions_minor": len(terrain.depressions) - len(main_depressions(terrain)),
             "flow_paths": len(terrain.flow_paths),
             "fine": terrain.dataset == "gugik_nmt",
         },
@@ -622,7 +624,7 @@ def _map(inputs: AnalysisInputs, a: Assessment, recs: list[Recommendation]) -> R
 
     if a.terrain is not None:
         for site in a.terrain.depressions:
-            add("depression", site.geometry)
+            add("depression" if is_main_depression(site) else "depression_minor", site.geometry)
         for site in a.terrain.flow_paths:
             add("flow_path", site.geometry)
         for outlet in a.terrain.outlets:

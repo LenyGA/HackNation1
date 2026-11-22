@@ -112,6 +112,14 @@ def years_pl(n: int) -> str:
     return f"{n} lat"
 
 
+def with_prefix(name: str | None, prefix: str) -> str:
+    """'malborski' → 'powiat malborski'; ULDK names that already start with the word are kept (Q7: no
+    'pow. powiat …'). Same rule as withPrefix() in the web report header."""
+    if not name:
+        return ""
+    return name if name.lower().startswith(prefix.replace(".", "")) else f"{prefix} {name}"
+
+
 def plural(n: int, one: str, few: str, many: str) -> str:
     """Polish plural form for a count: 1 punkt, 2 punkty, 5 punktów."""
     if n == 1:
@@ -217,6 +225,7 @@ def _env(autoescape: bool) -> Environment:
         wetness_pl=wetness_pl,
         balance_pl=balance_pl,
         plural=plural,
+        with_prefix=with_prefix,
         days_instr_pl=days_instr_pl,
         source_short=source_short,
         capitalize_first=capitalize,

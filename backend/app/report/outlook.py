@@ -8,13 +8,17 @@ from datetime import date
 from statistics import median
 from typing import Any
 
+from shapely.geometry import Point, shape
+
 from app.analysis.assessment import Assessment
 from app.analysis.context import AnalysisInputs, computed_source
 from app.analysis.history import TABLE_MONTHS, HistoryMethod
+from app.analysis.profile import ProfilePoint as ProfileResultPoint
 from app.analysis.profile import SlopeProfile as ProfileResult
 from app.analysis.profile import slope_profile
 from app.analysis.series import Weather
 from app.analysis.simulate import SimulationResult, simulate
+from app.analysis.terrain import TerrainResult, main_depressions
 from app.analysis.trends import Direction, RecentChange, TrendResult, analyse_trends
 from app.analysis.water_plan import WaterPlanResult, water_plan
 from app.core.models import Period, SourceResult
@@ -45,7 +49,7 @@ from app.report.models import (
     WaterPlanMonth,
 )
 from app.report.texts import date_dmy, num, plural, render_text
-from app.sources.base import parcel_shape
+from app.sources.base import METRIC_CRS, parcel_shape, to_crs
 from app.sources.flood import MZP_LAYER, MZP_WMS, FloodData
 from app.sources.groundwater import GroundwaterData
 
@@ -346,15 +350,30 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
 # --- slope profile ----------------------------------------------------------------------------------
 
 
-def _profile(pr: ProfileResult | None, inputs: AnalysisInputs) -> SlopeProfile | None:
-    if pr is None:
-        return None
-    hollows = 0
+def _hollow_runs(pr: ProfileResult) -> list[list[ProfileResultPoint]]:
+    runs: list[list[ProfileResultPoint]] = []
     prev = False
     for p in pr.points:
-        if p.hollow and not prev:
-            hollows += 1
+        if p.hollow:
+            if not prev:
+                runs.append([])
+            runs[-1].append(p)
         prev = p.hollow
+    return runs
+
+
+def _profile(
+    pr: ProfileResult | None, inputs: AnalysisInputs, terrain: TerrainResult | None = None
+) -> SlopeProfile | None:
+    if pr is None:
+        return None
+    runs = _hollow_runs(pr)
+    hollows = len(runs)
+    # Q7: name which hollows lie in the main depression of the parcel (the one in the text and on the map).
+    mains = [to_crs(shape(d.geometry), METRIC_CRS) for d in main_depressions(terrain)] if terrain else []
+    in_main = sum(
+        1 for run in runs if any(m.buffer(1.0).contains(Point(p.x_m, p.y_m)) for p in run for m in mains)
+    )
     direction_pl = L.COMPASS_FROM_PL.get(pr.direction or "")
     view = SlopeProfile(
         points=[
@@ -370,7 +389,14 @@ def _profile(pr: ProfileResult | None, inputs: AnalysisInputs) -> SlopeProfile |
         text_pl="",
         source=computed_source(inputs.dem.source),
     )
-    main, _ = render_text("blocks/profile.j2", pr=view, hollows=hollows, direction_pl=direction_pl)
+    main, _ = render_text(
+        "blocks/profile.j2",
+        pr=view,
+        hollows=hollows,
+        hollows_main=in_main,
+        main_depressions=len(mains),
+        direction_pl=direction_pl,
+    )
     return view.model_copy(update={"text_pl": " ".join(main)})
 
 
@@ -770,7 +796,7 @@ def build_outlook(
         heatmap=_heatmap(a, stress_source),
         trends=trends,
         water_plan=plan,
-        profile=_profile(profile_r, inputs),
+        profile=_profile(profile_r, inputs, a.terrain),
         simulation=_simulation(sim_r, inputs, plan),
         satellite=_satellite(inputs, a),
     )

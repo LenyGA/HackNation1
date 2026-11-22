@@ -33,6 +33,8 @@ class ProfilePoint:
     distance_m: float
     elevation_m: float
     hollow: bool
+    x_m: float = 0.0  # position in METRIC_CRS (EPSG:2180), to match hollows with terrain depressions
+    y_m: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -118,7 +120,7 @@ def slope_profile(grid: ElevationGrid, parcel_wgs84: BaseGeometry) -> SlopeProfi
 
     filled = priority_flood(z)
     n_points = int(min(MAX_POINTS, max(10, cut.length / max(res, 1.0) + 1)))
-    samples: list[tuple[float, float, bool]] = []
+    samples: list[tuple[float, float, bool, float, float]] = []
     for i in range(n_points):
         d = cut.length * i / (n_points - 1)
         p: Point = cut.interpolate(d)
@@ -126,17 +128,17 @@ def slope_profile(grid: ElevationGrid, parcel_wgs84: BaseGeometry) -> SlopeProfi
         top = _bilinear(filled, inv, p.x, p.y)
         if elev is None:
             continue
-        samples.append((d, elev, top is not None and top - elev >= DEPRESSION_MIN_DEPTH_M))
+        samples.append((d, elev, top is not None and top - elev >= DEPRESSION_MIN_DEPTH_M, p.x, p.y))
     if len(samples) < 5:
         return None
     if samples[0][1] < samples[-1][1]:
         total = cut.length
-        samples = [(total - d, e, h) for d, e, h in reversed(samples)]
+        samples = [(total - d, e, h, x, y) for d, e, h, x, y in reversed(samples)]
         dx, dy = -dx, -dy
         if direction is not None:
             direction = compass(dx, dy)  # the line now runs the other way: name the direction it is drawn
     start = samples[0][0]
-    points = [ProfilePoint(round(d - start, 1), round(e, 2), h) for d, e, h in samples]
+    points = [ProfilePoint(round(d - start, 1), round(e, 2), h, x, y) for d, e, h, x, y in samples]
     length = points[-1].distance_m
     drop = points[0].elevation_m - points[-1].elevation_m
     return SlopeProfile(

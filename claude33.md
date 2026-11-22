@@ -149,7 +149,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 | Q4 | OSM Overpass padł → „brak danych o rowach, oczkach, zadrzewieniach” | ✅ 22.11 | Fallback na już pobrany WorldCover 10 m (klasy 10 drzewa, 80 woda, 90 mokradła) w buforze 500 m; brak dotyczy wtedy tylko rowów. Rotacja mirrorów, krótszy timeout, retry. Docelowo G3 |
 | Q5 | Kafelek „Sytuacja się pogarsza” obok „temperatura −0,5 °C/dekadę” (sprzeczność) | ✅ 22.11 | Kafelek pokazuje miarę, która faktycznie się pogarsza (dni stresu, dni upalne); werdykt trendu liczony z tej samej miary, którą pokazuje |
 | Q6 | Zalecenie „zostaw zagłębienie jako rozlewisko” mimo gliny i zagrożenia podtopieniami (PIG-PIB) | ✅ 22.11 | Reguła retencji uwzględnia glebę i ryzyko podtopień → „kontrolowany staw lub zastawka z odpływem; ryzyko wymakania ozimin” |
-| Q7 | PDF: mapa działki bez podkładu; tekst mówi o 1 zagłębieniu, przekrój o 2, mapa pokazuje 3; „pow. powiat”; ucięte „… i 1 inna wartość” | ❌ | Podkład z ortofotomapy Geoportalu (WMS GetMap po stronie serwera); jawny filtr „główne zagłębienie w granicach działki”; w PDF nie ucinamy dowodów |
+| Q7 | PDF: mapa działki bez podkładu; tekst mówi o 1 zagłębieniu, przekrój o 2, mapa pokazuje 3; „pow. powiat”; ucięte „… i 1 inna wartość” | ✅ 22.11 | Podkład z ortofotomapy Geoportalu (WMS GetMap po stronie serwera); jawny filtr „główne zagłębienie w granicach działki”; w PDF nie ucinamy dowodów |
 
 ### Inne formalne
 | ID | Wymaganie | Status | Luka |

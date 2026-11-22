@@ -1,6 +1,8 @@
 """Static parcel map for the PDF (plan step M6.3): parcel outline + retention places drawn as inline SVG.
 
-No external tiles: geometries from the report are projected to EPSG:2180 (metres) and scaled into the SVG box.
+Geometries from the report are projected to EPSG:2180 (metres) and scaled into the SVG box. The orthophoto
+background (sources/orthophoto.py) is fetched by the server for `map_frame()` and embedded as a data URI;
+without it the map has a plain background and a note (Q7).
 """
 
 from html import escape
@@ -23,13 +25,24 @@ STYLE: dict[str, str] = {
     "wetland": 'fill="#8fd0c8" fill-opacity="0.6" stroke="#3f8f86" stroke-width="0.8"',
     "water_body": 'fill="#6fa8dc" fill-opacity="0.8" stroke="#2f6aa3" stroke-width="0.8"',
     "depression": 'fill="#3d85c6" fill-opacity="0.45" stroke="#1c4f80" stroke-width="1.2"',
+    "depression_minor": 'fill="#9fc5e8" fill-opacity="0.35" stroke="#6fa8dc" stroke-width="0.8"',
     "flow_path": 'fill="none" stroke="#e69138" stroke-width="2.2" stroke-dasharray="6 3"',
     "ditch": 'fill="none" stroke="#2f6aa3" stroke-width="1.6"',
     "watercourse": 'fill="none" stroke="#1c4f80" stroke-width="2.6"',
     "outlet": 'fill="#cc0000" stroke="#ffffff" stroke-width="1.2"',
 }
 # Drawing order: areas first, then lines, then points.
-ORDER = ["trees", "wetland", "water_body", "depression", "ditch", "watercourse", "flow_path", "outlet"]
+ORDER = [
+    "trees",
+    "wetland",
+    "water_body",
+    "depression_minor",
+    "depression",
+    "ditch",
+    "watercourse",
+    "flow_path",
+    "outlet",
+]
 
 
 class _Projector:
@@ -90,13 +103,36 @@ def _north_arrow() -> str:
     )
 
 
-def parcel_map_svg(report: Report) -> str:
+def map_frame(report: Report) -> tuple[float, float, float, float]:
+    """Map frame in EPSG:2180: the parcel and every place a recommendation points to, with a margin."""
     parcel = to_crs(shape(report.parcel.geometry), METRIC_CRS)
-    # The frame covers the parcel and every place a recommendation points to, so no numbered marker is lost.
     linked = [to_crs(shape(f.geometry), METRIC_CRS) for f in report.map.features if f.recommendation_numbers]
     minx, miny, maxx, maxy = unary_union([parcel, *linked]).bounds
     margin = max(MIN_MARGIN_M, 0.3 * max(maxx - minx, maxy - miny))
-    frame = box(minx - margin, miny - margin, maxx + margin, maxy + margin)
+    bounds: tuple[float, float, float, float] = box(
+        minx - margin, miny - margin, maxx + margin, maxy + margin
+    ).bounds
+    return bounds
+
+
+def _basemap(proj: _Projector, frame: BaseGeometry, uri: str | None) -> str:
+    if not uri:
+        return ""
+    minx, miny, maxx, maxy = frame.bounds
+    x0, y0 = proj.xy(minx, maxy)
+    x1, y1 = proj.xy(maxx, miny)
+    return (
+        f'<image x="{x0:.1f}" y="{y0:.1f}" width="{x1 - x0:.1f}" height="{y1 - y0:.1f}" '
+        f'preserveAspectRatio="none" href="{uri}"/>'
+        # Light veil so the coloured places and the outline stay readable on the photo.
+        f'<rect x="{x0:.1f}" y="{y0:.1f}" width="{x1 - x0:.1f}" height="{y1 - y0:.1f}" fill="#ffffff" '
+        'fill-opacity="0.25"/>'
+    )
+
+
+def parcel_map_svg(report: Report, basemap_uri: str | None = None) -> str:
+    parcel = to_crs(shape(report.parcel.geometry), METRIC_CRS)
+    frame = box(*map_frame(report))
     proj = _Projector(frame.bounds)
 
     layers: dict[str, list[str]] = {k: [] for k in ORDER}
@@ -131,6 +167,7 @@ def parcel_map_svg(report: Report) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH:.0f} {HEIGHT:.0f}" '
         f'class="parcel-map" role="img" aria-label="Mapa działki">'
         f'<rect x="0" y="0" width="{WIDTH:.0f}" height="{HEIGHT:.0f}" fill="#f7f5ee"/>'
+        f"{_basemap(proj, frame, basemap_uri)}"
         f"{body}"
         f'<path d="{outline}" fill="none" stroke="#000" stroke-width="2.4"/>'
         f"{''.join(markers)}{_scale_bar(proj)}{_north_arrow()}</svg>"

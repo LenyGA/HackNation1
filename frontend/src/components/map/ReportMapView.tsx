@@ -10,6 +10,7 @@ import { useMapFullscreen } from './useMapFullscreen'
 // Colours per feature kind, shared by the map layers and the legend.
 const KIND_COLORS: Record<MapFeatureKind, string> = {
   depression: '#06b6d4',
+  depression_minor: '#a5f3fc',
   flow_path: '#0ea5e9',
   outlet: '#dc2626',
   ditch: '#2563eb',
@@ -23,6 +24,7 @@ const KIND_ORDER: MapFeatureKind[] = [
   'outlet',
   'flow_path',
   'depression',
+  'depression_minor',
   'ditch',
   'watercourse',
   'water_body',
