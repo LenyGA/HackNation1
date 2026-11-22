@@ -27,6 +27,7 @@ from app.analysis.common import (
     indicator,
     level_from_ks,
     level_from_percentile,
+    round_to,
 )
 from app.analysis.context import (
     AnalysisInputs,
@@ -47,16 +48,19 @@ from app.analysis.series import same_day_in_year
 from app.analysis.soil import SoilCategory, SoilProperties
 from app.analysis.terrain import TerrainResult
 from app.analysis.texts_pl import CONFIDENCE_REASONS
-from app.analysis.water_balance import KBW_WINDOW_DAYS, RootZoneBalance, kbw_mm, stress_coefficient
+from app.analysis.water_balance import RootZoneBalance, stress_coefficient
 from app.core.config import HISTORY_YEARS
 from app.core.models import Confidence, Indicator, SourceStatus, Uncertainty
-from app.crops.iung import iung_threshold
+from app.crops.iung import IungMissing, IungThreshold, iung_lookup
 from app.sources.hydro import HydroData
 
 MIN_RECHARGE_DAYS = 30
 NDVI_LOW_PCT = 25.0
 RETENTION_RADIUS_M = 500.0
 RETENTION_KINDS = ("water_body", "wetland", "trees")
+IUNG_SOURCE = (
+    "Rozporządzenie MRiRW z 11.04.2019 (Dz.U. 2019 poz. 739), System Monitoringu Suszy Rolniczej IUNG-PIB"
+)
 # Vulnerability level from the share of assessable points (with all 8 points: ≥ 5 high, ≥ 2 medium).
 VULN_HIGH_RATIO = 0.6
 VULN_MEDIUM_RATIO = 0.25
@@ -92,6 +96,10 @@ class CurrentState:
     uncertainty: Uncertainty
     satellite: SatelliteCheck
     last_season: LastSeason | None  # off-season only
+    # Official IUNG-PIB threshold (Dz.U. 2019 poz. 739): threshold and verdict if used, else the reason.
+    iung: IungThreshold | None = None
+    iung_below: bool | None = None  # KBW of the period at or below the critical value = agricultural drought
+    iung_missing: IungMissing | None = None
 
 
 @dataclass(frozen=True)
@@ -345,16 +353,24 @@ def _current(ctx: Context) -> CurrentState | None:
         # No signal could be compared with history: no level rather than a fake "no deficit".
         return None
 
-    # IUNG critical KBW (decision 5): used only when the published table has an entry for this crop, soil
-    # category and a period ending on or before analysis_date; KBW is then computed over that period.
+    # IUNG critical KBW (Dz.U. 2019 poz. 739): KBW summed over the exact six-dekad period of the threshold.
+    # The comparison uses the value rounded as shown in the report, so text and verdict never disagree.
     iung_used = False
+    iung: IungThreshold | None = None
+    iung_below: bool | None = None
     category = ctx.soil.category.value if ctx.soil is not None and ctx.soil.category is not None else None
-    threshold = iung_threshold(ctx.crop.id, category, day)
-    if threshold is not None:
-        period_end, critical_mm, _citation = threshold
-        kbw_period = kbw_mm(ctx.weather, period_end)
-        if kbw_period is not None:
+    found = iung_lookup(ctx.crop.id, category, day)
+    iung_missing: IungMissing | None = found if isinstance(found, IungMissing) else None
+    if isinstance(found, IungThreshold):
+        kbw_period = ctx.weather.kbw_sum(found.period_start, found.period_end)
+        if kbw_period is None:
+            iung_missing = IungMissing.NO_WEATHER
+        else:
+            kbw_rounded = round_to(kbw_period, 1.0)
+            assert kbw_rounded is not None
             iung_used = True
+            iung = found
+            iung_below = kbw_rounded <= found.kbw_critical_mm
             basis.append("iung")
             indicators.append(
                 indicator(
@@ -363,11 +379,23 @@ def _current(ctx: Context) -> CurrentState | None:
                     "mm",
                     wsrc,
                     level=wl,
-                    start=period_end - timedelta(days=KBW_WINDOW_DAYS - 1),
-                    end=period_end,
+                    start=found.period_start,
+                    end=found.period_end,
                 )
             )
-            if kbw_period <= critical_mm:
+            indicators.append(
+                indicator(
+                    "kbw_iung_critical_mm",
+                    found.kbw_critical_mm,
+                    "mm",
+                    IUNG_SOURCE,
+                    level=Confidence.HIGH,
+                    reason="iung_regulation",
+                    start=found.period_start,
+                    end=found.period_end,
+                )
+            )
+            if iung_below:
                 level = DeficitLevel.from_rank(max(level.rank, DeficitLevel.MODERATE.rank))
 
     satellite = _satellite(ctx, level)
@@ -381,6 +409,9 @@ def _current(ctx: Context) -> CurrentState | None:
         uncertainty=_current_confidence(ctx, rz_level is not None, satellite, iung_used),
         satellite=satellite,
         last_season=last_season,
+        iung=iung,
+        iung_below=iung_below,
+        iung_missing=iung_missing,
     )
 
 
@@ -615,6 +646,8 @@ def _limitations(ctx: Context, current: CurrentState | None) -> list[str]:
     out: list[str] = ["weather_grid", "crop_calendar_typical", "balance_simplifications"]
     if current is not None and not current.iung_threshold_used:
         out.append("iung_thresholds_missing")
+    elif current is not None:
+        out.append("iung_etp_method")
     if inp.weather.data is not None and inp.weather.data.provisional_from is not None:
         out.append("weather_provisional")
     if inp.weather.status is SourceStatus.DEGRADED:

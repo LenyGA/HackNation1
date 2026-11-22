@@ -96,7 +96,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 ### Wymagane rozszerzenia (decyzja zespołu 22.11)
 | ID | Wymaganie | Status | Luka |
 |---|---|---|---|
-| G1 | Oficjalne progi KBW IUNG-PIB (Doroszewski i in. 2012) + mapowanie gleby na kategorie I–IV | ❌ | `crops/iung_thresholds.yaml` jest pusty, a raport pisze „nie użyto progów” |
+| G1 | Oficjalne progi KBW IUNG-PIB (Doroszewski i in. 2012) + mapowanie gleby na kategorie I–IV | ✅ | 22.11: progi z Dz.U. 2019 poz. 739 (wygenerowane z tekstu aktu, zweryfikowane z ekspertyzą IUNG-PIB 2019) dla 8 upraw; użytki zielone bez progu (jawnie); ETP FAO-56 zamiast wzoru Doroszewskiego — w ograniczeniach |
 | G2 | NMT 1 m GUGiK + profil spadku i miejsca pod zastawki/bufory | ✅ | `sources/dem.py` (Copernicus 30 m jako zapas), `analysis/profile.py` |
 | G3 | Hydrologia z fallbackiem (MPHP / BDOT10k WFS) obok OSM | ⚠️ | 22.11: 3 mirrory Overpass z rotacją i ponowieniem + zapas z WorldCover (drzewa, wody, mokradła w 500 m); MPHP/BDOT10k nadal brak |
 | G4 | Strefy zagrożenia powodziowego ISOK | ✅ | `sources/flood.py` |

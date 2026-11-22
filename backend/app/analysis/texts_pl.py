@@ -32,6 +32,9 @@ REASONS: dict[str, str] = {
     "forecast": "Prognoza pogody na najbliższe dni; może się jeszcze zmienić.",
     "irrigation_volume": "Dawka nawadniania razy powierzchnia działki z ewidencji gruntów (ULDK).",
     "computed": "Wartość wyliczona przez aplikację z danych źródłowych.",
+    "iung_regulation": (
+        "Wartość krytyczna z rozporządzenia (Dz.U. 2019 poz. 739) dla tej grupy upraw i kategorii gleby."
+    ),
 }
 
 CONFIDENCE_REASONS: dict[str, str] = {

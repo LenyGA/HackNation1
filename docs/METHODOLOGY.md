@@ -36,9 +36,11 @@ Dla ozimin Kc_ini = 0,4 (przypis FAO-56 tab. 12, gleba zamarznięta).
   materia organiczna = 1,724 · węgiel organiczny (SoilGrids).
 - `TAW = 1000 · (θFC − θWP) · Zr` [mm], całkowane po warstwach SoilGrids do głębokości korzeni. Poniżej 100 cm
   przyjmujemy właściwości najgłębszej warstwy. Gdy dane pokrywają < 60 % głębokości korzeni, TAW nie jest podawane.
-- Kategoria gleby I–IV: klasa uziarnienia USDA warstwy 0–30 cm przypisana do grup IUNG
-  (I: piasek; II: piasek gliniasty; III: glina piaszczysta, glina, pył; IV: gliny ilaste i iły).
-  To przybliżenie klasyfikacji PTG, raport mówi o tym wprost.
+- Kategoria gleby I–IV: klasa uziarnienia USDA warstwy 0–30 cm przypisana do kategorii podatności na suszę IUNG-PIB
+  (ekspertyza IUNG-PIB 2019, tab. 4 za Ślusarczyk 1979: I — piaski luźne i słabo gliniaste; II — piaski gliniaste;
+  III — gliny lekkie i pyły; IV — gliny średnie i ciężkie, iły). Odpowiedniki USDA: I sand; II loamy sand;
+  III sandy loam, loam, silt loam, silt; IV clay loamy i clay. To przybliżenie polskiej klasyfikacji gatunków gleb
+  (SoilGrids nie rozróżnia frakcji < 0,02 mm), raport mówi o tym wprost.
 
 ## 5. Historia 10 lat (`history.py`)
 
@@ -75,10 +77,25 @@ o glebie) oraz — dla ozimin — stan strefy korzeniowej.
 | Percentyl KBW 60 dni / opadu 30 dni / KBW od 1.10 | > 30 | ≤ 30 | ≤ 20 | < 10 |
 
 Sygnał pomocniczy może podnieść poziom o najwyżej jeden stopień i nigdy go nie obniża. Gdy żadnego sygnału nie da
-się porównać z historią (za mało lat z danymi), poziomu nie podajemy i ocena jest niekompletna. Próg IUNG (gdy jest
-w tabeli `crops/iung_thresholds.yaml`) dotyczy ostatniego okresu IUNG kończącego się nie później niż data analizy;
-KBW liczymy wtedy dla tego okresu, a przekroczenie progu ustawia co najmniej „umiarkowany”. **Tabela IUNG jest obecnie pusta**, bo nie mamy
-opublikowanych wartości (krok M1.4 otwarty) — raport to zaznacza.
+się porównać z historią (za mało lat z danymi), poziomu nie podajemy i ocena jest niekompletna. **Oficjalny próg suszy rolniczej IUNG-PIB (G1).** Wartości krytyczne KBW pochodzą z załącznika do
+rozporządzenia MRiRW z 11.04.2019 w sprawie wartości klimatycznego bilansu wodnego dla poszczególnych gatunków roślin
+uprawnych i gleb (Dz.U. 2019 poz. 739, akt obowiązujący wg API Sejmu, sprawdzone 22.11.2026), na którym opiera się
+System Monitoringu Suszy Rolniczej IUNG-PIB. Tabela `crops/iung_thresholds.yaml` jest wygenerowana skryptem z oficjalnego
+tekstu (`https://api.sejm.gov.pl/eli/acts/DU/2019/739/text.html`) i porównana wartość po wartości z tab. 3 ekspertyzy
+IUNG-PIB (umowa 155/19, Puławy 2019) — 56 wierszy zgodnych. Przekroczenie wartości oznacza spadek plonu o ≥ 20 % w skali
+gminy wobec średnich warunków (ekspertyza, s. 5).
+- Okresy: 14 okresów sześciodekadowych od 21.III–20.V do 1.VIII–30.IX. Bierzemy ostatni okres oceniany dla uprawy,
+  który skończył się nie później niż data analizy i nie dawniej niż 11 dni (`MAX_PERIOD_AGE_DAYS`, IUNG publikuje KBW
+  po każdej dekadzie). KBW = suma (opad − ET0) dokładnie w tym okresie, zaokrąglona do 1 mm przed porównaniem
+  (tekst i werdykt zawsze zgodne). `KBW ≤ próg` → susza rolnicza wg IUNG i poziom co najmniej „umiarkowany”;
+  powyżej progu poziom się nie zmienia.
+- Uprawy: pszenica ozima i żyto → „zboża ozime”, jęczmień jary → „zboża jare”, kukurydza → „kukurydza na ziarno”,
+  rzepak ozimy → „rzepak i rzepik”, ziemniaki, burak cukrowy, warzywa polowe → „warzywa gruntowe”. Użytki zielone nie
+  mają progu w rozporządzeniu, a burak cukrowy nie ma wartości dla kategorii I — raport mówi to wprost (`IungMissing`).
+- Różnice wobec SMSR (w „Ograniczeniach analizy”): IUNG liczy ETP wzorem Doroszewskiego z danych stacji i interpoluje
+  na gminy; my używamy ET0 FAO-56 z modelu pogody dla punktu działki. Progi z 2019 r. stosujemy także do dat sprzed
+  1.05.2019 (wcześniej obowiązywały tabele z 2016 i 2017 r.). Kategorię gleby wyznaczamy z SoilGrids, a nie z mapy
+  glebowo-rolniczej 1:25 000.
 
 **Satelita** porównuje kondycję roślin (mediana bieżących scen) z historią tej działki w tym samym oknie roku
 (percentyl ≤ 25 = słaba kondycja). Tylko gdy uprawa jest na polu i ma rozwiniętą okrywę (Kc ≥ średnia Kc_ini i Kc_mid).

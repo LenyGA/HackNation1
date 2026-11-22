@@ -3,7 +3,6 @@ from datetime import date, timedelta
 import pytest
 
 from app.crops.catalog import load_crops, month_day
-from app.crops.iung import iung_threshold
 
 CROP_IDS = [
     "winter_wheat",
@@ -105,8 +104,3 @@ def test_month_day_leap_fallback() -> None:
 def test_kc_on_29_february() -> None:
     for crop in load_crops().values():
         crop.kc(date(2024, 2, 29))
-
-
-def test_iung_table_empty_returns_none() -> None:
-    assert iung_threshold("maize", "I", "06-30") is None
-    assert iung_threshold("maize", None, "06-30") is None

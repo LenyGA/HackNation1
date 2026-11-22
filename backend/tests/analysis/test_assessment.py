@@ -337,3 +337,76 @@ def test_satellite_scene_after_analysis_date_is_ignored() -> None:
     a = assess(make_inputs(SUMMER, sentinel2=ok("sentinel2", data)))
     assert a.current is not None
     assert a.current.satellite.status == "not_applicable"
+
+
+# --- official IUNG-PIB threshold (G1) ---------------------------------------------------------------
+# SUMMER (15 VII) on loamy sand (category II), maize: period 11 V – 10 VII, critical KBW −188 mm.
+IUNG_START, IUNG_END = date(2024, 5, 11), date(2024, 7, 10)
+
+
+def _in_iung_period(d: date) -> bool:
+    return IUNG_START <= d <= IUNG_END
+
+
+def test_iung_below_threshold_is_agricultural_drought() -> None:
+    rp = random_precip()
+    a = assess(make_inputs(SUMMER, precip=lambda d: 0.0 if _in_iung_period(d) else rp(d) + 1.0))
+    _check_complete(a)
+    cur = a.current
+    assert cur is not None and cur.iung is not None
+    assert (cur.iung.period_start, cur.iung.period_end, cur.iung.kbw_critical_mm) == (
+        IUNG_START,
+        IUNG_END,
+        -188,
+    )
+    assert cur.iung_below is True and cur.iung_missing is None
+    assert "iung" in cur.basis and cur.iung_threshold_used
+    assert cur.level.rank >= DeficitLevel.MODERATE.rank
+    values = {i.key: i for i in cur.indicators}
+    assert values["kbw_iung_period_mm"].value is not None and values["kbw_iung_period_mm"].value < -188
+    assert values["kbw_iung_critical_mm"].value == -188
+    assert "Dz.U. 2019 poz. 739" in values["kbw_iung_critical_mm"].source
+    assert "iung_etp_method" in a.limitations and "iung_thresholds_missing" not in a.limitations
+
+
+def test_iung_above_threshold_is_not_drought_and_does_not_change_level() -> None:
+    rp = random_precip()
+
+    def precip(d: date) -> float:
+        return 12.0 if 0 <= (SUMMER - d).days < 90 else rp(d)
+
+    a = assess(make_inputs(SUMMER, precip=precip))
+    assert a.current is not None
+    assert a.current.iung_below is False and "iung" in a.current.basis
+    assert a.current.level is DeficitLevel.NONE
+
+
+def test_iung_compares_the_rounded_value_shown_in_the_report() -> None:
+    # Raw KBW −187.6 mm is shown as −188 mm, which equals the threshold → drought, consistently with the text.
+    days = (IUNG_END - IUNG_START).days + 1
+    a = assess(
+        make_inputs(
+            SUMMER, precip=lambda d: 4.0 - 187.6 / days if _in_iung_period(d) else 2.0, et0=lambda d: 4.0
+        )
+    )
+    assert a.current is not None
+    assert {i.key: i.value for i in a.current.indicators}["kbw_iung_period_mm"] == -188
+    assert a.current.iung_below is True
+
+
+def test_iung_missing_reason_for_grassland() -> None:
+    from app.crops.iung import IungMissing
+
+    a = assess(make_inputs(SUMMER, "grassland"))
+    assert a.current is not None
+    assert a.current.iung is None and a.current.iung_missing is IungMissing.CROP_NOT_COVERED
+    assert "iung" not in a.current.basis
+    assert "iung_thresholds_missing" in a.limitations and "iung_etp_method" not in a.limitations
+
+
+def test_iung_missing_reason_without_soil() -> None:
+    from app.crops.iung import IungMissing
+
+    a = assess(make_inputs(SUMMER, soil=False))
+    if a.current is not None:
+        assert a.current.iung_missing is IungMissing.NO_SOIL_CATEGORY

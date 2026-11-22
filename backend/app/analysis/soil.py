@@ -6,10 +6,13 @@
   Soil Sci. Soc. Am. J. 70:1569–1578, eqs. 1–2 (valid for OM ≤ 8 %, clay ≤ 60 %).
 - Organic matter = 1.724 · organic carbon (van Bemmelen factor).
 - TAW = 1000 · (θFC − θWP) · Zr  [mm]  (FAO-56 eq. 82), integrated over the SoilGrids layers down to Zr.
-- Soil category I–IV: IUNG-PIB drought monitoring groups soils by agronomic texture (I very light: sands;
-  II light: loamy sands; III medium: sandy loams, loams, silts; IV heavy: clay loams and clays).
-  SoilGrids gives USDA fractions, so the USDA texture class (USDA Soil Survey Manual triangle) of the topsoil
-  is mapped to these groups. This approximates the Polish PTG classification and the report says so.
+- Soil category I–IV: drought-susceptibility categories of the IUNG-PIB Agricultural Drought
+  Monitoring System (IUNG-PIB 2019 expertise for MRiRW, umowa 155/19, Table 4, after Ślusarczyk 1979):
+  I very susceptible: loose and slightly loamy sands; II susceptible: loamy sands; III medium: light
+  loams and silts; IV low: medium and heavy loams, silty clays, clays. SoilGrids gives USDA fractions,
+  so the USDA texture class (USDA Soil Survey Manual triangle) of the topsoil is mapped to these groups.
+  SoilGrids cannot separate the Polish < 0.02 mm fraction, so this approximates the Polish soil-species
+  classification and the report says so.
 """
 
 from dataclasses import dataclass

@@ -132,3 +132,16 @@ def test_single_layer_hand_value() -> None:
     )
     props = soil_properties(soil_data([layer]), root_depth_m=0.4)
     assert props.taw_mm == pytest.approx(1000 * (fc - wp) * 0.4, abs=0.1)
+
+
+@pytest.mark.parametrize(
+    ("sand", "silt", "clay", "expected"),
+    [
+        (95, 3, 2, SoilCategory.I),  # piasek luźny
+        (80, 12, 8, SoilCategory.II),  # piasek gliniasty
+        (55, 30, 15, SoilCategory.III),  # glina lekka
+        (30, 30, 40, SoilCategory.IV),  # glina ciężka / ił
+    ],
+)
+def test_iung_reference_soils(sand: float, silt: float, clay: float, expected: SoilCategory) -> None:
+    assert soil_category(sand, silt, clay) is expected

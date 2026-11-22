@@ -67,12 +67,14 @@ Uprawa ozima ({{ crop }}) jest na polu — dobry zapas wody w glebie przed wiosn
 {% if iung %}
 {% set kp = v.get('kbw_iung_period_mm') %}
 {% if kp is not none %}
-{% if kp <= iung.critical_mm %}
-Bilans opadów i parowania w okresie do {{ iung.period_end|date_pl }} jest poniżej progu suszy rolniczej IUNG-PIB dla tej uprawy i gleby — to oznacza suszę rolniczą.
-{% else %}
-Bilans opadów i parowania w okresie do {{ iung.period_end|date_pl }} jest powyżej progu suszy rolniczej IUNG-PIB dla tej uprawy i gleby.
+Oficjalny wskaźnik suszy rolniczej (IUNG-PIB): od {{ iung.period_start|date_pl }} do {{ iung.period_end|date_pl }} {% if kp < 0 %}parowanie przewyższyło opady o {{ (-kp)|num }} mm{% else %}opady przewyższyły parowanie o {{ kp|num }} mm{% endif %}. Próg suszy dla grupy „{{ iung.group_pl }}” na glebie kategorii {{ iung.category }} to {{ (-iung.critical_mm)|num }} mm niedoboru — {% if iung.below %}został przekroczony, czyli według oficjalnej metodyki jest susza rolnicza (spadek plonu o co najmniej 20%){% else %}nie został przekroczony, czyli według oficjalnej metodyki suszy rolniczej nie ma{% endif %}.
 {% endif %}
-{% endif %}
+{% elif iung_missing %}
+{{ {'crop_not_covered': 'Dla tej uprawy nie ma oficjalnego progu suszy rolniczej IUNG-PIB',
+    'soil_not_covered': 'Dla tej uprawy na tak lekkiej glebie oficjalny próg suszy rolniczej IUNG-PIB nie jest określony',
+    'outside_periods': 'System monitoringu suszy IUNG-PIB nie ocenia tej uprawy w tym terminie',
+    'no_soil_category': 'Bez danych o glebie nie da się porównać z oficjalnym progiem suszy rolniczej IUNG-PIB',
+    'no_weather': 'Brakuje danych pogodowych z okresu, dla którego liczony jest oficjalny próg suszy rolniczej IUNG-PIB'}[iung_missing] }}, więc ocenę opieramy na porównaniu z poprzednimi latami i zapasie wody w glebie.
 {% endif %}
 
 {% set npct = c.sat.get('ndvi_pct') %}
@@ -100,6 +102,10 @@ Pewność oceny stanu bieżącego: {{ current_confidence_level_pl }}. {{ current
 == details ==
 Poziom niedoboru wyznaczono z: {% for b in c.basis %}{{ {'root_zone': 'bilansu wody w strefie korzeni wg FAO-56 (współczynnik stresu Ks)', 'kbw_percentile': 'percentyla 60-dniowego klimatycznego bilansu wodnego KBW = P − ET0 w 10-letnim rozkładzie', 'precip_percentile': 'percentyla opadu z 30 dni w 10-letnim rozkładzie', 'recharge_percentile': 'percentyla KBW od ' ~ ((c.recharge_start|date_pl) if c.recharge_start else '1 października') ~ ' w 10-letnim rozkładzie', 'iung': 'progu krytycznego KBW wg IUNG-PIB'}[b] }}{% if not loop.last %}; {% endif %}{% endfor %}.
 
+{% if iung %}
+Próg suszy rolniczej: {{ iung.critical_mm|num }} mm dla okresu {{ iung.period_start|date_pl }} – {{ iung.period_end|date_pl }}, grupa „{{ iung.group_pl }}”, kategoria gleby {{ iung.category }} — {{ iung.citation }}. Bilans w tym okresie liczony jako suma (opad − ET0 FAO-56) z danych pogodowych, zaokrąglona do 1 mm przed porównaniem.
+
+{% endif %}
 {% if v.get('ks') is not none %}
 Współczynnik stresu wodnego Ks = {{ v.get('ks')|num(0.01) }}; ubytek wody Dr = {{ v.get('root_zone_depletion_mm')|num }} mm przy TAW = {{ v.get('taw_mm')|num }} mm i RAW = {{ v.get('raw_mm')|num }} mm.
 {% endif %}

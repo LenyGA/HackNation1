@@ -1,8 +1,12 @@
 {#- Section 8: data sources with dates (CLAUDE.md rule 5). -#}
-Wszystkie dane pobrano na żywo z bezpłatnych, publicznych źródeł. Wynik obliczyła aplikacja RolnikSzukaWody {{ created_at|date_pl }} — nie zawiera ona żadnych wcześniej przygotowanych ocen.
+Wszystkie dane pomiarowe pobrano na żywo z bezpłatnych, publicznych źródeł. Wynik obliczyła aplikacja RolnikSzukaWody {{ created_at|date_pl }} — nie zawiera ona żadnych wcześniej przygotowanych ocen.
 
 {% for s in sources %}
 {{ s.label_pl }}: {{ {'ok': 'dane pobrane', 'degraded': 'dane pobrane z ograniczeniami', 'missing': 'brak danych'}[s.status.value] }}. Źródło: {{ s.source }}. Licencja: {{ s.license }}. Pobrano {{ s.fetched_at|date_pl }}{% if s.period %}; dane za okres {{ s.period.start|date_pl }} – {{ s.period.end|date_pl }}{% endif %}.
 
 {% endfor %}
+{% if iung %}
+Progi suszy rolniczej: {{ iung.citation }} ({{ iung.url }}). Tabela jest wbudowana w aplikację — skopiowana automatycznie z oficjalnego tekstu {{ iung.accessed|date_pl }}, a nie pobierana przy każdej analizie.
+
+{% endif %}
 Wszystkie dane są ograniczone do dnia analizy ({{ day|date_pl }}) — późniejsze pomiary nie wchodzą do oceny{% if irrigation.forecast.value == 'used' %}, poza prognozą pogody wydaną w dniu analizy{% endif %}.

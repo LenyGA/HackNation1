@@ -28,7 +28,6 @@ from app.analysis.terrain import is_main_depression, main_depressions
 from app.core.config import APP_TITLE, APP_VERSION, HISTORY_YEARS
 from app.core.models import Confidence, Indicator, SourceResult, SourceStatus, Uncertainty
 from app.crops.catalog import month_day, next_sowing
-from app.crops.iung import iung_threshold
 from app.recommendations.irrigation import IrrigationAdvice
 from app.recommendations.models import Category, Recommendation
 from app.report import labels_pl as L
@@ -260,10 +259,22 @@ def _context(
     typical_p30 = _typical([y.precip_30d_mm for y in history.years]) if history is not None else None
     typical_p90 = _typical([y.precip_90d_mm for y in history.years]) if history is not None else None
     iung = None
-    if a.current is not None and a.current.iung_threshold_used and soil is not None and soil.category:
-        threshold = iung_threshold(crop.id, soil.category.value, day)
-        if threshold is not None:
-            iung = {"critical_mm": threshold[1], "citation": threshold[2], "period_end": threshold[0]}
+    iung_missing = None
+    if a.current is not None and a.current.iung is not None:
+        t = a.current.iung
+        iung = {
+            "critical_mm": t.kbw_critical_mm,
+            "below": a.current.iung_below,
+            "period_start": t.period_start,
+            "period_end": t.period_end,
+            "group_pl": t.group_pl.lower(),
+            "category": t.soil_category,
+            "citation": t.citation,
+            "url": t.url,
+            "accessed": t.accessed,
+        }
+    elif a.current is not None and a.current.iung_missing is not None:
+        iung_missing = a.current.iung_missing.value
     by_cat = {cat: [r for r in recs if r.category is cat] for cat in Category}
     landcover = inputs.landcover.data
     return {
@@ -327,6 +338,7 @@ def _context(
         "critical_months": sorted(crop.critical_months()),
         "critical_now": critical.name_pl if critical is not None else None,
         "iung": iung,
+        "iung_missing": iung_missing,
         "recs": recs,
         "recs_retention": by_cat[Category.RETENTION],
         "recs_agrotech": by_cat[Category.AGROTECH],

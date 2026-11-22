@@ -12,6 +12,7 @@ INDICATOR_LABELS: dict[str, str] = {
     "kbw_60d_mm": "Opad minus parowanie, ostatnie 60 dni",
     "kbw_60d_pct": "Opad minus parowanie z 60 dni na tle 10 lat (% lat bardziej suchych)",
     "kbw_iung_period_mm": "Opad minus parowanie w okresie progu suszy IUNG-PIB",
+    "kbw_iung_critical_mm": "Próg suszy rolniczej IUNG-PIB (wartość krytyczna z rozporządzenia)",
     "recharge_kbw_mm": "Opad minus parowanie od 1 października",
     "recharge_kbw_pct": "Opad minus parowanie od 1 października na tle 10 lat (% lat bardziej suchych)",
     "taw_mm": "Woda dostępna dla roślin w strefie korzeni przy pełnym nasyceniu",
