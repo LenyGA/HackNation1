@@ -9,7 +9,7 @@ Cel nadrzędny: spełnić **każde** wymaganie z `docs/task/zadanie.pdf` i `docs
 w 5 kryteriach oceny. Przy wątpliwościach rozstrzyga oryginał PDF, nie ten plik.
 
 - Macierz zgodności i luki: rozdział **„Macierz zgodności”** niżej (aktualizuj ją przy każdej zmianie).
-- Bieżąca kolejka zadań: `plan2.md` (kroki) i `lista2.md` (uzasadnienia). Zgłoszenie i README: `plan.md`, moduł M10.
+- Bieżąca kolejka zadań: `plan33.md` (zastępuje `plan2.md`; uzasadnienia nadal w `lista2.md`). Lista kontrolna zgłoszenia: `plan33.md`, M9.
 - Metodyka i bibliografia: `docs/METHODOLOGY.md`. Źródła, licencje i daty pobrania: `docs/DATA_SOURCES.md`.
 - Załącznik naukowy KOWR: `docs/task/podstawy-naukowe.pdf`.
 
@@ -134,8 +134,8 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 ### Jakość techniczna
 | ID | Problem | Status |
 |---|---|---|
-| T1 | `test_builder.py::test_sources_section_lists_every_source_with_date` ma na sztywno „21 listopada 2026” (5 przypadków pada) | ❌ **blokuje push przez hook** |
-| T2 | `npx tsc --noEmit` w `frontend/` nic nie sprawdza (`files: []`); używaj `-p tsconfig.app.json` lub `npm run build` | ⚠️ |
+| T1 | `test_builder.py::test_sources_section_lists_every_source_with_date` ma na sztywno „21 listopada 2026” (5 przypadków pada) | ✅ 22.11 — oczekiwany napis liczony z `fetched_at` wpisu |
+| T2 | `npx tsc --noEmit` w `frontend/` nic nie sprawdza (`files: []`); używaj `-p tsconfig.app.json` lub `npm run build` | ✅ 22.11 — hooki i `build` (`tsc -b`) sprawdzają projekt aplikacji |
 | T3 | Rozjazd zaokrągleń dawki (plan wody 5/10 mm vs dawka 1 mm) | ⚠️ |
 | T4 | Test na Windows w Chrome, Firefox, Edge i Operze oraz na macOS/iOS w Safari, łącznie z PDF i drukiem (wymóg 3.2) | ❌ niezweryfikowane |
 | T5 | Działka nierolnicza, bardzo mała, bardzo duża lub wieloczęściowa: jawne ostrzeżenie i czas < 30 s | ⚠️ ostrzeżenie `landcover_not_agricultural` jest; skrajne rozmiary nie były testowane |
@@ -154,7 +154,7 @@ Po każdej zmianie aktualizuj status i datę. ID są stałe, więc w commitach i
 ### Inne formalne
 | ID | Wymaganie | Status | Luka |
 |---|---|---|---|
-| Z8 | `LICENSE`: „Copyright … Łukasz Dębski”. Regulamin § 6 ust. 2 każe identyfikować rozwiązanie nazwą zespołu, a § 5 przewiduje przeniesienie praw na KOWR | ⚠️ | Zmienić właściciela na „GeoSatel”; decyzja zespołu |
+| Z8 | `LICENSE`: „Copyright … Łukasz Dębski”. Regulamin § 6 ust. 2 każe identyfikować rozwiązanie nazwą zespołu, a § 5 przewiduje przeniesienie praw na KOWR | ⚠️ | ✅ 22.11 — właściciel „GeoSatel” |
 | Z9 | Finał: demo na żywo dla 1–3 działek i dat jury w 2–3 min | ❌ | Scenariusz demo, rozgrzany cache, zapasowe PDF-y z Z6 na wypadek awarii sieci |
 
 **Priorytet (od największego wpływu na punkty):** T1 → **Q1–Q7** → G3 → G1 → G7 → Z6 → **G9 → G10** → R1–R12 →
@@ -260,7 +260,7 @@ backend/tests/  # unit (analysis/, recommendations/, report/) · e2e/{parcels.ya
 
 ## Workflow dla każdej zmiany
 
-1. **Wskaż ID wymagania** z macierzy (np. G3, R8) albo krok z `plan2.md`. Jeśli zmiana nie służy żadnemu wymaganiu ani kryterium
+1. **Wskaż ID wymagania** z macierzy (np. G3, R8) albo krok z `plan33.md`. Jeśli zmiana nie służy żadnemu wymaganiu ani kryterium
    oceny, zapytaj, zanim ją zrobisz.
 2. **Test najpierw:** dla reguły rekomendacji test „kiedy się odpala” i „kiedy NIE”; dla źródła fixture + test statusu `missing`.
 3. **Implementuj** w granicach modułów (sources bez logiki, analysis bez I/O).

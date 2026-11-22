@@ -133,14 +133,17 @@ def test_two_missing_sources_named_explicitly() -> None:
 
 
 def test_sources_section_lists_every_source_with_date(report: Report) -> None:
+    from app.report.texts import date_pl
+
     names = [e.name for e in report.sources]
     assert names == ["uldk", "open_meteo", "sentinel2", "soilgrids", "dem", "hydro", "landcover"]
     sec = next(s for s in report.sections if s.id == "sources")
     for e in report.sources:
         line = next((p for p in sec.paragraphs_pl if p.startswith(e.label_pl)), None)
         assert line is not None, e.name
-        assert "Pobrano 21 listopada 2026" in line
         assert e.fetched_at is not None
+        # Expected text derived from the entry's own timestamp (T1): never a date fixed in the test.
+        assert f"Pobrano {date_pl(e.fetched_at)}" in line
 
 
 def test_sources_section_states_analysis_date_cut_off(report: Report) -> None:
