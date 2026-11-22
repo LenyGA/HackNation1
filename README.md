@@ -12,6 +12,7 @@ potem uprawa i nawadnianie.
 
 | | |
 |---|---|
+| Prezentacja (PDF, 9 slajdów) | [`docs/submission/GeoSatel-prezentacja.pdf`](docs/submission/GeoSatel-prezentacja.pdf) |
 | Film z działania (2 min) | [`docs/submission/GeoSatel-film.mp4`](docs/submission/GeoSatel-film.mp4) |
 | Przykładowe raporty PDF | [`docs/sample-reports/`](docs/sample-reports/) |
 | Metodyka, wzory, progi, odwołania do literatury | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) |

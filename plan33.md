@@ -252,7 +252,7 @@ M0–M4 (P0, G1, G7, G9). M5–M7 (G10, sady, G11) wchodzą tylko wtedy, gdy wcz
   R8 znane ograniczenia · R9 weryfikacja wyników · R10 koszty (0 zł dla rolnika, koszt VPS) · R11 skalowalność · R12 bezpieczeństwo.
   Materiał źródłowy: `claude33.md`, `docs/DATA_SOURCES.md`, `docs/METHODOLOGY.md`, `backend/requirements.txt`, `frontend/package.json`.
 - [x] **Z6** (22.11: 24 PDF + spis) przykładowe raporty PDF w `docs/sample-reports/` (działki z `parcels.yaml`, data bieżąca i 2019-07-15, oba warianty) — po M8.2.
-- [ ] **Z2** (szkic: `docs/submission/opis.md`) opis: problem, funkcje, użycie danych, korzyści · **Z4** prezentacja PDF ≤ 10 slajdów · **Z5** film ≤ 3 min (22.11: `docs/submission/GeoSatel-film.mp4`, 2:00).
+- [ ] **Z2** (szkic: `docs/submission/opis.md`) opis: problem, funkcje, użycie danych, korzyści · **Z4** prezentacja PDF ≤ 10 slajdów (22.11: `docs/submission/GeoSatel-prezentacja.pdf`, 9 slajdów) · **Z5** film ≤ 3 min (22.11: `docs/submission/GeoSatel-film.mp4`, 2:00).
 - [ ] **Z3** dostęp jury do prywatnego repo wg instrukcji Platformy · **Z7** link `https://129.121.162.156.sslip.io` w zgłoszeniu.
 - [ ] **T4** szybki test w Chrome, Firefox, Edge, Operze i Safari (strona, PDF, druk) — ręcznie, w trakcie M5–M8.
 - [ ] **Z9** (szkic: `docs/submission/demo.md`) scenariusz demo na finał: 1–3 działki, rozgrzany cache, zapasowe PDF-y z Z6.
