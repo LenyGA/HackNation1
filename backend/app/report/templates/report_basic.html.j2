@@ -76,6 +76,22 @@
 {% endfor %}
 </ul>
 {% endif %}
+
+{% if r.retention_plan %}
+{% set rp = r.retention_plan %}
+{% set good = rp.methods|selectattr('status', 'equalto', 'recommended')|list %}
+<h2>Zatrzymanie i gromadzenie wody</h2>
+<div class="cov {{ 'good' if rp.coverage.full_pct is not none and rp.coverage.full_pct >= 100 else 'warn' if rp.coverage.status == 'ok' else 'unknown' }}">{{ rp.coverage.text_pl }}</div>
+{% if good %}
+<ul class="season">
+{% for m in good %}
+  <li><b>{{ m.label_pl }}</b> <span class="pill good">{{ m.status_pl }}</span> {{ m.reason_pl }}{% if m.legal_pl %} <span class="small">{{ m.legal_pl }}</span>{% endif %}</li>
+{% endfor %}
+</ul>
+{% else %}
+<p>Żaden sposób gromadzenia wody nie jest dla tej działki wyraźnie polecany; ocenę wszystkich pięciu sposobów pokazuje wariant pełny.</p>
+{% endif %}
+{% endif %}
 {% endif %}
 
 <div class="limits-box">

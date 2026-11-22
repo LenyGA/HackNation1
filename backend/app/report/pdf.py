@@ -40,6 +40,9 @@ def _charts(report: Report) -> dict[str, object]:
     }
 
 
+# Colour of the retention method status (G9).
+METHOD_PILL = {"recommended": "good", "conditional": "warn", "not_recommended": "bad", "no_data": "unknown"}
+
 Variant = Literal["basic", "full"]
 TEMPLATES: dict[Variant, str] = {"basic": "report_basic.html.j2", "full": "report.html.j2"}
 
@@ -64,6 +67,7 @@ def render_html(
             recs={rec.number: rec for rec in report.recommendations},
             legend_colors=_legend_colors(),
             confidence_pl=CONFIDENCE_LABELS,
+            method_pill=METHOD_PILL,
         )
     )
 

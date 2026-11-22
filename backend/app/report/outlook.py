@@ -301,6 +301,10 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
     season_p80 = _r(p.season_p80_mm, SEASON_WATER_STEP_MM)
     p80_m3 = _r(season_p80 * area * 10, 10) if season_p80 is not None and area else None
     gross_m3 = _r(p80_m3 / SPRINKLER_EFFICIENCY, 10) if p80_m3 is not None else None
+    # Rescue irrigation (critical periods only), rounded the same way as the full need (Q2, G9).
+    critical = _r(p.critical_p80_mm, SEASON_WATER_STEP_MM)
+    critical_m3 = _r(critical * area * 10, 10) if critical is not None and area else None
+    critical_gross = _r(critical_m3 / SPRINKLER_EFFICIENCY, 10) if critical_m3 is not None else None
     pond = None
     if gross_m3 is not None and gross_m3 >= 50:
         pond = _r(math.sqrt(gross_m3 / POND_DEPTH_M), 1)
@@ -333,7 +337,8 @@ def _water_plan(p: WaterPlanResult | None, inputs: AnalysisInputs) -> WaterPlan 
         season_p80_m3_parcel=p80_m3,
         season_p80_m3_parcel_gross=gross_m3,
         efficiency_pct=round(100 * SPRINKLER_EFFICIENCY),
-        critical_p80_mm=_r(p.critical_p80_mm, SEASON_WATER_STEP_MM),
+        critical_p80_mm=critical,
+        critical_p80_m3_parcel_gross=critical_gross,
         pond_side_m=pond,
         pond_depth_m=POND_DEPTH_M,
         text_pl=[],

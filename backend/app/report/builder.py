@@ -23,13 +23,15 @@ from app.analysis.context import (
     surroundings_nearest_m,
 )
 from app.analysis.history import RISK_FREQUENCY, HistoryMethod
+from app.analysis.retention_balance import RetentionCoverage, retention_coverage
 from app.analysis.series import Weather, same_day_in_year
 from app.analysis.terrain import is_main_depression, main_depressions
 from app.core.config import APP_TITLE, APP_VERSION, HISTORY_YEARS
 from app.core.models import Confidence, Indicator, SourceResult, SourceStatus, Uncertainty
 from app.crops.catalog import month_day, next_sowing
 from app.recommendations.irrigation import IrrigationAdvice
-from app.recommendations.models import Category, Recommendation
+from app.recommendations.models import Category, Recommendation, RuleContext
+from app.recommendations.retention_methods import METHOD_ORDER, WATER_LAW_PL, assess_methods
 from app.report import labels_pl as L
 from app.report.models import (
     SECTION_ORDER,
@@ -46,9 +48,13 @@ from app.report.models import (
     ReportMap,
     ReportRecommendation,
     ReportSection,
+    RetentionCoverageView,
+    RetentionMethodView,
+    RetentionPlan,
     SeasonChart,
     SectionId,
     SourceEntry,
+    WaterPlan,
 )
 from app.report.outlook import build_outlook, flood_info, groundwater_info
 from app.report.texts import date_dmy, first_sentence, num, render_line, render_text, years_pl
@@ -684,6 +690,52 @@ def _map(inputs: AnalysisInputs, a: Assessment, recs: list[Recommendation]) -> R
     return ReportMap(parcel=inputs.parcel.geometry, features=features, legend_pl=legend)
 
 
+# --- retention methods (G9) -------------------------------------------------------------------------
+
+
+def _coverage_view(c: RetentionCoverage, inputs: AnalysisInputs) -> RetentionCoverageView:
+    return RetentionCoverageView(
+        status=c.status.value,
+        volume_m3=c.volume_m3,
+        full_need_m3=c.full_need_m3,
+        rescue_need_m3=c.rescue_need_m3,
+        full_pct=c.full_pct,
+        rescue_pct=c.rescue_pct,
+        text_pl=render_line("blocks/retention_coverage.j2", c=c),
+        source=computed_source(inputs.dem.source, inputs.weather.source, inputs.soil.source),
+    )
+
+
+def _retention_plan(
+    inputs: AnalysisInputs, assessment: Assessment, plan: WaterPlan | None
+) -> RetentionPlan | None:
+    """Coverage card and the five methods; only after a complete assessment (rule 2)."""
+    if not assessment.complete or assessment.current is None:
+        return None
+    full = plan.season_p80_m3_parcel_gross if plan is not None else None
+    if plan is not None and plan.season_p80_mm is not None and plan.season_p80_mm < 1:
+        full = 0.0  # the plan says no irrigation needed even in a dry year
+    rescue = plan.critical_p80_m3_parcel_gross if plan is not None else None
+    coverage = retention_coverage(assessment.terrain, full, rescue)
+    methods = assess_methods(RuleContext(assessment=assessment, inputs=inputs), coverage)
+    order = {mid: i for i, mid in enumerate(METHOD_ORDER)}
+    views = [
+        RetentionMethodView(
+            id=m.id,
+            label_pl=L.RETENTION_METHOD_LABELS[m.id],
+            status=m.status.value,
+            status_pl=L.RETENTION_STATUS_LABELS[m.status.value],
+            reason_pl=render_line("blocks/retention_method.j2", m=m),
+            legal_pl=render_line("blocks/retention_permit.j2", m=m) or None,
+            evidence=[evidence_item(i) for i in m.evidence],
+        )
+        for m in sorted(methods, key=lambda m: order[m.id])
+    ]
+    return RetentionPlan(
+        coverage=_coverage_view(coverage, inputs), methods=views, legal_basis_pl=WATER_LAW_PL
+    )
+
+
 # --- entry point ------------------------------------------------------------------------------------
 
 
@@ -761,6 +813,7 @@ def build_report(
         stress_heatmap=outlook.heatmap,
         trends=outlook.trends,
         water_plan=outlook.water_plan if assessment.complete else None,
+        retention_plan=_retention_plan(inputs, assessment, outlook.water_plan),
         profile=outlook.profile,
         simulation=outlook.simulation if assessment.complete else None,
         satellite=outlook.satellite,

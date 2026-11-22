@@ -83,3 +83,8 @@ body.basic .rec .why { font-size: 7.2pt; color: #444; margin: 0.4mm 0 0; }
 @media screen {
   body { max-width: 190mm; margin: 8mm auto; padding: 0 6mm; }
 }
+.cov { border: 0.6pt solid #b9b9b9; border-left: 2.2pt solid #999; border-radius: 1mm; padding: 1mm 2.5mm; margin: 1.5mm 0 2mm; break-inside: avoid; }
+.cov.good { border-left-color: #6aa84f; } .cov.warn { border-left-color: #e69138; } .cov.unknown { border-left-color: #999; }
+table.methods td { vertical-align: top; }
+table.methods td:nth-child(1) { width: 24%; }
+

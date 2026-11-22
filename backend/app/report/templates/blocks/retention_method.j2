@@ -1,0 +1,36 @@
+{#- G9: one sentence per retention method (reason) — the status itself is computed in recommendations/retention_methods.py. -#}
+{% set p = m.params %}
+{% if m.id == 'pond' %}
+{% if m.reason == 'no_terrain' %}Nie mamy danych o ukształtowaniu terenu, więc nie wiemy, czy na działce jest zagłębienie na staw.
+{% elif m.reason == 'no_depression' %}Na działce nie ma zagłębienia, w którym zbiera się woda — staw trzeba by wykopać od zera.
+{% elif m.reason == 'small' %}Największe zagłębienie zatrzyma tylko ok. {{ p.volume_m3|num }} m³ wody (mniej niż {{ p.min_volume_m3|num }} m³) — za mało na staw.
+{% else %}Zagłębienie na działce zatrzyma ok. {{ p.volume_m3|num(10) }} m³ wody{% if p.full_pct != '' %}, czyli {% if p.full_pct >= 100 %}całą wodę{% else %}ok. {{ p.full_pct|num }} % wody{% endif %} na pełne nawadnianie w roku suchym{% if p.rescue_pct != '' and p.full_pct < 100 %} i {% if p.rescue_pct >= 100 %}całą{% else %}ok. {{ p.rescue_pct|num }} %{% endif %} na podlewanie ratunkowe{% endif %}{% endif %}.
+{% if p.sealing == 'natural' %} Gleba ciężka trzyma wodę, więc staw nie wymaga folii.{% elif p.sealing == 'liner' %} Gleba lekka przepuszcza wodę, więc dno trzeba uszczelnić (glina lub geomembrana).{% else %} Nie znamy gleby, więc nie wiadomo, czy dno trzeba uszczelnić.{% endif %}
+{% if p.controlled %} Przy tej glebie lub zagrożeniu podtopieniami zrób staw kontrolowany, z odpływem — niekontrolowane rozlewisko po mokrej zimie grozi wymakaniem upraw.{% endif %}
+{% endif %}
+{% elif m.id == 'weir' %}
+{% if m.reason == 'ditch_near' %}{% if p.distance_m < 10 %}Rów lub ciek biegnie przy granicy działki{% else %}Rów lub ciek jest ok. {{ p.distance_m|num(10) }} m od działki{% endif %}: zastawka pozwoli spuścić nadmiar wody wiosną i przytrzymać ją w maju i czerwcu.
+{% elif m.reason == 'flat_wet' %}Teren jest płaski (średni spadek {{ p.slope_mean_pct|num(0.1) }} %) i leży w obszarze zagrożenia podtopieniami — drenaż kontrolowany odprowadzi nadmiar wody wiosną i zatrzyma ją latem.
+{% elif m.reason == 'no_hydro' %}Nie mamy danych o rowach i ciekach w okolicy, więc nie wiemy, czy jest gdzie postawić zastawkę.
+{% else %}{% if p.distance_m is defined %}Najbliższy rów lub ciek jest ok. {{ p.distance_m|num(10) }} m od działki{% else %}Na mapie nie ma rowu ani cieku w promieniu {{ p.radius_m|num }} m{% endif %}, a teren nie jest płaski i podmokły — zastawka nie zatrzyma tu wody pod polem.
+{% endif %}
+{% elif m.id == 'rainwater' %}
+{% if m.reason == 'no_landcover' %}Nie mamy mapy zabudowy wokół działki, więc nie wiemy, czy są dachy, z których można zbierać deszczówkę.
+{% elif m.reason == 'no_roofs' %}W promieniu {{ p.max_distance_m|num }} m od działki nie ma zabudowy{% if p.distance_m is defined %} (najbliższa ok. {{ p.distance_m|num(10) }} m){% endif %}, więc nie ma dachów do zbierania deszczówki.
+{% elif m.reason == 'too_small' %}{% if p.on_parcel %}Na działce jest zabudowa{% else %}Zabudowa jest ok. {{ p.distance_m|num(10) }} m od działki{% endif %}, ale w roku suchym trzeba ok. {{ p.need_m3|num(10) }} m³ wody — deszczówka z dachów nie wystarczy jako główne źródło (za mała skala). Przyda się do oprysków i pojenia.
+{% elif m.reason == 'small_need' %}{% if p.on_parcel %}Na działce jest zabudowa{% else %}Zabudowa jest ok. {{ p.distance_m|num(10) }} m od działki{% endif %}, a w roku suchym trzeba tylko ok. {{ p.need_m3|num(10) }} m³ wody — zbiornik na deszczówkę z dachów może pokryć część tych potrzeb.
+{% else %}{% if p.on_parcel %}Na działce jest zabudowa{% else %}Zabudowa jest ok. {{ p.distance_m|num(10) }} m od działki{% endif %} — deszczówka z dachów przyda się do oprysków i pojenia, nie do nawadniania pola.
+{% endif %}
+{% elif m.id == 'well' %}
+{% if m.reason == 'no_plan' %}Za mało danych pogodowych, by policzyć, ile wody trzeba w roku suchym, więc nie oceniamy studni.
+{% elif m.reason == 'no_need' %}Nawet w roku suchym deszcz i gleba pokrywały potrzeby uprawy — studnia do nawadniania nie jest potrzebna.
+{% elif m.reason == 'retention_covers' %}Zagłębienie na działce pomieści tyle wody, ile trzeba w roku suchym — studnia nie jest potrzebna.
+{% else %}Retencja na działce nie pokryje ok. {{ p.gap_m3|num(10) }} m³ wody w roku suchym; studnia może uzupełnić tę lukę{% if p.gw_depth_m is defined %}. W najbliższej stacji PIG-PIB (ok. {{ p.gw_station_km|num }} km od działki) woda jest ok. {{ p.gw_depth_m|num(0.1) }} m pod ziemią{% else %}. Nie mamy danych o głębokości wody podziemnej w okolicy{% endif %}. To kosztowne rozwiązanie, więc najpierw zatrzymaj wodę na polu.
+{% endif %}
+{% elif m.id == 'tree_belts' %}
+{% if m.reason == 'no_landcover' %}Nie mamy mapy pokrycia terenu wokół działki, więc nie wiemy, ile jest zadrzewień w okolicy.
+{% elif m.reason == 'enough_trees' %}Drzewa zajmują ok. {{ p.share_pct|num(0.1) }} % terenu w promieniu {{ p.radius_m|num }} m — okolica jest już osłonięta od wiatru.
+{% else %}Drzewa zajmują tylko ok. {{ p.share_pct|num(0.1) }} % terenu w promieniu {{ p.radius_m|num }} m — teren jest otwarty, wiatr wysusza glebę{% if m.reason == 'open_outlet' %}. Pas zadrzewień lub pas trawy w miejscu, gdzie woda spływa z działki (punkt na mapie), zatrzyma spływ i osłoni pole{% else %}. Pas zadrzewień od strony wiatru osłoni pole{% endif %}.
+{% endif %}
+{% endif %}
+{% if p.get('no_need') %} Dane nie pokazują jednak dziś ani w ostatnich latach częstego braku wody, więc to działanie nie jest pilne.{% endif %}

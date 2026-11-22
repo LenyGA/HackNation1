@@ -101,6 +101,21 @@
   <div class="chart"><div class="cap">Przekrój terenu działki wzdłuż spływu wody</div>{{ charts.profile|safe }}<p>{{ r.profile.text_pl }}</p><div class="src">Źródło: {{ r.profile.source }}</div></div>
   {% endif %}
 
+  {% if s.id == 'retention' and r.retention_plan %}
+  {% set rp = r.retention_plan %}
+  <h3>Jak zatrzymać i zgromadzić wodę na tej działce</h3>
+  <div class="cov {{ 'good' if rp.coverage.full_pct is not none and rp.coverage.full_pct >= 100 else 'warn' if rp.coverage.status == 'ok' else 'unknown' }}"><b>Ile wody da retencja na działce?</b> {{ rp.coverage.text_pl }} <span class="small">Źródło: {{ rp.coverage.source|source_short }}</span></div>
+  <table class="compact methods">
+    <thead><tr><th>Sposób i ocena</th><th>Dlaczego (dane tej działki) i formalności</th></tr></thead>
+    <tbody>
+    {% for m in rp.methods %}
+      <tr><td><b>{{ m.label_pl }}</b><br><span class="pill {{ method_pill[m.status] }}">{{ m.status_pl }}</span></td><td>{{ m.reason_pl }}{% if m.legal_pl %} <i>Formalności:</i> {{ m.legal_pl }}{% endif %}{% if m.evidence %} <span class="small">Źródło: {{ m.evidence|map(attribute='source')|map('source_short')|unique|join('; ') }}.</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small">Ocena wynika z reguł sprawdzających dane tej działki; „brak danych” oznacza, że źródło nie odpowiedziało, a nie, że sposób się nie nadaje. Podstawa prawna: {{ rp.legal_basis_pl }}.</p>
+  {% endif %}
+
   {% if s.id == 'irrigation' and r.water_plan %}
   {% set wp = r.water_plan %}
   <h3>Plan wody na sezon: rok typowy i rok suchy</h3>

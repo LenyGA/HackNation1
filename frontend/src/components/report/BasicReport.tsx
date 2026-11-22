@@ -1,5 +1,6 @@
 import type { Report, ReportRecommendation } from '@/api/types'
 import { Disclosure, EvidenceList, IrrigationBlock } from '@/components/report/ReportParts'
+import { RetentionMethods } from '@/components/report/RetentionMethods'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDatePl } from '@/lib/format'
 
@@ -109,6 +110,17 @@ export function BasicReport({ report }: { report: Report }) {
             <p className="mt-3 text-sm text-muted-foreground">
               Uzasadnienie liczbami, mapa miejsc i pełny opis każdego zalecenia są w wariancie pełnym raportu.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {report.complete && report.retention_plan && (
+        <Card className="gap-3">
+          <CardHeader>
+            <CardTitle className="text-lg">Zatrzymanie i gromadzenie wody</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RetentionMethods plan={report.retention_plan} onlyRecommended />
           </CardContent>
         </Card>
       )}

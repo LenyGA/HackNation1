@@ -253,10 +253,41 @@ export interface WaterPlan {
   season_p80_m3_parcel_gross: number | null
   efficiency_pct: number
   critical_p80_mm: number | null
+  critical_p80_m3_parcel_gross: number | null
   pond_side_m: number | null
   pond_depth_m: number
   text_pl: string[]
   source: string
+}
+
+export type RetentionMethodStatus = 'recommended' | 'conditional' | 'not_recommended' | 'no_data'
+
+/** G9: how much of the dry-year irrigation need the main depression on the parcel could hold. */
+export interface RetentionCoverage {
+  status: 'ok' | 'no_terrain' | 'no_depression' | 'no_plan' | 'no_need'
+  volume_m3: number | null
+  full_need_m3: number | null
+  rescue_need_m3: number | null
+  full_pct: number | null
+  rescue_pct: number | null
+  text_pl: string
+  source: string
+}
+
+export interface RetentionMethod {
+  id: 'pond' | 'weir' | 'rainwater' | 'well' | 'tree_belts'
+  label_pl: string
+  status: RetentionMethodStatus
+  status_pl: string
+  reason_pl: string
+  legal_pl: string | null
+  evidence: EvidenceItem[]
+}
+
+export interface RetentionPlan {
+  coverage: RetentionCoverage
+  methods: RetentionMethod[]
+  legal_basis_pl: string
 }
 
 export interface ProfilePoint {
@@ -449,6 +480,7 @@ export interface Report {
   stress_heatmap: StressHeatmap | null
   trends: ClimateTrends | null
   water_plan: WaterPlan | null
+  retention_plan?: RetentionPlan | null // absent in reports saved before G9
   profile: SlopeProfile | null
   simulation: Simulation | null
   satellite: SatelliteSeries | null

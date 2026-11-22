@@ -208,12 +208,49 @@ class WaterPlan(BaseModel):
     )
     efficiency_pct: int = 75
     critical_p80_mm: float | None
+    critical_p80_m3_parcel_gross: float | None = Field(
+        None, description="Water to pump in a dry year for rescue irrigation only (critical periods)."
+    )
     pond_side_m: float | None = Field(
         description="Side of a square pond 2 m deep holding the P80 season volume."
     )
     pond_depth_m: float
     text_pl: list[str]
     source: str
+
+
+RetentionMethodStatus = Literal["recommended", "conditional", "not_recommended", "no_data"]
+
+
+class RetentionCoverageView(BaseModel):
+    """G9: how much of the dry-year irrigation need the main depression on the parcel could hold."""
+
+    status: Literal["ok", "no_terrain", "no_depression", "no_plan", "no_need"]
+    volume_m3: float | None
+    full_need_m3: float | None = Field(description="Gross water for full irrigation in a dry year.")
+    rescue_need_m3: float | None = Field(description="Gross water for rescue irrigation in a dry year.")
+    full_pct: float | None
+    rescue_pct: float | None
+    text_pl: str
+    source: str
+
+
+class RetentionMethodView(BaseModel):
+    """G9: one way to keep or store water, with a status computed from this parcel's data."""
+
+    id: Literal["pond", "weir", "rainwater", "well", "tree_belts"]
+    label_pl: str
+    status: RetentionMethodStatus
+    status_pl: str
+    reason_pl: str
+    legal_pl: str | None = None
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+
+
+class RetentionPlan(BaseModel):
+    coverage: RetentionCoverageView
+    methods: list[RetentionMethodView]
+    legal_basis_pl: str
 
 
 class ProfilePoint(BaseModel):
@@ -419,6 +456,7 @@ class Report(BaseModel):
     stress_heatmap: StressHeatmap | None = None
     trends: ClimateTrends | None = None
     water_plan: WaterPlan | None = None
+    retention_plan: RetentionPlan | None = None
     profile: SlopeProfile | None = None
     simulation: Simulation | None = None
     satellite: SatelliteSeries | None = None

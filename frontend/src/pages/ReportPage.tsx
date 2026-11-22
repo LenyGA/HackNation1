@@ -14,6 +14,7 @@ import {
   RecommendationCard,
   SourcesList,
 } from '@/components/report/ReportParts'
+import { RetentionMethods } from '@/components/report/RetentionMethods'
 import { ProfileChart, SatelliteChart, StressHeatmapView, TrendsView, WaterPlanChart } from '@/components/report/Charts'
 import { FloodBlock, GroundwaterBlock } from '@/components/report/HydroBlocks'
 import { BasicReport } from '@/components/report/BasicReport'
@@ -191,6 +192,12 @@ function SectionExtras({ section, report }: { section: ReportSection; report: Re
           <ReportMapView map={report.map} flood={report.flood} />
           {report.flood && <FloodBlock flood={report.flood} />}
           {report.profile && <ProfileChart data={report.profile} />}
+          {report.retention_plan && (
+            <div className="space-y-2">
+              <h3 className="text-base font-semibold">Jak zatrzymać i zgromadzić wodę na tej działce</h3>
+              <RetentionMethods plan={report.retention_plan} />
+            </div>
+          )}
           {cards()}
         </>
       )

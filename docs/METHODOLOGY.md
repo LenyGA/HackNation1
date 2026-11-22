@@ -176,6 +176,37 @@ Elementy z OSM mogą być niepełne (pewność niska), a teren z modelu 30 m nie
 które z nich korzystają, dziedziczą tę pewność w dowodach. Piętrzenie wody na rowach wymaga uzgodnienia ze spółką
 wodną lub Wodami Polskimi, co mówi tekst rekomendacji.
 
+### 8a. Synteza metod retencji i bilans pokrycia potrzeb (G9, `retention_balance.py`, `retention_methods.py`)
+
+**Bilans pokrycia:** objętość głównego zagłębienia na działce (ta sama definicja co w tekście, przekroju i na mapie —
+`main_depressions`) porównana z wodą do wylania z deszczowni w roku suchym (80. percentyl z 10 sezonów, rozdz. 11):
+dla pełnego nawadniania i dla podlewania ratunkowego w okresach krytycznych, brutto przy sprawności 75 %. Te same,
+raz zaokrąglone liczby pokazuje plan wody. Udział = objętość / potrzeby, w %; to górna granica (bez parowania
+i wsiąkania ze stawu). Brak modelu terenu, brak zagłębienia albo brak planu wody → karta mówi to wprost, bez zera.
+
+**Pięć metod** dostaje status POLECANE / WARUNKOWO / NIEZALECANE albo BRAK DANYCH (źródło nie odpowiedziało —
+nigdy „niezalecane”). Bez potrzeby wody (rozdz. 8) żadna metoda nie jest „polecana”, najwyżej „warunkowo”.
+
+| Metoda | Polecane | Warunkowo | Niezalecane | Brak danych |
+|---|---|---|---|---|
+| Oczko / staw w zagłębieniu | zagłębienie ≥ 200 m³ na glebie kat. III–IV (naturalne uszczelnienie) | to samo na glebie lekkiej (uszczelnienie) lub nieznanej | brak zagłębienia lub < 200 m³ | brak NMT |
+| Zastawka / drenaż kontrolowany | rów lub ciek ≤ 150 m (OSM) **albo** średni spadek < 2 % i zagrożenie podtopieniami / strefa Q10, Q100 | — | brak rowu w zasięgu i teren nie płaski-podmokły | brak OSM (i brak drugiej ścieżki) |
+| Deszczówka z dachów | zabudowa ≤ 100 m (WorldCover kl. 50) i potrzeby w roku suchym < 1000 m³ | zabudowa ≤ 100 m i potrzeby ≥ 1000 m³ („nie jako główne źródło”) albo brak potrzeb | brak zabudowy w 100 m | brak WorldCover |
+| Studnia | — | retencja nie pokrywa potrzeb; głębokość wody z najbliższej stacji PIG-PIB | brak potrzeb lub zagłębienie je pokrywa | brak planu wody |
+| Pasy zadrzewień | drzewa < 5 % pierścienia 500 m (WorldCover) + wylot spływu z działki | drzewa < 5 %, wylot nieznany / brak | drzewa ≥ 5 % | brak WorldCover |
+
+Progi 200 m³, 150 m, 2 %, 100 m, 1000 m³ i 5 % to **jawne założenia zespołu** (z uwag eksperckich do raportu),
+nie wartości z literatury.
+
+**Wymogi Prawa wodnego** (tekst jednolity Dz.U. 2025 poz. 960, sprawdzone 22.11.2026; ISAP:
+https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=WDU20250000960):
+- art. 394 ust. 1 pkt 9 — staw o powierzchni ≤ 5000 m² i głębokości ≤ 3 m od naturalnej powierzchni terenu, napełniany
+  wyłącznie wodami opadowymi, roztopowymi lub gruntowymi: **zgłoszenie wodnoprawne**; większy lub głębszy:
+  **pozwolenie wodnoprawne**. Powierzchnię lustra bierzemy z zagłębienia wypełnionego do progu przelewu;
+- art. 33 ust. 4 pkt 1 — zwykłe korzystanie z wód (bez pozwolenia) to pobór ≤ 5 m³ na dobę średnio w roku. Dzielimy
+  mniejszą z potrzeb roku suchego (zwykle ratunkową) przez 365 dni; powyżej 5 m³/dobę raport mówi o pozwoleniu;
+- zastawka na rowie: raport każe uzgodnić z zarządcą rowu i sprawdzić w Wodach Polskich formę zgody (bez liczb).
+
 ## 9. Nawadnianie — termin i dawka (`recommendations/irrigation.py`)
 
 Nawadnianie jest **ostatnim** krokiem (CLAUDE.md, zasada 2): rekomendacja `irrigation` ma kategorię `irrigation`,

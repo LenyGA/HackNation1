@@ -20,6 +20,18 @@ REASONS: dict[str, str] = {
         "Z mapy pokrycia terenu ESA WorldCover 10 m (zastępczo, bo mapa OpenStreetMap nie odpowiedziała); "
         "małe oczka, wąskie rowy i pojedyncze drzewa mogą być niewidoczne."
     ),
+    "worldcover_ring": (
+        "Z mapy pokrycia terenu ESA WorldCover 10 m (stan z 2021 r.) w pierścieniu wokół działki; "
+        "pojedyncze budynki i drzewa mogą być niewidoczne."
+    ),
+    "retention_balance": (
+        "Objętość zagłębienia z modelu terenu wobec wody potrzebnej w roku suchym "
+        "(10 lat pogody tej działki); bez strat na parowanie i wsiąkanie ze stawu."
+    ),
+    "groundwater_station": (
+        "Głębokość wody w najbliższej stacji monitoringu PIG-PIB; na działce może być inna "
+        "(inna warstwa wodonośna)."
+    ),
     "satellite": (
         "Zdjęcia satelitarne porównane z historią tej działki; uprawa w poprzednich latach jest nieznana."
     ),

@@ -51,6 +51,16 @@ INDICATOR_LABELS: dict[str, str] = {
     "depression_volume_m3": "Woda, którą może zatrzymać zagłębienie",
     "depression_contributing_area_m2": "Powierzchnia, z której woda spływa do zagłębienia",
     "flow_path_contributing_area_m2": "Powierzchnia, z której woda spływa linią spływu",
+    "depression_area_m2": "Powierzchnia wody w zagłębieniu po napełnieniu",
+    "irrigation_need_dry_year_m3": "Woda z deszczowni na pełne nawadnianie w roku suchym",
+    "retention_coverage_full_pct": "Część tej wody, którą pomieści zagłębienie",
+    "nearest_ditch_or_stream_m": "Odległość do najbliższego rowu lub cieku",
+    "ditches_within_radius_count": "Rowy i cieki w pobliżu działki",
+    "nearest_built_up_m": "Odległość do najbliższej zabudowy (dachy)",
+    "built_up_share_surroundings_pct": "Udział zabudowy w okolicy działki",
+    "groundwater_depth_m": "Głębokość wody podziemnej w najbliższej stacji PIG-PIB",
+    "groundwater_station_km": "Odległość tej stacji od działki",
+    "irrigation_avg_m3_per_day": "Średni pobór ze studni na dobę w roku (pełne nawadnianie w roku suchym)",
     "tmax_30d_mean_c": "Średnia temperatura maksymalna z 30 dni",
     "tmax_30d_anomaly_c": "Odchylenie temperatury maksymalnej od lat poprzednich",
     "hot_days_30d": "Dni upalne (≥ 30 °C) w ostatnich 30 dniach",
@@ -172,4 +182,18 @@ STATUS_PL: dict[str, str] = {
     "ok": "dane pobrane",
     "degraded": "dane pobrane z ograniczeniami",
     "missing": "brak danych",
+}
+
+RETENTION_METHOD_LABELS: dict[str, str] = {
+    "pond": "Oczko lub staw w zagłębieniu",
+    "weir": "Zastawka na rowie, drenaż kontrolowany",
+    "rainwater": "Deszczówka z dachów",
+    "well": "Studnia",
+    "tree_belts": "Pasy zadrzewień i pasy buforowe",
+}
+RETENTION_STATUS_LABELS: dict[str, str] = {
+    "recommended": "Polecane",
+    "conditional": "Warunkowo",
+    "not_recommended": "Niezalecane",
+    "no_data": "Brak danych",
 }
