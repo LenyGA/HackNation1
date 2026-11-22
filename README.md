@@ -1,6 +1,7 @@
 # GeoSatel
 
-HackNation 2026 (Bydgoszcz, 21–22.11.2026) · zadanie KOWR **„Zatrzymaj wodę, chroń plony”**.
+**Zespół:** GeoSatel · **Rozwiązanie:** GeoSatel, raport wodny dla działki rolnej · HackNation 2026 (Bydgoszcz,
+21–22.11.2026) · zadanie KOWR **„Zatrzymaj wodę, chroń plony”**.
 
 Aplikacja webowa dla rolnika. Wystarczy podać numer działki ewidencyjnej, kliknąć działkę na mapie albo wpisać adres, a potem
 wybrać uprawę i datę analizy (dziś lub dowolny dzień z ostatnich 10 lat). Aplikacja pobiera dane publiczne o pogodzie, zdjęcia
@@ -12,12 +13,14 @@ potem uprawa i nawadnianie.
 
 | | |
 |---|---|
+| Opis rozwiązania (problem, funkcje, dane, korzyści) | [`docs/submission/opis.md`](docs/submission/opis.md) |
 | Prezentacja (PDF, 9 slajdów) | [`docs/submission/GeoSatel-prezentacja.pdf`](docs/submission/GeoSatel-prezentacja.pdf) |
 | Film z działania (2 min) | [`docs/submission/GeoSatel-film.mp4`](docs/submission/GeoSatel-film.mp4) |
 | Przykładowe raporty PDF | [`docs/sample-reports/`](docs/sample-reports/) |
 | Metodyka, wzory, progi, odwołania do literatury | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) |
 | Źródła danych, licencje, daty pobrania | [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) |
-| Wymagania zadania i checklista | [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) |
+| Wszystkie biblioteki z wersją, licencją i źródłem | [`docs/THIRD_PARTY_LICENSES.md`](docs/THIRD_PARTY_LICENSES.md) |
+| Wymagania zadania (skrót z PDF) | [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) |
 | Licencja kodu | [`LICENSE`](LICENSE) (MIT, © GeoSatel) |
 
 ---
@@ -63,7 +66,7 @@ limity zapytań, liczba równoległych analiz, timeout źródeł.
 
 ```bash
 # backend/
-pytest                         # testy jednostkowe, bez sieci (ok. 1280 testów, ok. 5 min)
+pytest                         # testy jednostkowe, bez sieci (ok. 1300 testów, ok. 5 min)
 pytest -m e2e tests/e2e/test_reports.py   # 6 działek referencyjnych × 2 daty, na żywo (sieć, kilka minut)
 ruff check . && mypy app       # lint i typy
 
@@ -76,7 +79,7 @@ npm run lint && npm test && npm run build      # ESLint, vitest, tsc -b + vite b
 1. Jednorazowo na serwerze (Ubuntu, root): `scp deploy/setup-vps.sh root@<IP>:/root/ && ssh root@<IP> bash /root/setup-vps.sh`
    (Docker, 2 GB swap, zapora: tylko porty 22, 80 i 443).
 2. Z własnego komputera, z czystego `main`: `deploy/deploy.sh root@<IP> [domena]`. Bez domeny aplikacja dostaje adres
-   `https://<IP>.sslip.io`. Skrypt buduje obraz na serwerze, czeka na `/api/health` i rozgrzewa cache (`scripts/warm_cache.py`).
+   `https://<IP>.sslip.io`. Skrypt buduje obraz na serwerze, czeka na `/api/health` i rozgrzewa cache (`backend/scripts/warm_cache.py`).
 3. Testy E2E z adresu serwera: `deploy/e2e-vps.sh root@<IP>`.
 
 ## 2. Funkcje
@@ -152,14 +155,14 @@ testy w `backend/tests/` (fixture'y z zapisanymi odpowiedziami źródeł w `test
 | Meteo | Open-Meteo: archiwum ERA5 + prognoza (dni bieżące); zapas: NASA POWER | opad, temperatura, ET0 (FAO Penman–Monteith) | siatka ok. 10 km (NASA POWER 0,5° × 0,625°, ok. 50 km); 11 lat do dnia analizy + 7 dni prognozy dla „dziś” |
 | Satelita | Sentinel-2 L2A (Copernicus) przez Microsoft Planetary Computer | NDVI i NDMI z maską chmur SCL, tylko okno działki | 10–20 m; do 3 scen z 45 dni przed datą + 1 scena na rok z 10 lat |
 | Gleba | ISRIC SoilGrids 2.0 (WCS) | piasek, pył, ił, węgiel organiczny, gęstość do 100 cm → retencja wody, kategoria gleby I–IV | 250 m, stan bieżący |
-| Teren | NMT 1 m GUGiK (lidar, usługa wysokości punktów); zapas: Copernicus DEM GLO-30 | spadki, ekspozycja, zagłębienia, profil, kierunek spływu | działka + 150 m, siatka 5 m (NMT) lub 30 m |
+| Teren | NMT 1 m GUGiK (lidar, usługa wysokości punktów); zapas: Copernicus DEM GLO-30 | spadki, ekspozycja, zagłębienia, profil, kierunek spływu | działka + 150 m, siatka 5 m z NMT (rzadsza dla dużych działek) albo 10 m z Copernicus 30 m |
 | Użytkowanie terenu | ESA WorldCover 2020 (v100) i 2021 (v200), 10 m | pole, łąka, sad, drzewa, wody, mokradła na działce i w pierścieniu 500 m | najnowsza edycja nie późniejsza niż data analizy (dla dat sprzed 2021 r. edycja 2020, z informacją w raporcie) |
 | Hydrologia | OpenStreetMap (Overpass, 3 serwery); zapas: WorldCover | rowy, cieki, zbiorniki, mokradła, lasy w 1 km | stan bieżący |
 | Powodzie, podtopienia | Wody Polskie ISOK (mapy zagrożenia powodziowego, powodzie historyczne), PIG-PIB (podtopienia) | scenariusze 10, 100 i 500 lat w punktach działki | II cykl planistyczny (2020–2022) |
-| Wody podziemne | PIG-PIB / PSH, automatyczny monitoring | głębokość zwierciadła na najbliższej stacji ≤ 50 km, 60 dni przed datą i te same dni 1–3 lata wcześniej | wiele stacji mierzy dopiero od 2026 r. |
+| Wody podziemne | PIG-PIB / PSH, automatyczny monitoring | głębokość zwierciadła na najbliższej stacji ≤ 50 km, 60 dni przed datą i te same dni 1–3 lata wcześniej (trend tylko ze stacji ≤ 25 km) | wiele stacji mierzy dopiero od 2026 r. |
 | Progi suszy | Rozporządzenie MRiRW, Dz.U. 2019 poz. 739 (wartości KBW IUNG-PIB) | krytyczny bilans wodny dla uprawy, kategorii gleby i okresu | 21.III–30.IX, 12 upraw |
 | Ekonomia nawadniania | GUS (plony 2024, ceny skupu 12.2024), FAO Paper 33/66 (Ky) | widełki przychodu z nawadniania | średnie krajowe |
-| Podkład mapy | Ortofotomapa GUGiK (WMS), OpenStreetMap | mapa w aplikacji i w PDF | stan bieżący |
+| Podkład mapy | Ortofotomapa GUGiK (WMS), granice i numery działek GUGiK KIEG (WMS), OpenStreetMap | mapa w aplikacji i w PDF | stan bieżący |
 
 Szczegóły (adresy usług, timeouty, cache, zmierzone czasy, zachowanie przy braku danych): [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md).
 
@@ -176,37 +179,88 @@ Szczegóły (adresy usług, timeouty, cache, zmierzone czasy, zachowanie przy br
 
 | Plik | Źródło | Pobrane |
 |---|---|---|
-| `backend/app/crops/iung_thresholds.yaml` | progi KBW z Dz.U. 2019 poz. 739, zweryfikowane z tab. 3 ekspertyzy IUNG-PIB 2019 | 22.11.2026 |
-| `backend/app/crops/economics.yaml` | GUS: plony 2024 i ceny 12.2024; FAO Paper 33/66 (Ky); koszty instalacji = założenia zespołu | 22.11.2026 |
-| `frontend/src/components/map/poland.json` | obrys Polski z PRG GUGiK (sprawdzenie, czy klik leży w Polsce) | 21.11.2026 |
-| `backend/app/crops/catalog.yaml` | współczynniki Kc i długości faz z FAO-56 (tab. 11–12), okresy krytyczne upraw | 21–22.11.2026 |
+| `backend/app/crops/iung_thresholds.yaml` | progi KBW z Dz.U. 2019 poz. 739 (https://api.sejm.gov.pl/eli/acts/DU/2019/739/text.html), zweryfikowane z tab. 3 ekspertyzy IUNG-PIB 2019 (gov.pl) | 22.11.2026 |
+| `backend/app/crops/economics.yaml` | GUS (https://stat.gov.pl/): plony 2024 i ceny 12.2024; FAO Paper 33/66 (Ky); koszty instalacji = założenia zespołu | 22.11.2026 |
+| `frontend/src/components/map/poland.json` | obrys Polski z PRG GUGiK, WFS `https://mapy.geoportal.gov.pl/wss/service/PZGIK/PRG/WFS/AdministrativeBoundaries` (sprawdzenie, czy klik leży w Polsce); skrypt `backend/scripts/build_poland_outline.py` | 21.11.2026 |
+| `backend/app/crops/catalog.yaml` | współczynniki Kc i długości faz z FAO-56, tab. 11–12 (https://www.fao.org/4/x0490e/x0490e00.htm), okresy krytyczne upraw | 21–22.11.2026 |
 
-## 6. Biblioteki, komponenty, usługi i narzędzia AI
+## 6. Biblioteki, komponenty, modele, usługi i narzędzia AI
 
-**Backend (Python):** FastAPI, Uvicorn, Pydantic + pydantic-settings, httpx (async), rasterio (GDAL, odczyt COG oknem), pystac-client,
-Shapely, pyproj, NumPy, Jinja2, WeasyPrint (z pyphen), PyYAML, python-dateutil. Deweloperskie: pytest, pytest-asyncio, respx, ruff, mypy.
+Wymóg 4.2 pkt 6 i 5.3: każda pozycja ze źródłem i licencją lub warunkami korzystania. Pełna lista bibliotek, także zależności
+pośrednich (74 pakiety Pythona w aplikacji, 343 pakiety npm), z wersją, licencją i linkiem do źródła:
+[`docs/THIRD_PARTY_LICENSES.md`](docs/THIRD_PARTY_LICENSES.md). Najważniejsze są w tabeli w rozdz. 7.
 
-**Frontend:** React 19, React Router, MapLibre GL, Tailwind CSS 4, shadcn/ui (Radix UI, class-variance-authority, clsx,
-tailwind-merge, tw-animate-css, cn), ikony lucide-react, Vite, TypeScript 6. Deweloperskie: ESLint + typescript-eslint, vitest.
+**Biblioteki backendu (Python, źródło: PyPI, wersje w `backend/requirements.txt`):** FastAPI, Uvicorn, Pydantic +
+pydantic-settings, httpx (async), rasterio (GDAL, odczyt COG oknem), pystac-client, Shapely, pyproj, NumPy, Jinja2, WeasyPrint
+(z pyphen), PyYAML, python-dateutil. Deweloperskie (`backend/requirements-dev.txt`): pytest, pytest-asyncio, respx, ruff, mypy.
 
-**Infrastruktura:** Docker, Caddy 2 (HTTPS z Let's Encrypt), VPS Ubuntu, adres `sslip.io`.
+**Biblioteki i komponenty frontendu (źródło: npm, wersje w `frontend/package-lock.json`):** React 19, React Router,
+MapLibre GL, Tailwind CSS 4, komponenty shadcn/ui (kod skopiowany do `frontend/src/components/ui/`, MIT) na Radix UI,
+class-variance-authority, clsx, tailwind-merge, tw-animate-css, cn, ikony lucide-react, Vite, TypeScript 6. Deweloperskie:
+ESLint + typescript-eslint, vitest.
 
-**Usługi zewnętrzne:** wyłącznie bezpłatne usługi danych z rozdz. 4. Bez kluczy API i kont.
+**Infrastruktura:** Docker (Apache-2.0; instalacja na serwerze skryptem `https://get.docker.com`) z obrazami `python:3.12-slim`,
+`node:22-slim` i `caddy:2.10-alpine` z Docker Hub (oficjalne obrazy, warunki Docker Hub), Caddy 2, VPS z Ubuntu (komercyjna
+usługa płatna opłacana przez zespół, rozdz. 10), repozytorium kodu na GitHub (prywatne).
 
-**Modele:** aplikacja **nie używa modeli AI ani LLM** w działaniu. Tekst raportu powstaje z szablonów Jinja2 wypełnianych
-wyliczonymi wartościami, więc ten sam zestaw danych zawsze daje ten sam raport. Modele fizyczne i empiryczne: FAO-56
-(Penman–Monteith, Kc, bilans strefy korzeniowej), progi KBW IUNG-PIB, FAO-33 (Ky), Theil–Sen (trendy), priority-flood (zagłębienia).
+**Interfejsy API i usługi zewnętrzne** (wszystkie bezpłatne, bez klucza i konta; szczegóły zapytań, timeouty i cache:
+[`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)):
 
-**Narzędzia AI przy tworzeniu kodu:** zespół korzystał z **Claude Code** (Anthropic, model Claude Opus) jako asystenta
-programistycznego: pisanie i refaktoryzacja kodu, testy, przegląd kodu, dokumentacja. Każdą zmianę sprawdzały testy
-automatyczne i zespół. Metodykę, progi i źródła sprawdzaliśmy z publikacjami (bibliografia w `docs/METHODOLOGY.md`).
+| Usługa / API | Adres | Do czego | Warunki korzystania |
+|---|---|---|---|
+| GUGiK ULDK | `https://uldk.gugik.gov.pl/` | geometria działki | dane PZGiK, bezpłatne (Prawo geodezyjne i kartograficzne, art. 40a ust. 2) |
+| GUGiK Usługa Uniwersalnego Geokodowania | `https://services.gugik.gov.pl/uug/` | adres → punkt | jw. |
+| GUGiK usługa wysokości NMT (`GetHByPointList`) | `https://services.gugik.gov.pl/nmt/` | teren 1 m | jw. |
+| GUGiK ortofotomapa WMS, mapy Geoportalu | `https://mapy.geoportal.gov.pl/` | podkład mapy w aplikacji i PDF | jw. |
+| GUGiK Krajowa Integracja Ewidencji Gruntów (KIEG) WMS | `https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow` | granice i numery działek na mapie wyboru | jw. |
+| Open-Meteo Historical Weather API i Forecast API | `https://archive-api.open-meteo.com`, `https://api.open-meteo.com` | pogoda (reanaliza ERA5 / ERA5-Land i prognoza) | dane CC BY 4.0; darmowe API tylko do użytku niekomercyjnego, limit 10 000 wywołań/dobę (https://open-meteo.com/en/terms) |
+| NASA POWER | `https://power.larc.nasa.gov/api/` | zapasowa pogoda | dane NASA bez ograniczeń, z podaniem źródła |
+| Microsoft Planetary Computer (STAC API i COG) | `https://planetarycomputer.microsoft.com/api/stac/v1` | Sentinel-2, Copernicus DEM, ESA WorldCover | Planetary Computer Terms of Use; anonimowy token SAS bez konta; dane na licencjach z tabeli w rozdz. 7 |
+| ISRIC SoilGrids 2.0 WCS | `https://maps.isric.org/` | gleba | CC BY 4.0 |
+| OpenStreetMap Overpass API (overpass-api.de, overpass.kumi.systems, overpass.private.coffee) | `https://overpass-api.de/api/interpreter` i serwery lustrzane | rowy, cieki, zbiorniki | dane ODbL 1.0; zasady użycia publicznych serwerów Overpass (umiarkowany ruch) |
+| Kafle OpenStreetMap | `https://tile.openstreetmap.org` | podkład mapy wyboru działki | ODbL 1.0 (dane), CC BY-SA 2.0 (kafle), OSMF Tile Usage Policy |
+| Wody Polskie, ISOK WMS (mapy zagrożenia powodziowego, powodzie historyczne) | `https://wody.isok.gov.pl/wss/INSPIRE/` | strefy powodziowe | dane publiczne, bezpłatne, z podaniem źródła |
+| PIG-PIB, ArcGIS REST (monitoring wód podziemnych PSH, podtopienia) | `https://cbdgmapa.pgi.gov.pl/` | wody gruntowe, podtopienia | dane publiczne, bezpłatne, z podaniem źródła |
+| Let's Encrypt | `https://letsencrypt.org` | certyfikat HTTPS (przez Caddy) | Let's Encrypt Subscriber Agreement, bezpłatne |
+| sslip.io | `https://sslip.io` | nazwa domeny dla adresu IP serwera | bezpłatna usługa DNS (kod Apache-2.0) |
 
-**Film z działania** (`docs/submission/GeoSatel-film.mp4`): nagrany automatycznie z działającej wersji (Playwright + Chromium),
-zmontowany w ffmpeg. Skrypty montażu przygotował Claude Code. Muzyka jest syntetyzowana w skrypcie, bez utworów osób trzecich.
+**Modele obliczeniowe** (zaimplementowane w kodzie, bez gotowych modeli AI; algorytmy i wzory z publikacji, cytowane
+w `docs/METHODOLOGY.md` i w kodzie):
+
+| Model | Źródło | Gdzie |
+|---|---|---|
+| ET0 Penman–Monteith, współczynniki Kc i fazy upraw, bilans strefy korzeniowej (TAW, RAW) | Allen R.G. i in. (1998), *Crop evapotranspiration*, FAO Irrigation and Drainage Paper 56 | `analysis/et0.py`, `water_balance.py`, `crops/catalog.yaml` |
+| Progi suszy rolniczej (KBW) dla upraw i kategorii gleby | Rozporządzenie MRiRW, Dz.U. 2019 poz. 739; metodyka IUNG-PIB | `crops/iung_thresholds.yaml` |
+| Retencja wody w glebie z uziarnienia i próchnicy | Saxton K.E., Rawls W.J. (2006), *Soil Sci. Soc. Am. J.* 70:1569–1578 | `analysis/soil.py` |
+| Trend wieloletni | Sen P.K. (1968), *J. Am. Stat. Assoc.* 63:1379–1389 (estymator Theila–Sena) | `analysis/trends.py` |
+| Zagłębienia terenu | Barnes R. i in. (2014), *Priority-flood*, *Computers & Geosciences* 62:117–127 | `analysis/terrain.py` |
+| Spadek plonu przy niedoborze wody (Ky) | Doorenbos J., Kassam A.H. (1979), FAO Irrigation and Drainage Paper 33, za FAO Paper 66 | `crops/economics.yaml` |
+| Metody retencji krajobrazowej | katalog NWRM (Natural Water Retention Measures, Komisja Europejska) i załącznik naukowy KOWR | `recommendations/` |
+
+Algorytmy i wzory z publikacji nie podlegają licencji; korzystamy z nich z podaniem źródła.
+
+**Sztuczna inteligencja (5.1).** Aplikacja **nie używa modeli AI ani LLM** w działaniu. Tekst raportu powstaje z szablonów
+Jinja2 wypełnianych wyliczonymi wartościami, więc ten sam zestaw danych zawsze daje ten sam raport.
+
+**Narzędzia AI przy tworzeniu rozwiązania:**
+
+| Narzędzie | Do czego | Warunki |
+|---|---|---|
+| Claude Code (Anthropic, model Claude Opus), https://claude.com/claude-code | asystent programistyczny: pisanie i refaktoryzacja kodu, testy, przegląd kodu, dokumentacja, skrypty filmu i prezentacji | narzędzie deweloperskie, nie jest częścią aplikacji ani nie jest potrzebne rolnikowi; warunki Anthropic (https://www.anthropic.com/legal), zgodnie z którymi Anthropic przenosi na użytkownika swoje prawa (o ile istnieją) do wygenerowanych treści |
+| Claude (Anthropic), prezentacje na claude.ai | układ slajdów prezentacji z naszymi zrzutami ekranu | jw. |
+
+Każdą zmianę kodu sprawdzały testy automatyczne i zespół. Metodykę, progi i źródła sprawdzaliśmy z publikacjami
+(odwołania do literatury w `docs/METHODOLOGY.md` i w kodzie).
+
+**Materiały zgłoszeniowe** (film, prezentacja, przykładowe raporty) powstały z działającej wersji aplikacji. Narzędzia:
+Playwright + Chromium (Apache-2.0 / BSD-3-Clause) do nagrania i zrzutów ekranu, ffmpeg (LGPL/GPL, z pakietu imageio-ffmpeg,
+BSD-2-Clause; użyty tylko jako narzędzie, nie jest częścią aplikacji) do montażu, Pillow (MIT-CMU), NumPy (BSD-3-Clause)
+i pypdfium2 (Apache-2.0 / BSD-3-Clause). Muzyka w filmie jest syntetyzowana w skrypcie, bez utworów osób trzecich.
 
 ## 7. Licencje
 
-**Kod aplikacji:** MIT, © 2026 GeoSatel ([`LICENSE`](LICENSE)). Zależności mają licencje permisywne (MIT, BSD, Apache-2.0,
+**Kod aplikacji:** MIT, © 2026 GeoSatel ([`LICENSE`](LICENSE)). Pełna lista komponentów z licencjami:
+[`docs/THIRD_PARTY_LICENSES.md`](docs/THIRD_PARTY_LICENSES.md). Zależności mają licencje permisywne (MIT, BSD, Apache-2.0,
 ISC) albo licencje słabego copyleftu, które nie wymagają otwarcia naszego kodu: MPL-2.0 (certifi; lightningcss tylko przy
 budowaniu frontu), LGPL-2.1 (biblioteka GEOS w kole Shapely, Pango w obrazie Docker, obie linkowane dynamicznie). pyphen
 (dzielenie wyrazów w WeasyPrint) ma licencję do wyboru GPL/LGPL/MPL-1.1 i używamy go na MPL-1.1. Żaden komponent nie wymaga
@@ -223,6 +277,8 @@ GPL ani AGPL, więc autorskie prawa majątkowe do kodu zespołu można przenieś
 | TypeScript, class-variance-authority | Apache-2.0 |
 | lucide-react | ISC |
 | Caddy 2 (obraz Docker) | Apache-2.0 |
+| shadcn/ui (komponenty w `frontend/src/components/ui/`) | MIT |
+| Python 3.12 (obraz Docker) | PSF-2.0 |
 | GDAL (w kole rasterio) | MIT |
 | certifi (przez httpx) | MPL-2.0 |
 | pyphen (przez WeasyPrint) | GPL-2.0+ / LGPL-2.1+ / MPL-1.1 do wyboru (używamy MPL-1.1); słownik pl_PL: LPPL |
@@ -234,17 +290,21 @@ GPL ani AGPL, więc autorskie prawa majątkowe do kodu zespołu można przenieś
 
 | Źródło | Licencja i warunki |
 |---|---|
-| GUGiK: ULDK, UUG, NMT, ortofotomapa, PRG | dane publiczne PZGiK, bezpłatne (Prawo geodezyjne i kartograficzne, art. 40a ust. 2) |
+| GUGiK: ULDK, UUG, NMT, ortofotomapa, KIEG, PRG | dane publiczne PZGiK, bezpłatne (Prawo geodezyjne i kartograficzne, art. 40a ust. 2) |
 | Open-Meteo | CC BY 4.0. Darmowe API **tylko do użytku niekomercyjnego**, limit 10 000 wywołań/dzień; wdrożenie produkcyjne KOWR wymaga planu komercyjnego lub własnej instancji (open source, AGPL; uruchamiana jako osobna usługa, nie jest częścią naszego kodu) |
 | NASA POWER | dane NASA, bezpłatne, z podaniem źródła |
-| Sentinel-2, Copernicus DEM | dane Copernicus, bezpłatne, z podaniem źródła |
+| Sentinel-2 (Copernicus) | Legal Notice on the use of Copernicus Sentinel Data: bezpłatne, pełny i otwarty dostęp, z podaniem źródła („Contains modified Copernicus Sentinel data”) |
+| Copernicus DEM GLO-30 | licencja Copernicus DEM: bezpłatna, z podaniem źródła („© DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018 provided under COPERNICUS by the European Union and ESA”) |
+| ERA5 / ERA5-Land (przez Open-Meteo) | licencja Copernicus Climate Change Service: bezpłatna, z podaniem źródła (Copernicus Climate Change Service / ECMWF) |
 | Microsoft Planetary Computer | bezpłatny dostęp anonimowy (token SAS bez konta); dane na licencjach jak wyżej |
 | ISRIC SoilGrids 2.0 | CC BY 4.0 |
-| ESA WorldCover 2021 | CC BY 4.0 |
+| ESA WorldCover 2020 (v100) i 2021 (v200) | CC BY 4.0 (© ESA WorldCover project / Contains modified Copernicus Sentinel data) |
 | OpenStreetMap | ODbL 1.0 (© współtwórcy OpenStreetMap); kafle mapy wg polityki OSMF |
 | Wody Polskie (ISOK), PIG-PIB (PSH, podtopienia) | dane publiczne, bezpłatne, z podaniem źródła |
 | Dz.U. 2019 poz. 739 | akt prawny, nie podlega prawu autorskiemu (art. 4 pkt 1 ustawy o prawie autorskim) |
 | GUS | informacja publiczna, ponowne wykorzystanie z podaniem źródła |
+| FAO Irrigation and Drainage Papers 33, 56, 66 (Kc, fazy, Ky w plikach YAML) | publikacje FAO: wartości liczbowe cytowane z podaniem źródła (FAO dopuszcza wykorzystanie z odpowiednim przypisaniem) |
+| Obrys Polski (PRG GUGiK) w `poland.json` | dane PZGiK, bezpłatne (art. 40a ust. 2) |
 
 ## 8. Znane ograniczenia
 
@@ -279,13 +339,14 @@ GPL ani AGPL, więc autorskie prawa majątkowe do kodu zespołu można przenieś
   (raport pokazuje wtedy „źródło zapasowe”).
 - ULDK przy serii zapytań z jednego adresu potrafi ograniczać klienta na kilka minut; aplikacja ponawia zapytanie i pokazuje
   polski komunikat.
+- Prototyp działa jako jeden proces aplikacji (stan trwających analiz jest w pamięci), więc nie skaluje się poziomo bez zmian
+  opisanych w rozdz. 11. Cache na dysku i baza raportów nie są czyszczone automatycznie (dysk prototypu: 48 GB).
 - Bardzo małe działki (kilka pikseli 10 m) dają niską pewność wyników z satelity i terenu. Działki skrajnie duże i wieloczęściowe
   nie były systematycznie testowane. Działka, która nie wygląda na pole, łąkę ani sad, dostaje ostrzeżenie.
 
-
 ## 9. Weryfikacja wyników i rekomendacji
 
-- **Testy jednostkowe (ok. 1280, bez sieci):** wzory (bilans FAO-56, retencja gleby, percentyle, trendy, zagłębienia,
+- **Testy jednostkowe (ok. 1300, bez sieci):** wzory (bilans FAO-56, retencja gleby, percentyle, trendy, zagłębienia,
   symulator) na danych z fixture'ów, w tym przypadki brzegowe i statusy `missing` / `degraded` każdego źródła. Każda reguła
   zalecenia ma test „odpala się” i „nie odpala się”. Symulator ma test niezmiennika: dołożenie działania nigdy nie zwiększa
   liczby dni stresu.
@@ -307,47 +368,45 @@ GPL ani AGPL, więc autorskie prawa majątkowe do kodu zespołu można przenieś
 - **Dla rolnika:** **0 zł.** Bez konta, instalacji, płatnych licencji, znajomości GIS i specjalistycznego sprzętu — wystarczy przeglądarka internetowa.
 - **Usługi płatne w prototypie:** **brak.** Wszystkie źródła danych są bezpłatne i nie wymagają kluczy API.
 - **Infrastruktura demonstracyjna prototypu:** 1 VPS (1 vCPU, 2 GB RAM, 48 GB NVMe, Docker + Caddy) do oceny przez Jury — orientacyjnie **40–60 zł netto/mies.** Darmowa alternatywa (**0 zł**): uruchomienie lokalne w Dockerze (`docker compose up -d --build`).
-- **Ograniczenie prototypu:** pojedynczy VPS (SPOF) oraz darmowe warstwy API (niekomercyjny plan Open-Meteo z limitem 10 000 wywołań/dobę, publiczny Overpass, limitowany ULDK, anonimowe tokeny Planetary Computer) nie spełniają wymogów KRI (Dz.U. 2024 poz. 773) ani SLA dla wdrożenia krajowego.
+- **Ograniczenie prototypu:** pojedynczy VPS (pojedynczy punkt awarii) oraz darmowe warstwy API (niekomercyjny plan Open-Meteo z limitem 10 000 wywołań/dobę, publiczny Overpass, limitowany ULDK, anonimowe tokeny Planetary Computer) nie spełniają wymogów KRI (Dz.U. 2024 poz. 773) ani SLA dla wdrożenia krajowego.
 - **Docelowy dostęp do danych w produkcji (dla operatora — KOWR):**
-  - **Rejestry publiczne (0 zł licencji):** GUGiK EGiB/NMT/BDOT10k (art. 40a ust. 2 PGiK — bez danych osobowych), PGW Wody Polskie (MPHP/ISOK), PIG-PIB (PSH), GUS, Dz.U. 2019 poz. 739 oraz cyfrowa Mapa Glebowo-Rolnicza IUNG-PIB i dane IMGW-PIB (w ramach porozumień międzyinstytucjonalnych).
-  - **Usługi wymagające opłat SLA lub własnego hostingu:** meteorologia — plan komercyjny Open-Meteo (szac. 1–3 tys. zł/mies.) albo własny import IMGW-PIB/ERA5 (0 zł licencji; uwaga: ewentualny własny serwer Open-Meteo na AGPL-3.0 wyłącznie jako odrębny mikroserwis, nielinkowany z kodem GeoSatel; bezpłatny fallback NASA POWER już działa); satelita Sentinel-2 — gwarantowane przetwarzanie wsadowe CDSE / Sentinel Hub (1,5–4,5 tys. zł/mies.); podkład mapowy — własny serwer kafli lub komercyjny CDN zamiast darmowych serwerów OSMF (1–2,5 tys. zł/mies.; warstwa OSM ODbL 1.0 w osobnym schemacie *Collective Database*, bez mieszania z BDOT10k/MPHP).
+  - **Rejestry publiczne (0 zł licencji):** GUGiK EGiB/NMT/BDOT10k (art. 40a ust. 2 PGiK — bez danych osobowych), PGW Wody Polskie (MPHP/ISOK), PIG-PIB (PSH), GUS, Dz.U. 2019 poz. 739 oraz dane publiczne IMGW-PIB; cyfrowa mapa glebowo-rolnicza IUNG-PIB do uzgodnienia z instytutem.
+  - **Usługi wymagające opłat SLA lub własnego hostingu (koszty dla Etapu 2, rozdz. 11):** meteorologia — plan komercyjny Open-Meteo (szac. 1–3 tys. zł/mies.) albo własny import IMGW-PIB/ERA5 (0 zł licencji; uwaga: ewentualny własny serwer Open-Meteo na AGPL-3.0 wyłącznie jako odrębny mikroserwis, nielinkowany z kodem GeoSatel; bezpłatny fallback NASA POWER już działa); satelita Sentinel-2 — gwarantowane przetwarzanie wsadowe CDSE / Sentinel Hub (1,5–4,5 tys. zł/mies.); podkład mapowy — własny serwer kafli lub komercyjny CDN zamiast darmowych serwerów OSMF (1–2,5 tys. zł/mies.; warstwa OSM ODbL 1.0 w osobnym schemacie *Collective Database*, bez mieszania z BDOT10k/MPHP).
 
 ## 11. Skalowalność
 
 ### Mechanizmy już wdrożone w prototypie
-- **Cache dyskowy (TTL):** dane historyczne niezmienne wstecz (pogoda > 10 dni, historia satelitarna, gleba, NMT) nie wygasają; bieżąca pogoda 1 h; ULDK i OSM 24 h; adresy 7 dni; ISOK i ortofotomapa 30 dni. Powtórna analiza tej samej działki lub komórki siatki pogodowej (10 km) trwa < 1 s/źródło i nie zużywa limitów API. Po wdrożeniu `scripts/warm_cache.py` rozgrzewa cache dla 2 działek referencyjnych.
+- **Cache dyskowy (TTL):** dane historyczne niezmienne wstecz (pogoda > 10 dni, historia satelitarna, gleba, NMT) nie wygasają; bieżąca pogoda 1 h; ULDK i OSM 24 h; adresy 7 dni; ISOK i ortofotomapa 30 dni. Powtórna analiza tej samej działki lub komórki siatki pogodowej (10 km) trwa < 1 s/źródło i nie zużywa limitów API. Po wdrożeniu `backend/scripts/warm_cache.py` rozgrzewa cache dla 2 działek referencyjnych.
 - **Zapis wyników:** każdy raport trafia do SQLite pod stałym ID — ponowne otwarcie, PDF i druk nie wykonują zapytań zewnętrznych.
 - **Ograniczanie zapytań i izolacja błędów:** maks. 4 analizy jednocześnie, kolejka do 50 zadań (dalej HTTP 429), limity na klienta (10 analiz/min, 30/10 min, 120 zapytań o działkę/min), indywidualne timeouty, automatyczne fallbacki (NASA POWER, Copernicus DEM, WorldCover) i odczyt rastrów wyłącznie oknem działki (COG).
+- **Ograniczenie obecnej wersji:** jeden proces aplikacji (kolejka analiz w pamięci) i brak automatycznego czyszczenia cache
+  i bazy raportów; obie rzeczy rozwiązuje architektura z Etapu 1 poniżej (kolejka w Redis, PostgreSQL, Object Storage z TTL).
 - **Zmierzona wydajność prototypu:** **8–18 s** na zimno na 1 vCPU (E2E) — czas zdominowany przez oczekiwanie na zewnętrzne HTTP, a nie obliczenia.
 
 ### Model obciążenia i architektura ogólnopolska
 Ruch w polskim rolnictwie (~1,25 mln gospodarstw) jest silnie sezonowy (~75% zapytań w IV–VIII) i impulsowy (4–5× skok w dniach alertów suszowych IUNG-PIB; 45–50% ruchu wieczorem 18:00–22:00):
 - **Etap 1 — Pilotaż (Rok 1, SLA 99,5%):** 30–50 tys. rolników/rok, ~250 tys. analiz/rok (~1 225/dobę w sezonie; szczyt alertowy 550–750/godz.).
-- **Etap 2 — Skala kraju (SLA 99,9%):** 250–400 tys. rolników/rok, ~2,5 mln analiz/rok (~12 250/dobę typowo; **50–60 tys./dobę** w alertach IUNG, tj. 5,5–7,7 tys./godz., $\lambda \approx 1{,}5\text{–}2{,}1\text{/s}$, impulsy *burst* do ~4,2/s).
-- **Skalowanie poziome i hurtownia danych:** zamiast odpytywać limitowane API per działka, cykliczne potoki ETL zasilają lokalną hurtownię (PostgreSQL + PostGIS HA, Redis Cluster na kolejkę i limity, Object Storage S3/MinIO z automatycznym TTL): krajowe paczki EGiB, BDOT10k/MPHP/ISOK, NMT w COG, dekadowe mozaiki Sentinel-2 oraz całą siatkę pogodową Polski (**zaledwie ~3 500–4 000 oczek 10 km** pobieranych nocą — spadek liczby zapytań API o 3 rzędy wielkości). Z prawa Little’a ($W \approx 2\text{–}4\text{ s}$) klaster Etapu 2 wymaga **32–48 vCPU / 64–96 GB RAM** w szczycie IV–VIII (autoskalowanie zimą do 8–12 vCPU), **5–8 TB** magazynu (z 12-mies. retencją PDF i HA) oraz **1,5–6 TB/mies.** transferu w sezonie.
+- **Etap 2 — Skala kraju (SLA 99,9%):** 250–400 tys. rolników/rok, ~2,5 mln analiz/rok (~12 250/dobę typowo; **50–60 tys./dobę** w alertach IUNG, tj. 5,5–7,7 tys./godz., czyli średnio 1,5–2,1 analizy na sekundę, chwilowo do ~4,2/s).
+- **Skalowanie poziome i hurtownia danych:** zamiast odpytywać limitowane API per działka, cykliczne potoki ETL zasilają lokalną hurtownię (PostgreSQL + PostGIS HA, Redis Cluster na kolejkę i limity, Object Storage S3/MinIO z automatycznym TTL): krajowe paczki EGiB, BDOT10k/MPHP/ISOK, NMT w COG, mozaiki Sentinel-2 (odświeżane co 5 dni) oraz całą siatkę pogodową Polski (**zaledwie ~3 500–4 000 oczek 10 km** pobieranych nocą — spadek liczby zapytań API o 3 rzędy wielkości). Przy czasie odpowiedzi 2–4 s (prawo Little’a: liczba analiz w toku = tempo napływu × czas) klaster Etapu 2 wymaga **32–48 vCPU / 64–96 GB RAM** w szczycie IV–VIII (autoskalowanie zimą do 8–12 vCPU), **5–8 TB** magazynu (z 12-mies. retencją PDF i HA) oraz **1,5–6 TB/mies.** transferu w sezonie.
 - **Szybkość odpowiedzi przy dużym ruchu:** lokalna hurtownia skraca czas analizy przy 50–60 tys. analiz/dobę do **2–5 s (p95)** — znacznie poniżej progu 30 s z kryteriów oceny.
 - **Aktualizacja danych:** w prototypie źródła na żywo odświeżają się automatycznie, a pliki YAML (progi IUNG, ceny GUS) ręcznie. W produkcji: pogoda 1×/dobę o 04:00 (prognoza co 6 h), mozaiki Sentinel-2 co 5 dni, PSH 1×/dobę, EGiB miesięcznie, BDOT10k/MPHP/ISOK kwartalnie/rocznie, tabele IUNG/GUS rocznie w panelu administracyjnym.
 
 ### Szacunkowe koszty rozwoju i utrzymania (operator — ceny netto)
-*Inżynierskie szacunki rynkowe (chmura EOG: widełki dolne = IaaS / RChO, górne = zarządzana chmura HA przez ZUCH); wiążący budżet wymaga wyceny ofertowej (RFI/PZP).*
+*Inżynierskie szacunki rynkowe (chmura w EOG: widełki dolne = własne maszyny wirtualne lub chmura rządowa, górne = zarządzana chmura z wysoką dostępnością); wiążący budżet wymaga zapytania ofertowego zgodnie z Prawem zamówień publicznych.*
 
 | Pozycja (netto / mies.) | Etap 1: Pilotaż (250 tys. analiz/rok) | Etap 2: Skala kraju (2,5 mln analiz/rok) |
 | :--- | :---: | :---: |
 | Klaster obliczeniowy (autoskalowanie IV–VIII) + LB + WAF/CDN + transfer | 2 000 – 4 000 zł | 8 000 – 16 000 zł |
 | Bazy HA (PostGIS, Redis) + Object Storage S3 (1,5–8 TB) + backupy | 1 500 – 3 000 zł | 6 000 – 12 000 zł |
-| Bezpieczeństwo, monitoring i zgodność (KRI / KSC / NIS2 / SIEM) | 1 000 – 2 000 zł | 3 000 – 6 000 zł |
+| Bezpieczeństwo, monitoring i zgodność (Krajowe Ramy Interoperacyjności, krajowy system cyberbezpieczeństwa / NIS2, centralne zbieranie logów bezpieczeństwa) | 1 000 – 2 000 zł | 3 000 – 6 000 zł |
 | Profesjonalny dostęp do danych i serwer kafli mapowych (SLA) | 1 000 – 3 000 zł | 3 500 – 10 000 zł |
 | **Podsuma: infrastruktura i dane (miesięcznie / rocznie)** | **5,5–12 tys. zł / 66–144 tys. zł** | **20,5–44 tys. zł / 246–528 tys. zł** |
 | Utrzymanie techniczne, DevOps, SLA, aktualizacje (0,5–1 / 1,5–2,5 FTE) | 15 000 – 30 000 zł | 40 000 – 70 000 zł |
 | **Razem całkowity OPEX / TCO (miesięcznie / rocznie)** | **20,5–42 tys. zł / 246–504 tys. zł** | **60,5–114 tys. zł / 726 tys.–1,37 mln zł** |
 
-- **Koszt jednostkowy (Etap 2):** **0,10–0,21 zł** samej infrastruktury i danych za raport (**0,29–0,55 zł** z zespołem SLA), czyli **2,42–4,56 zł rocznie na aktywne gospodarstwo**.
+- **Koszt jednostkowy (Etap 2):** **0,10–0,21 zł** samej infrastruktury i danych za raport (**0,29–0,55 zł** z zespołem SLA), czyli **2,42–4,56 zł rocznie na aktywne gospodarstwo** (przy ~300 tys. gospodarstw korzystających w roku).
 - **Jednorazowy CAPEX „produktyzacji” (3–6 mies.):** szacunkowo **250–500 tys. zł netto** (migracja na PostGIS/Redis/S3, potoki ETL, audyt WCAG 2.1 AA, testy obciążeniowe na 50–60 tys. analiz/dobę, testy penetracyjne i zgodność z KRI/NIS2; niższy przy zaangażowaniu własnego zespołu IT KOWR).
 - **Opcjonalne dane premium (poza zakresem bazowym):** komercyjne zobrazowania wysokiej rozdzielczości (np. PlanetScope 3 m dla działek < 1 ha) stanowią odrębną pozycję licencyjną (rząd kilkuset tys. zł/rok) i nie są wymagane w wersji bazowej.
-
-
-
-
 
 ## 12. Bezpieczeństwo i dane osobowe
 
@@ -363,4 +422,5 @@ Ruch w polskim rolnictwie (~1,25 mln gospodarstw) jest silnie sezonowy (~75% zap
 
 ---
 
-Zespół **GeoSatel**. Repozytorium pozostaje prywatne do końca wydarzenia (regulamin § 2 ust. 6).
+Zespół **GeoSatel**. Rozwiązanie powstało w trakcie wydarzenia (historia git od 21.11.2026). Repozytorium pozostaje prywatne
+do końca wydarzenia (regulamin § 2 ust. 6); dostęp dla Jury zgodnie z instrukcją z Platformy konkursowej.

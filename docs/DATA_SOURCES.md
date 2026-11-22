@@ -109,6 +109,12 @@ Licencje: Usługa Uniwersalnego Geokodowania GUGiK — dane publiczne PZGiK (pun
 (Prawo geodezyjne i kartograficzne, art. 40a ust. 2), bez klucza i konta. Wody Polskie — jak wyżej. Obie usługi pobierane
 na żywo; wyszukiwanie adresu nie trafia do raportu ani logów (w cache na dysku zostaje sam tekst zapytania, bez adresu IP).
 
+## Warstwa mapy w przeglądarce
+
+| Źródło | Co | Licencja | Pobieranie |
+|---|---|---|---|
+| GUGiK Krajowa Integracja Ewidencji Gruntów (KIEG), WMS `https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow`, warstwy `dzialki`, `numery_dzialek` | granice i numery działek na mapie wyboru (`frontend/src/components/map/mapStyle.ts`) | dane PZGiK, bezpłatne (Prawo geodezyjne i kartograficzne, art. 40a ust. 2) | na żywo, przez przeglądarkę |
+
 ## Dane pobrane wcześniej (dołączone do aplikacji)
 
 | Plik | Źródło | Licencja | Zakres | Pobrane | Jak odtworzyć |

@@ -3,8 +3,6 @@
 **Zespół i rozwiązanie:** GeoSatel · **Zadanie:** KOWR „Zatrzymaj wodę, chroń plony”
 **Działająca wersja:** https://129.121.162.156.sslip.io
 
-*Szkic do wklejenia na Platformę. Zespół: skrócić do limitu znaków z formularza.*
-
 ## Problem
 
 Susza rolnicza w Polsce wraca coraz częściej, a rolnik nie ma prostego sposobu, żeby sprawdzić, czy jego pole ma za mało wody,
