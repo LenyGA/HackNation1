@@ -128,7 +128,7 @@ function Actions({ report, variant }: { report: Report; variant: ReportVariant }
 
 function VariantSwitch({ variant, onChange }: { variant: ReportVariant; onChange: (v: ReportVariant) => void }) {
   const options: { value: ReportVariant; label: string; hint: string }[] = [
-    { value: 'basic', label: 'Podstawowy', hint: 'najważniejsze wnioski i działania, 1–2 strony' },
+    { value: 'basic', label: 'Podstawowy', hint: 'podsumowanie i działania, 1–2 strony' },
     { value: 'full', label: 'Pełny', hint: 'wszystkie sekcje z wykresami, mapą i liczbami' },
   ]
   return (

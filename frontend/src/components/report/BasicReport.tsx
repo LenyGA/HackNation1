@@ -49,7 +49,7 @@ export function BasicReport({ report }: { report: Report }) {
       {verdicts.length > 0 && (
         <Card className="gap-3">
           <CardHeader>
-            <CardTitle className="text-lg">Najważniejsze wnioski</CardTitle>
+            <CardTitle className="text-lg">Podsumowanie</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">

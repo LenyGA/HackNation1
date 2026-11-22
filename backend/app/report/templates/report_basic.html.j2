@@ -49,7 +49,7 @@
 
 {% set verdicts = r.sections|selectattr('verdict_pl')|list %}
 {% if verdicts %}
-<h2>Najważniejsze wnioski</h2>
+<h2>Podsumowanie</h2>
 <ul class="verdicts">
 {% for s in verdicts %}
   <li><b>{% if s.id == 'causes' and r.headline.level == 'none' %}Co może sprzyjać niedoborom wody{% else %}{{ s.title_pl }}{% endif %}:</b> {{ s.verdict_pl }}</li>
