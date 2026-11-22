@@ -8,7 +8,7 @@ from datetime import date
 from statistics import median
 from typing import Any
 
-from shapely.geometry import Point, shape
+from shapely.geometry import Point, Polygon, shape
 
 from app.analysis.assessment import Assessment
 from app.analysis.context import AnalysisInputs, computed_source
@@ -32,6 +32,7 @@ from app.report.irrigation_economics import economics_view, technology_for
 from app.report.models import (
     ClimateTrends,
     FloodInfo,
+    FloodOverlay,
     FloodZone,
     Gauge,
     GroundwaterInfo,
@@ -870,7 +871,39 @@ ZONE_LABELS = {
 }
 
 
-def flood_info(r: SourceResult[FloodData] | None) -> FloodInfo | None:
+# Flood overlay image for the web map: margin around the parcel and ground size of one pixel. The service
+# draws nothing below 1:50 000; 2.5 m per pixel is about 1:9 000.
+FLOOD_OVERLAY_MARGIN_M = 1000.0
+FLOOD_OVERLAY_M_PER_PX = 2.5
+FLOOD_OVERLAY_MAX_PX = 2048
+
+
+def flood_overlay(parcel_geometry: dict[str, Any]) -> FloodOverlay | None:
+    """GetMap URL in EPSG:2180 around the parcel and the image corners in lon/lat."""
+    try:
+        geom = to_crs(shape(parcel_geometry), METRIC_CRS)
+    except Exception:  # noqa: BLE001 - a broken geometry only costs the overlay
+        return None
+    if geom.is_empty:
+        return None
+    minx, miny, maxx, maxy = geom.bounds
+    cx, cy = (minx + maxx) / 2, (miny + maxy) / 2
+    half = max(maxx - minx, maxy - miny) / 2 + FLOOD_OVERLAY_MARGIN_M
+    px = min(FLOOD_OVERLAY_MAX_PX, math.ceil(2 * half / FLOOD_OVERLAY_M_PER_PX))
+    x0, y0, x1, y1 = cx - half, cy - half, cx + half, cy + half
+    # WMS 1.3.0 with EPSG:2180 uses the northing-first axis order.
+    url = (
+        f"{MZP_WMS}?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS={MZP_LAYER}&STYLES=&FORMAT=image/png"
+        f"&TRANSPARENT=true&CRS=EPSG:2180&WIDTH={px}&HEIGHT={px}&BBOX={y0:.0f},{x0:.0f},{y1:.0f},{x1:.0f}"
+    )
+    ring = to_crs(Polygon([(x0, y1), (x1, y1), (x1, y0), (x0, y0)]), 4326, METRIC_CRS)
+    corners = [(round(x, 6), round(y, 6)) for x, y in list(ring.exterior.coords)[:4]]
+    return FloodOverlay(url=url, corners=corners)
+
+
+def flood_info(
+    r: SourceResult[FloodData] | None, parcel_geometry: dict[str, Any] | None = None
+) -> FloodInfo | None:
     if r is None:
         return None
     d = r.data
@@ -918,6 +951,7 @@ def flood_info(r: SourceResult[FloodData] | None) -> FloodInfo | None:
         zones=zones,
         wms_url=MZP_WMS,
         wms_layers=[MZP_LAYER],
+        overlay=flood_overlay(parcel_geometry) if parcel_geometry else None,
         source=r.source,
     )
 

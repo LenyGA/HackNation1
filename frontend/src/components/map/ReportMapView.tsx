@@ -58,22 +58,22 @@ function popupHtml(label: string, recs: string): string {
   return `<strong>${escapeHtml(label)}</strong>${rec}`
 }
 
-/** Report map: parcel outline, where water gathers and leaves the field, nearby water and trees,
- *  with numbered markers that match the recommendation numbers in section 5. */
-/** WMS GetMap tile template in Web Mercator (MapLibre fills in the tile bbox). */
-function wmsTiles(url: string, layers: string[]): string {
-  const sep = url.includes('?') ? '&' : '?'
-  return (
-    `${url}${sep}SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=${encodeURIComponent(layers.join(','))}` +
-    '&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}'
-  )
+/** Image corners as MapLibre expects them: exactly four [lon, lat] pairs. */
+type Corners = [[number, number], [number, number], [number, number], [number, number]]
+
+function overlayCorners(c: [number, number][]): Corners | null {
+  return c.length === 4 ? (c as Corners) : null
 }
 
+/** Report map: parcel outline, where water gathers and leaves the field, nearby water and trees,
+ *  with numbered markers that match the recommendation numbers in section 5. */
 export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flood?: FloodInfo | null }) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
-  const floodUrl = flood?.wms_url && flood.wms_layers.length > 0 ? wmsTiles(flood.wms_url, flood.wms_layers) : null
-  // The legend entry appears only once a flood tile has really loaded (CSP or a slow service may block them),
+  // The flood service draws only in EPSG:2180, so the server gives one image with its corners (not WMS tiles).
+  const floodUrl = flood?.overlay?.url ?? null
+  const floodCorners = flood?.overlay ? overlayCorners(flood.overlay.corners) : null
+  // The flood legend appears only once the image has really loaded (CSP or a slow service may block it),
   // so an empty map never reads as "no flood zone".
   const [loadedFloodUrl, setLoadedFloodUrl] = useState<string | null>(null)
   const { full, toggle, fullRef } = useMapFullscreen(mapRef)
@@ -86,7 +86,9 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
       // Overlays are part of the initial style, so they are drawn without waiting for the WMS tiles.
       style: baseStyle(
         {
-          ...(floodUrl ? { flood: { type: 'raster' as const, tiles: [floodUrl], tileSize: 256, attribution: 'Mapy zagrożenia powodziowego © Wody Polskie (ISOK)' } } : {}),
+          ...(floodUrl && floodCorners
+            ? { flood: { type: 'image' as const, url: floodUrl, coordinates: floodCorners } }
+            : {}),
           features: { type: 'geojson', data: featureCollection(data) },
           parcel: {
             type: 'geojson',
@@ -94,7 +96,9 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
           },
         },
         [
-          ...(floodUrl ? [{ id: 'flood', type: 'raster' as const, source: 'flood', paint: { 'raster-opacity': 0.5 } }] : []),
+          ...(floodUrl && floodCorners
+            ? [{ id: 'flood', type: 'raster' as const, source: 'flood', paint: { 'raster-opacity': 0.9, 'raster-fade-duration': 0 } }]
+            : []),
           {
             id: 'f-fill',
             type: 'fill',
@@ -152,7 +156,7 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
     // One handler for all feature layers, so a click on a polygon edge opens one popup, not two.
     let popup: Popup | null = null
     map.on('sourcedata', (e) => {
-      if (floodUrl && e.sourceId === 'flood' && e.tile) setLoadedFloodUrl(floodUrl)
+      if (floodUrl && e.sourceId === 'flood' && e.isSourceLoaded) setLoadedFloodUrl(floodUrl)
     })
     map.on('click', (e) => {
       const layers = FEATURE_LAYERS.filter((id) => map.getLayer(id))
@@ -189,7 +193,7 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
       mapRef.current = null
       map.remove()
     }
-  }, [data, floodUrl, fullRef])
+  }, [data, floodUrl, floodCorners, fullRef])
 
   const kinds = KIND_ORDER.filter((k) => data.legend_pl[k])
   const hasNumbered = data.features.some((f) => f.recommendation_numbers.length > 0)
@@ -212,16 +216,39 @@ export function ReportMapView({ map: data, flood = null }: { map: ReportMap; flo
             Numer zalecenia z listy poniżej
           </li>
         )}
-        {floodUrl && loadedFloodUrl === floodUrl && (
-          <li className="flex items-center gap-2">
-            <span className="inline-block h-3 w-5 rounded-sm" style={{ background: '#60a5fa', opacity: 0.6 }} aria-hidden />
-            Strefa zagrożenia powodziowego
-          </li>
-        )}
         {kinds.map((k) => (
           <li key={k} className="flex items-center gap-2">
             <LegendSwatch kind={k} />
             {data.legend_pl[k]}
+          </li>
+        ))}
+      </ul>
+      {floodUrl && loadedFloodUrl === floodUrl && <FloodLegend />}
+    </div>
+  )
+}
+
+// Line colours of the ISOK flood-hazard WMS (GetLegendGraphic of NZ.Fluvial): the layer draws zone outlines,
+// not blue areas, so the legend shows outlines too and never looks like a river or ditch.
+const FLOOD_SCENARIOS: { color: string; label: string }[] = [
+  { color: '#04b834', label: 'raz na 10 lat' },
+  { color: '#f79902', label: 'raz na 100 lat' },
+  { color: '#db0902', label: 'raz na 500 lat' },
+]
+
+function FloodLegend() {
+  return (
+    <div className="rounded-md border px-3 py-2 text-sm">
+      <p className="font-medium">Strefy zagrożenia powodziowego (mapy Wód Polskich, ISOK)</p>
+      <p className="text-xs text-muted-foreground">
+        Kolorowe obrysy pokazują, jak daleko może sięgnąć woda przy wezbraniu rzeki. To nie są cieki ani rowy — te są
+        narysowane niebieskimi liniami.
+      </p>
+      <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+        {FLOOD_SCENARIOS.map((f) => (
+          <li key={f.color} className="flex items-center gap-2">
+            <span className="inline-block h-3 w-5 rounded-sm border-2 bg-transparent" style={{ borderColor: f.color }} aria-hidden />
+            {f.label}
           </li>
         ))}
       </ul>

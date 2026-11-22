@@ -239,3 +239,32 @@ def test_groundwater_flooding_area_is_not_shown_as_safe() -> None:
     info = flood_info(res)
     assert info is not None and info.level == "low" and info.label_pl == "Możliwe podtopienia"
     assert "podtopieniami" in info.sentence_pl
+
+
+def test_flood_overlay_is_an_epsg2180_image_around_the_parcel() -> None:
+    # ISOK draws nothing in EPSG:3857, so the web map gets one EPSG:2180 image with lon/lat corners (M8.6).
+    from app.report.outlook import FLOOD_OVERLAY_MAX_PX, flood_overlay
+
+    g = {
+        "type": "Polygon",
+        "coordinates": [[[21.03, 52.23], [21.035, 52.23], [21.035, 52.233], [21.03, 52.233], [21.03, 52.23]]],
+    }
+    o = flood_overlay(g)
+    assert o is not None
+    assert "CRS=EPSG:2180" in o.url and "LAYERS=NZ.Fluvial" in o.url
+    assert len(o.corners) == 4
+    lons = [c[0] for c in o.corners]
+    lats = [c[1] for c in o.corners]
+    # The image covers the parcel with a margin (about 1 km on each side).
+    assert min(lons) < 21.03 - 0.01 and max(lons) > 21.035 + 0.01
+    assert min(lats) < 52.23 - 0.005 and max(lats) > 52.233 + 0.005
+    # Corner order: top-left, top-right, bottom-right, bottom-left.
+    assert o.corners[0][1] > o.corners[3][1] and o.corners[1][0] > o.corners[0][0]
+    width = int(o.url.split("WIDTH=")[1].split("&")[0])
+    assert 0 < width <= FLOOD_OVERLAY_MAX_PX
+
+
+def test_flood_overlay_skips_a_broken_geometry() -> None:
+    from app.report.outlook import flood_overlay
+
+    assert flood_overlay({"type": "Polygon", "coordinates": []}) is None

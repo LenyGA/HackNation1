@@ -448,6 +448,12 @@ export interface FloodZone {
   hit: boolean | null
 }
 
+/** Flood-zone image in EPSG:2180 with its corners in lon/lat (top-left, top-right, bottom-right, bottom-left). */
+export interface FloodOverlay {
+  url: string
+  corners: [number, number][]
+}
+
 export interface FloodInfo {
   status: SourceStatus
   level: 'high' | 'medium' | 'low' | 'none' | 'unknown'
@@ -456,6 +462,8 @@ export interface FloodInfo {
   zones: FloodZone[]
   wms_url: string | null
   wms_layers: string[]
+  /** Missing in reports saved before the overlay existed. */
+  overlay?: FloodOverlay | null
   source: string
 }
 

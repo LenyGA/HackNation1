@@ -833,7 +833,7 @@ def build_report(
     limitations = _limitations(assessment, ctx)
     ctx["headline"] = _headline(ctx, assessment)
     ctx["created_at"] = created_at
-    flood = flood_info(inputs.flood)
+    flood = flood_info(inputs.flood, inputs.parcel.geometry)
     outlook = build_outlook(inputs, assessment, recs, irrigation, flood)
     ctx["outlook"] = outlook
     return Report(

@@ -418,6 +418,18 @@ class FloodZone(BaseModel):
     hit: bool | None = Field(description="True = parcel touches the zone; None = not checked.")
 
 
+class FloodOverlay(BaseModel):
+    """One WMS GetMap image of the flood-hazard zones around the parcel, for the web map.
+
+    The ISOK service renders only in its native EPSG:2180 (EPSG:3857 tiles come back empty), so the server
+    builds one EPSG:2180 image and gives its corners in lon/lat (top-left, top-right, bottom-right,
+    bottom-left).
+    """
+
+    url: str
+    corners: list[tuple[float, float]] = Field(min_length=4, max_length=4)
+
+
 class FloodInfo(BaseModel):
     status: SourceStatus
     level: Literal["high", "medium", "low", "none", "unknown"]
@@ -426,6 +438,7 @@ class FloodInfo(BaseModel):
     zones: list[FloodZone]
     wms_url: str | None = None
     wms_layers: list[str] = Field(default_factory=list)
+    overlay: FloodOverlay | None = None
     source: str
 
 
